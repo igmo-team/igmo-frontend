@@ -1,5 +1,16 @@
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+
+import { HomePage } from './pages/home/HomePage';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <HomePage />,
+  },
+]);
+
 function App() {
-  return <div>igmo</div>;
+  return <RouterProvider router={router} />;
 }
 
 export default App;
