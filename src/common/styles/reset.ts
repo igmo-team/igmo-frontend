@@ -49,6 +49,10 @@ export const resetCss = css`
     vertical-align: baseline;
   }
 
+  html {
+    font-size: 62.5%;
+  }
+
   article,
   aside,
   details,
