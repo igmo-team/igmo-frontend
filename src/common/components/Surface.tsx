@@ -10,10 +10,16 @@ type SurfacePadding = 'sm' | 'md' | 'lg';
 type SurfaceProps = ComponentPropsWithRef<'div'> & {
   tone?: SurfaceTone;
   padding?: SurfacePadding;
+  shadow?: boolean;
 };
 
-function Surface({ tone = 'default', padding = 'md', ...rest }: SurfaceProps) {
-  return <S_Surface tone={tone} padding={padding} {...rest} />;
+function Surface({
+  tone = 'default',
+  padding = 'md',
+  shadow = false,
+  ...rest
+}: SurfaceProps) {
+  return <S_Surface tone={tone} padding={padding} shadow={shadow} {...rest} />;
 }
 
 export default Surface;
@@ -31,12 +37,15 @@ const borderColor = (theme: Theme): Record<SurfaceTone, string> => ({
 });
 
 const S_Surface = styled('div', {
-  shouldForwardProp: (prop) => prop !== 'tone' && prop !== 'padding',
-})<{ tone: SurfaceTone; padding: SurfacePadding }>`
+  shouldForwardProp: (prop) =>
+    prop !== 'tone' && prop !== 'padding' && prop !== 'shadow',
+})<{ tone: SurfaceTone; padding: SurfacePadding; shadow: boolean }>`
   width: 100%;
   padding: ${({ padding }) => PADDING[padding]};
   background: ${({ theme }) => theme.COLOR.WHITE};
   border: ${({ theme }) => theme.BORDER.DEFAULT};
   border-color: ${({ theme, tone }) => borderColor(theme)[tone]};
   border-radius: ${({ theme }) => theme.RADIUS.LG};
+  box-shadow: ${({ theme, shadow }) =>
+    shadow ? theme.SHADOW.SURFACE : 'none'};
 `;

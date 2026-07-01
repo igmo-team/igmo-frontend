@@ -5,10 +5,12 @@ import styled from '@emotion/styled';
 
 import type { Theme } from '@emotion/react';
 
-type TextareaProps = ComponentPropsWithRef<'textarea'>;
+type TextareaProps = ComponentPropsWithRef<'textarea'> & {
+  shadow?: boolean;
+};
 
-function Textarea(props: TextareaProps) {
-  return <S_Textarea {...props} />;
+function Textarea({ shadow = false, ...rest }: TextareaProps) {
+  return <S_Textarea shadow={shadow} {...rest} />;
 }
 
 export default Textarea;
@@ -36,9 +38,16 @@ const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
   }
 `;
 
-const S_Textarea = styled.textarea`
+const S_Textarea = styled('textarea', {
+  shouldForwardProp: (prop) => prop !== 'shadow',
+})<{ shadow: boolean }>`
   ${fieldBaseStyle}
   padding: 1.8rem;
   border-radius: ${({ theme }) => theme.RADIUS.LG};
   resize: none;
+  ${({ theme, shadow }) =>
+    shadow &&
+    css`
+      box-shadow: ${theme.SHADOW.SURFACE};
+    `}
 `;
