@@ -13,6 +13,21 @@
 - Check whether the code is unnecessarily hard to understand, modify, or test.
 - Check whether duplicated logic, premature abstraction, or unclear responsibility boundaries create practical maintenance risk.
 
+## Frontend review focus
+
+- Check whether derived values are unnecessarily stored in state instead of being computed from existing props or state.
+- Check whether `useEffect` dependencies are correct and whether the effect can run with stale values or unnecessary re-runs.
+- Check whether interaction logic is placed in event handlers instead of being driven indirectly through `useEffect`.
+- Check whether effects that register events, timers, subscriptions, or external SDK callbacks clean them up correctly.
+- Check whether previous-state updates need functional `setState` to avoid stale state bugs.
+- Check whether transient values that do not affect rendering are unnecessarily stored in state instead of refs.
+- Check whether components are defined inside other components in a way that can recreate component types on every render.
+- Check whether conditional rendering safely handles loading, error, empty, and unavailable data states.
+- Check whether large libraries or heavy components are unnecessarily included in the initial bundle.
+- Check whether component props form a clear API and whether state ownership between parent and child is clear.
+- Suggest component API changes only when the current props make responsibilities unclear, duplicate business logic, or increase inconsistent behavior risk.
+- Check whether boolean props or premature abstractions make component behavior harder to understand or extend.
+
 ## Do not review
 
 - Do not comment on formatting, import order, or unused imports unless they can cause a real bug.
