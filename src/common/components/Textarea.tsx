@@ -36,6 +36,12 @@ const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
   &:focus {
     border-color: ${theme.COLOR.PRIMARY500};
   }
+
+  &:disabled {
+    color: ${theme.COLOR.TEXT_SUBTLE};
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
 `;
 
 const S_Textarea = styled('textarea', {
