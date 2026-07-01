@@ -29,8 +29,9 @@ export const THEME = {
   TYPOGRAPHY: {
     LOGO: css`
       font-family: 'Jua', 'Pretendard', 'Pretendard Variable', sans-serif;
-      font-size: 4.6rem;
+      font-size: 8rem;
       line-height: 1;
+      font-weight: 700;
     `,
 
     DISPLAY: css`
@@ -63,45 +64,81 @@ export const THEME = {
       line-height: 1.2;
     `,
 
-    BODY1: css`
+    B1_R: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 400;
+      line-height: 1.5;
+    `,
+    B1_B: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1.5;
+    `,
+
+    B2_R: css`
       font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
       font-size: 1.6rem;
-      font-weight: 600;
+      font-weight: 400;
+      line-height: 1.5;
+    `,
+    B2_B: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 700;
       line-height: 1.5;
     `,
 
-    BODY2: css`
+    B3_R: css`
       font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
       font-size: 1.5rem;
-      font-weight: 600;
+      font-weight: 400;
+      line-height: 1.5;
+    `,
+    B3_B: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
       line-height: 1.5;
     `,
 
-    BODY3: css`
+    B4_R: css`
       font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
       font-size: 1.4rem;
-      font-weight: 600;
+      font-weight: 400;
+      line-height: 1.5;
+    `,
+    B4_B: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
       line-height: 1.5;
     `,
 
-    BODY4: css`
+    B5_R: css`
       font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
       font-size: 1.3rem;
-      font-weight: 600;
+      font-weight: 400;
+      line-height: 1.5;
+    `,
+    B5_B: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
       line-height: 1.5;
     `,
 
-    BODY5: css`
+    B6_R: css`
       font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
       font-size: 1.2rem;
-      font-weight: 600;
+      font-weight: 400;
       line-height: 1.5;
     `,
-
-    BODY6: css`
+    B6_B: css`
       font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-size: 1.2rem;
+      font-weight: 700;
       line-height: 1.5;
     `,
 
