@@ -1,4 +1,4 @@
-import type { ComponentPropsWithRef } from 'react';
+import { type ComponentPropsWithRef } from 'react';
 
 import { css } from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,7 +7,7 @@ import type { Theme } from '@emotion/react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'dark';
 type ButtonSize = 'sm' | 'md' | 'lg';
-type ButtonWidth = 'full' | 'hug' | 'flex';
+type ButtonWidth = 'full' | 'hug';
 
 type ButtonProps = ComponentPropsWithRef<'button'> & {
   variant?: ButtonVariant;
@@ -76,9 +76,6 @@ const WIDTH_STYLES = {
   `,
   hug: css`
     width: fit-content;
-  `,
-  flex: css`
-    flex: 1;
   `,
 };
 
