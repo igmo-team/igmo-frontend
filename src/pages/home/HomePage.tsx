@@ -22,7 +22,6 @@ const S_Page = styled.main`
   gap: 3.2rem;
   padding: 4rem 2.4rem 9.6rem;
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
-  font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
 `;
 
 const S_Footnote = styled.p`
