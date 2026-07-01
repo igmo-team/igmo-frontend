@@ -167,5 +167,6 @@ export const THEME = {
 
   SHADOW: {
     BUTTON: '0 0.5rem 0 #1B1130',
+    SURFACE: '0 0.6rem 0 #1B1130',
   },
 } as const;
