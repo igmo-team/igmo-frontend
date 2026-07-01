@@ -10,6 +10,8 @@
 - Check for security, privacy, authentication, authorization, or sensitive data exposure issues.
 - Check whether the change scope is unnecessarily broad for the PR goal.
 - Check whether tests or verification evidence are missing for risky changes.
+- Check whether the code is unnecessarily hard to understand, modify, or test.
+- Check whether duplicated logic, premature abstraction, or unclear responsibility boundaries create practical maintenance risk.
 
 ## Do not review
 
@@ -27,5 +29,8 @@
 - Each comment should include the file location, the problem, the impact, and a practical fix direction.
 - When possible, include the condition or reproduction flow that triggers the issue.
 - If a comment is based on an assumption, explicitly state that it is an assumption and describe what evidence should be checked.
-- Leave comments only for correctness, regression, security, user impact, or meaningful maintainability risks.
+- Leave comments for actionable issues that affect correctness, regression risk, security, user impact, maintainability, readability, or testability.
+- Non-blocking comments are acceptable when they are specific, practical, and likely to improve the code.
+- If no blocking issue exists, still mention any specific actionable non-blocking issue that would improve correctness, maintainability, readability, user experience, or testability.
+- If no actionable issue exists, leave a concise Korean summary stating what was reviewed and that no actionable issue was found.
 - If something is unclear, ask a question instead of making a firm claim.
