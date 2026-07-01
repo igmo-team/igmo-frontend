@@ -164,4 +164,8 @@ export const THEME = {
     IMAGE: '2.2rem',
     PILL: '999px',
   },
+
+  SHADOW: {
+    BUTTON: '0 0.5rem 0 #1B1130',
+  },
 } as const;
