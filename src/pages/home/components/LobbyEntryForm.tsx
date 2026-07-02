@@ -45,8 +45,13 @@ export function LobbyEntryForm() {
 
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
-    onSuccess: ({ roomCode }) => {
-      navigate(`${PAGE_URL.LOBBY}/${roomCode}`);
+    onSuccess: ({ roomCode, playerId, snapshot }) => {
+      navigate(`${PAGE_URL.LOBBY}/${roomCode}`, {
+        state: {
+          playerId,
+          snapshot,
+        },
+      });
     },
     onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
@@ -63,8 +68,13 @@ export function LobbyEntryForm() {
 
   const { mutate: joinGame, isPending: isJoinGamePending } = useMutation({
     mutationFn: postGamePlayer,
-    onSuccess: ({ snapshot }) => {
-      navigate(`${PAGE_URL.LOBBY}/${snapshot.roomCode}`);
+    onSuccess: ({ playerId, snapshot }) => {
+      navigate(`${PAGE_URL.LOBBY}/${snapshot.roomCode}`, {
+        state: {
+          playerId,
+          snapshot,
+        },
+      });
     },
     onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
