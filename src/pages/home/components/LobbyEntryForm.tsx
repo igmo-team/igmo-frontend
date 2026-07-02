@@ -122,10 +122,12 @@ export function LobbyEntryForm() {
 
   const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNickname(e.target.value);
+    setErrorMessage('');
   };
 
   const handleRoomCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRoomCode(e.target.value);
+    setErrorMessage('');
   };
 
   const handleJoinModeButtonClick = () => {
@@ -150,9 +152,7 @@ export function LobbyEntryForm() {
           value={nickname}
           disabled={isEntryPending}
           aria-invalid={isNicknameInvalid}
-          aria-describedby={
-            isNicknameInvalid ? entryErrorMessageId : undefined
-          }
+          aria-describedby={isNicknameInvalid ? entryErrorMessageId : undefined}
           onChange={handleNicknameChange}
         />
         {isJoinMode && (
