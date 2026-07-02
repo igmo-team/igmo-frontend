@@ -7,16 +7,22 @@ import { useNavigate } from 'react-router-dom';
 
 import { Button, Input, Surface } from '../../../common/components';
 import { PAGE_URL } from '../../../common/constants/pageUrl';
-import { postGames } from '../apis/postGames';
+import postGames from '../apis/postGames';
 
 type ErrorResponse = {
   message?: string;
 };
 
+type EntryMode = 'create' | 'join';
+
 export function LobbyEntryForm() {
   const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
+  const [roomCode, setRoomCode] = useState('');
+  const [entryMode, setEntryMode] = useState<EntryMode>('create');
   const [errorMessage, setErrorMessage] = useState('');
+
+  const isJoinMode = entryMode === 'join';
 
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
@@ -59,6 +65,21 @@ export function LobbyEntryForm() {
     setNickname(e.target.value);
   };
 
+  const handleRoomCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRoomCode(e.target.value);
+  };
+
+  const handleJoinModeButtonClick = () => {
+    setEntryMode('join');
+    setErrorMessage('');
+  };
+
+  const handleCancelJoinButtonClick = () => {
+    setEntryMode('create');
+    setRoomCode('');
+    setErrorMessage('');
+  };
+
   return (
     <S_Form onSubmit={handleSubmit}>
       <S_FormCard padding="lg">
@@ -73,15 +94,53 @@ export function LobbyEntryForm() {
           aria-describedby={errorMessage ? 'nickname-error' : undefined}
           onChange={handleNicknameChange}
         />
+        {isJoinMode && (
+          <>
+            <S_FieldLabel htmlFor="room-code">방 코드</S_FieldLabel>
+            <Input
+              id="room-code"
+              maxLength={4}
+              placeholder="예: ABCD"
+              value={roomCode}
+              disabled={isCreateGamePending}
+              onChange={handleRoomCodeChange}
+            />
+          </>
+        )}
         {errorMessage && (
           <S_ErrorMessage id="nickname-error">{errorMessage}</S_ErrorMessage>
         )}
-        <Button type="submit" disabled={isCreateGamePending}>
-          {isCreateGamePending ? '방 만드는 중...' : '새 방 만들기'}
-        </Button>
-        <Button variant="secondary" size="md" disabled={isCreateGamePending}>
-          코드로 참여하기
-        </Button>
+        {isJoinMode ? (
+          <>
+            <Button type="button" disabled={isCreateGamePending}>
+              참여하기
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              disabled={isCreateGamePending}
+              onClick={handleCancelJoinButtonClick}
+            >
+              취소
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="submit" disabled={isCreateGamePending}>
+              {isCreateGamePending ? '방 만드는 중...' : '새 방 만들기'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              disabled={isCreateGamePending}
+              onClick={handleJoinModeButtonClick}
+            >
+              코드로 참여하기
+            </Button>
+          </>
+        )}
       </S_FormCard>
     </S_Form>
   );

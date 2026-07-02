@@ -12,7 +12,7 @@ type PostGamesResponse = {
   snapshot: LobbySnapshot;
 };
 
-export function postGames(data: PostGamesRequest) {
+export default function postGames(data: PostGamesRequest) {
   return client.post<PostGamesResponse, PostGamesRequest>({
     url: '/games',
     data,
