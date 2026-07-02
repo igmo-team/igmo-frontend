@@ -28,6 +28,13 @@ export function LobbyEntryForm() {
   const [errorMessage, setErrorMessage] = useState('');
 
   const isJoinMode = entryMode === 'join';
+  const nicknameErrorMessage = getNicknameErrorMessage(nickname);
+  const roomCodeErrorMessage = isJoinMode
+    ? getRoomCodeErrorMessage(roomCode)
+    : null;
+  const isNicknameInvalid = errorMessage === nicknameErrorMessage;
+  const isRoomCodeInvalid = errorMessage === roomCodeErrorMessage;
+  const entryErrorMessageId = errorMessage ? 'entry-error' : undefined;
 
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
@@ -91,8 +98,6 @@ export function LobbyEntryForm() {
       return;
     }
 
-    const nicknameErrorMessage = getNicknameErrorMessage(nickname);
-
     if (nicknameErrorMessage) {
       setErrorMessage(nicknameErrorMessage);
       return;
@@ -137,8 +142,10 @@ export function LobbyEntryForm() {
           placeholder="예: 그림탐정"
           value={nickname}
           disabled={isEntryPending}
-          aria-invalid={!!errorMessage}
-          aria-describedby={errorMessage ? 'nickname-error' : undefined}
+          aria-invalid={isNicknameInvalid}
+          aria-describedby={
+            isNicknameInvalid ? entryErrorMessageId : undefined
+          }
           onChange={handleNicknameChange}
         />
         {isJoinMode && (
@@ -150,12 +157,16 @@ export function LobbyEntryForm() {
               placeholder="예: ABCD"
               value={roomCode}
               disabled={isEntryPending}
+              aria-invalid={isRoomCodeInvalid}
+              aria-describedby={
+                isRoomCodeInvalid ? entryErrorMessageId : undefined
+              }
               onChange={handleRoomCodeChange}
             />
           </>
         )}
         {errorMessage && (
-          <S_ErrorMessage id="nickname-error">{errorMessage}</S_ErrorMessage>
+          <S_ErrorMessage id="entry-error">{errorMessage}</S_ErrorMessage>
         )}
         {isJoinMode ? (
           <>
