@@ -6,6 +6,7 @@ import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 import { Button, Input, Surface } from '../../../common/components';
+import { PAGE_URL } from '../../../common/constants/pageUrl';
 import { postGames } from '../apis/postGames';
 
 type ErrorResponse = {
@@ -20,7 +21,7 @@ export function LobbyEntryForm() {
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
     onSuccess: ({ roomCode }) => {
-      navigate(`/lobby/${roomCode}`);
+      navigate(`${PAGE_URL.LOBBY}/${roomCode}`);
     },
     onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
