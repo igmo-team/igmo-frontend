@@ -45,6 +45,11 @@ export function LobbyEntryForm() {
       return;
     }
 
+    if (trimmedNickname.length < 2) {
+      setErrorMessage('닉네임은 2자 이상 입력해주세요.');
+      return;
+    }
+
     setErrorMessage('');
     createGame({ nickname: trimmedNickname });
   };
