@@ -54,6 +54,10 @@ export function LobbyEntryForm() {
     createGame({ nickname: trimmedNickname });
   };
 
+  const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNickname(e.target.value);
+  };
+
   return (
     <S_Form onSubmit={handleSubmit}>
       <S_FormCard padding="lg">
@@ -66,7 +70,7 @@ export function LobbyEntryForm() {
           disabled={isCreateGamePending}
           aria-invalid={!!errorMessage}
           aria-describedby={errorMessage ? 'nickname-error' : undefined}
-          onChange={(event) => setNickname(event.target.value)}
+          onChange={handleNicknameChange}
         />
         {errorMessage && (
           <S_ErrorMessage id="nickname-error">{errorMessage}</S_ErrorMessage>
