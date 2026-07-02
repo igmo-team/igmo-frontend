@@ -24,11 +24,11 @@ const S_Page = styled.main`
 `;
 
 const S_Title = styled.h1`
-  ${({ theme }) => theme.TYPOGRAPHY.H2}
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE2}
   color: ${({ theme }) => theme.COLOR.TEXT};
 `;
 
 const S_RoomCode = styled.p`
-  ${({ theme }) => theme.TYPOGRAPHY.H1}
+  ${({ theme }) => theme.TYPOGRAPHY.DISPLAY}
   color: ${({ theme }) => theme.COLOR.PRIMARY500};
 `;
