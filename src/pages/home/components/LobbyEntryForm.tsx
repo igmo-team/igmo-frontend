@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useMutation } from '@tanstack/react-query';
@@ -22,6 +22,7 @@ type EntryMode = 'create' | 'join';
 
 export function LobbyEntryForm() {
   const navigate = useNavigate();
+  const roomCodeInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [entryMode, setEntryMode] = useState<EntryMode>('create');
@@ -35,6 +36,12 @@ export function LobbyEntryForm() {
   const isNicknameInvalid = errorMessage === nicknameErrorMessage;
   const isRoomCodeInvalid = errorMessage === roomCodeErrorMessage;
   const entryErrorMessageId = errorMessage ? 'entry-error' : undefined;
+
+  useEffect(() => {
+    if (isJoinMode) {
+      roomCodeInputRef.current?.focus();
+    }
+  }, [isJoinMode]);
 
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
@@ -152,6 +159,7 @@ export function LobbyEntryForm() {
           <>
             <S_FieldLabel htmlFor="room-code">방 코드</S_FieldLabel>
             <Input
+              ref={roomCodeInputRef}
               id="room-code"
               maxLength={4}
               placeholder="예: ABCD"
