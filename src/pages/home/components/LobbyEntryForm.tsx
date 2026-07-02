@@ -1,7 +1,7 @@
-import { type FormEvent, useState } from 'react';
+import { useState } from 'react';
 
-import { useMutation } from '@tanstack/react-query';
 import styled from '@emotion/styled';
+import { useMutation } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,27 +16,13 @@ export function LobbyEntryForm() {
   const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const { mutateAsync: createGame, isPending } = useMutation({
+
+  const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
-  });
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const trimmedNickname = nickname.trim();
-
-    if (!trimmedNickname) {
-      setErrorMessage('닉네임을 입력해주세요.');
-      return;
-    }
-
-    setErrorMessage('');
-
-    try {
-      const { roomCode } = await createGame({ nickname: trimmedNickname });
-
+    onSuccess: ({ roomCode }) => {
       navigate(`/lobby/${roomCode}`);
-    } catch (error) {
+    },
+    onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
         setErrorMessage(
           error.response?.data.message ??
@@ -46,7 +32,21 @@ export function LobbyEntryForm() {
       }
 
       setErrorMessage('방을 만들지 못했어요. 다시 시도해주세요.');
+    },
+  });
+
+  const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const trimmedNickname = nickname.trim();
+
+    if (!trimmedNickname) {
+      setErrorMessage('닉네임을 입력해주세요.');
+      return;
     }
+
+    setErrorMessage('');
+    createGame({ nickname: trimmedNickname });
   };
 
   return (
@@ -58,7 +58,7 @@ export function LobbyEntryForm() {
           maxLength={10}
           placeholder="예: 그림탐정"
           value={nickname}
-          disabled={isPending}
+          disabled={isCreateGamePending}
           aria-invalid={!!errorMessage}
           aria-describedby={errorMessage ? 'nickname-error' : undefined}
           onChange={(event) => setNickname(event.target.value)}
@@ -66,10 +66,10 @@ export function LobbyEntryForm() {
         {errorMessage && (
           <S_ErrorMessage id="nickname-error">{errorMessage}</S_ErrorMessage>
         )}
-        <Button type="submit" disabled={isPending}>
-          {isPending ? '방 만드는 중...' : '새 방 만들기'}
+        <Button type="submit" disabled={isCreateGamePending}>
+          {isCreateGamePending ? '방 만드는 중...' : '새 방 만들기'}
         </Button>
-        <Button variant="secondary" size="md" disabled={isPending}>
+        <Button variant="secondary" size="md" disabled={isCreateGamePending}>
           코드로 참여하기
         </Button>
       </S_FormCard>
