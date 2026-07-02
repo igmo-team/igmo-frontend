@@ -47,7 +47,7 @@ export function LobbyEntryForm() {
     }
 
     if (trimmedNickname.length < 2) {
-      setErrorMessage('닉네임은 2자 이상 입력해주세요.');
+      setErrorMessage('닉네임은 2자 이상 10자 이하여야 합니다.');
       return;
     }
 
