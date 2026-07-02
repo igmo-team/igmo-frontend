@@ -7,8 +7,12 @@ import { useNavigate } from 'react-router-dom';
 
 import { Button, Input, Surface } from '../../../common/components';
 import { PAGE_URL } from '../../../common/constants/pageUrl';
-import postGames from '../apis/postGames';
 import postGamePlayer from '../apis/postGamePlayer';
+import postGames from '../apis/postGames';
+import {
+  getNicknameErrorMessage,
+  getRoomCodeErrorMessage,
+} from '../utils/lobbyEntryValidation';
 
 type ErrorResponse = {
   message?: string;
@@ -61,6 +65,23 @@ export function LobbyEntryForm() {
     },
   });
 
+  const submitCreateGame = (trimmedNickname: string) => {
+    setErrorMessage('');
+    createGame({ nickname: trimmedNickname });
+  };
+
+  const submitJoinGame = (trimmedNickname: string) => {
+    const roomCodeErrorMessage = getRoomCodeErrorMessage(roomCode);
+
+    if (roomCodeErrorMessage) {
+      setErrorMessage(roomCodeErrorMessage);
+      return;
+    }
+
+    setErrorMessage('');
+    joinGame({ code: roomCode, nickname: trimmedNickname });
+  };
+
   const isEntryPending = isCreateGamePending || isJoinGamePending;
 
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
@@ -70,36 +91,21 @@ export function LobbyEntryForm() {
       return;
     }
 
+    const nicknameErrorMessage = getNicknameErrorMessage(nickname);
+
+    if (nicknameErrorMessage) {
+      setErrorMessage(nicknameErrorMessage);
+      return;
+    }
+
     const trimmedNickname = nickname.trim();
 
-    if (!trimmedNickname) {
-      setErrorMessage('닉네임을 입력해주세요.');
-      return;
-    }
-
-    if (trimmedNickname.length < 2 || trimmedNickname.length > 10) {
-      setErrorMessage('닉네임은 2자 이상 10자 이하여야 합니다.');
-      return;
-    }
-
     if (isJoinMode) {
-      if (!roomCode) {
-        setErrorMessage('방 코드를 입력해주세요.');
-        return;
-      }
-
-      if (!/^[A-Z]{4}$/.test(roomCode)) {
-        setErrorMessage('방 코드는 대문자 4자리여야 합니다.');
-        return;
-      }
-
-      setErrorMessage('');
-      joinGame({ code: roomCode, nickname: trimmedNickname });
+      submitJoinGame(trimmedNickname);
       return;
     }
 
-    setErrorMessage('');
-    createGame({ nickname: trimmedNickname });
+    submitCreateGame(trimmedNickname);
   };
 
   const handleNicknameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
