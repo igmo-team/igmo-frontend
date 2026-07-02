@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Input, Surface } from '../../../common/components';
 import { PAGE_URL } from '../../../common/constants/pageUrl';
 import postGames from '../apis/postGames';
+import postGamePlayer from '../apis/postGamePlayer';
 
 type ErrorResponse = {
   message?: string;
@@ -42,8 +43,32 @@ export function LobbyEntryForm() {
     },
   });
 
+  const { mutate: joinGame, isPending: isJoinGamePending } = useMutation({
+    mutationFn: postGamePlayer,
+    onSuccess: ({ snapshot }) => {
+      navigate(`${PAGE_URL.LOBBY}/${snapshot.roomCode}`);
+    },
+    onError: (error) => {
+      if (isAxiosError<ErrorResponse>(error)) {
+        setErrorMessage(
+          error.response?.data.message ??
+            '방에 참여하지 못했어요. 다시 시도해주세요.',
+        );
+        return;
+      }
+
+      setErrorMessage('방에 참여하지 못했어요. 다시 시도해주세요.');
+    },
+  });
+
+  const isEntryPending = isCreateGamePending || isJoinGamePending;
+
   const handleSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (isEntryPending) {
+      return;
+    }
 
     const trimmedNickname = nickname.trim();
 
@@ -52,8 +77,24 @@ export function LobbyEntryForm() {
       return;
     }
 
-    if (trimmedNickname.length < 2) {
+    if (trimmedNickname.length < 2 || trimmedNickname.length > 10) {
       setErrorMessage('닉네임은 2자 이상 10자 이하여야 합니다.');
+      return;
+    }
+
+    if (isJoinMode) {
+      if (!roomCode) {
+        setErrorMessage('방 코드를 입력해주세요.');
+        return;
+      }
+
+      if (!/^[A-Z]{4}$/.test(roomCode)) {
+        setErrorMessage('방 코드는 대문자 4자리여야 합니다.');
+        return;
+      }
+
+      setErrorMessage('');
+      joinGame({ code: roomCode, nickname: trimmedNickname });
       return;
     }
 
@@ -89,7 +130,7 @@ export function LobbyEntryForm() {
           maxLength={10}
           placeholder="예: 그림탐정"
           value={nickname}
-          disabled={isCreateGamePending}
+          disabled={isEntryPending}
           aria-invalid={!!errorMessage}
           aria-describedby={errorMessage ? 'nickname-error' : undefined}
           onChange={handleNicknameChange}
@@ -102,7 +143,7 @@ export function LobbyEntryForm() {
               maxLength={4}
               placeholder="예: ABCD"
               value={roomCode}
-              disabled={isCreateGamePending}
+              disabled={isEntryPending}
               onChange={handleRoomCodeChange}
             />
           </>
@@ -112,14 +153,14 @@ export function LobbyEntryForm() {
         )}
         {isJoinMode ? (
           <>
-            <Button type="button" disabled={isCreateGamePending}>
-              참여하기
+            <Button type="submit" disabled={isEntryPending}>
+              {isJoinGamePending ? '참여 중...' : '참여하기'}
             </Button>
             <Button
               type="button"
               variant="secondary"
               size="md"
-              disabled={isCreateGamePending}
+              disabled={isEntryPending}
               onClick={handleCancelJoinButtonClick}
             >
               취소
@@ -127,14 +168,14 @@ export function LobbyEntryForm() {
           </>
         ) : (
           <>
-            <Button type="submit" disabled={isCreateGamePending}>
+            <Button type="submit" disabled={isEntryPending}>
               {isCreateGamePending ? '방 만드는 중...' : '새 방 만들기'}
             </Button>
             <Button
               type="button"
               variant="secondary"
               size="md"
-              disabled={isCreateGamePending}
+              disabled={isEntryPending}
               onClick={handleJoinModeButtonClick}
             >
               코드로 참여하기
