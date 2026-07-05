@@ -1,4 +1,4 @@
 export const PAGE_URL = {
   HOME: '/',
-  LOBBY: '/lobby',
+  ROOM: '/room',
 } as const;

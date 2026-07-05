@@ -1,12 +1,12 @@
-export type LobbyPlayer = {
+export type RoomPlayer = {
   id: string;
   nickname: string;
   score: number;
 };
 
-export type LobbySnapshot = {
+export type RoomSnapshot = {
   roomCode: string;
   phase: 'LOBBY';
   hostId: string;
-  players: LobbyPlayer[];
+  players: RoomPlayer[];
 };
