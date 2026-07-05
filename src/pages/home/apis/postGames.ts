@@ -9,6 +9,7 @@ type PostGamesRequest = {
 type PostGamesResponse = {
   roomCode: string;
   playerId: string;
+  secret: string;
   snapshot: RoomSnapshot;
 };
 
