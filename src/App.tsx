@@ -2,7 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 import { PAGE_URL } from './common/constants/pageUrl';
 import { HomePage } from './pages/home/HomePage';
-import { LobbyPage } from './pages/lobby/LobbyPage';
+import { RoomPage } from './pages/room/RoomPage';
 
 const router = createBrowserRouter([
   {
@@ -10,8 +10,8 @@ const router = createBrowserRouter([
     element: <HomePage />,
   },
   {
-    path: `${PAGE_URL.LOBBY}/:roomCode`,
-    element: <LobbyPage />,
+    path: `${PAGE_URL.ROOM}/:roomCode`,
+    element: <RoomPage />,
   },
 ]);
 

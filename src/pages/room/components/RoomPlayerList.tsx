@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import type { LobbyPlayer } from '../../../domain/lobby/types';
+import type { RoomPlayer } from '../../../domain/room/types';
 
-type LobbyPlayerListProps = {
-  players: LobbyPlayer[];
+type RoomPlayerListProps = {
+  players: RoomPlayer[];
   hostId?: string;
   currentPlayerId?: string;
 };
@@ -19,11 +19,11 @@ const AVATAR_COLORS = [
   { background: '#FF4D6D', color: '#FFFFFF' },
 ];
 
-export function LobbyPlayerList({
+export function RoomPlayerList({
   players,
   hostId,
   currentPlayerId,
-}: LobbyPlayerListProps) {
+}: RoomPlayerListProps) {
   if (players.length === 0) {
     return <S_EmptyMessage>아직 입장한 플레이어가 없어요.</S_EmptyMessage>;
   }

@@ -1,6 +1,6 @@
 import client from '../../../common/api/client';
 
-import type { LobbySnapshot } from '../../../domain/lobby/types';
+import type { RoomSnapshot } from '../../../domain/room/types';
 
 type PostGamePlayerRequest = {
   code: string;
@@ -13,7 +13,7 @@ type PostGamePlayerBody = {
 
 type PostGamePlayerResponse = {
   playerId: string;
-  snapshot: LobbySnapshot;
+  snapshot: RoomSnapshot;
 };
 
 export default function postGamePlayer({

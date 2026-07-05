@@ -6,32 +6,32 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Button, Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 
-import { LobbyPlayerList } from './components/LobbyPlayerList';
+import { RoomPlayerList } from './components/RoomPlayerList';
 
-import type { LobbySnapshot } from '../../domain/lobby/types';
+import type { RoomSnapshot } from '../../domain/room/types';
 
-type LobbyLocationState = {
-  snapshot: LobbySnapshot;
+type RoomLocationState = {
+  snapshot: RoomSnapshot;
   playerId: string;
 };
 
 const COPY_FEEDBACK_DURATION_MS = 1500;
 
-export function LobbyPage() {
+export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const lobbyState = getLobbyLocationState(location.state);
+  const roomState = getRoomLocationState(location.state);
   const [isCopied, setIsCopied] = useState(false);
   const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
-  const snapshot = lobbyState?.snapshot;
+  const snapshot = roomState?.snapshot;
   const players = snapshot?.players ?? [];
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
   const inviteLink = displayRoomCode
-    ? `${window.location.origin}${PAGE_URL.LOBBY}/${displayRoomCode}`
+    ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export function LobbyPage() {
 
   return (
     <S_Page>
-      <S_LobbyCard padding="lg" shadow>
+      <S_RoomCard padding="lg" shadow>
         <S_RoomHeader>
           <S_SectionLabel>방 코드</S_SectionLabel>
           <S_RoomCode>{displayRoomCode}</S_RoomCode>
@@ -105,10 +105,10 @@ export function LobbyPage() {
         </S_PlayerHeader>
 
         {snapshot ? (
-          <LobbyPlayerList
+          <RoomPlayerList
             players={players}
             hostId={snapshot.hostId}
-            currentPlayerId={lobbyState.playerId}
+            currentPlayerId={roomState.playerId}
           />
         ) : (
           <S_EmptyState>
@@ -130,17 +130,17 @@ export function LobbyPage() {
             나가기
           </Button>
         </S_ActionGroup>
-      </S_LobbyCard>
+      </S_RoomCard>
     </S_Page>
   );
 }
 
-function getLobbyLocationState(state: unknown): LobbyLocationState | null {
+function getRoomLocationState(state: unknown): RoomLocationState | null {
   if (!state || typeof state !== 'object') {
     return null;
   }
 
-  const maybeState = state as Partial<LobbyLocationState>;
+  const maybeState = state as Partial<RoomLocationState>;
   const maybeSnapshot = maybeState.snapshot;
 
   if (
@@ -167,7 +167,7 @@ const S_Page = styled.main`
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
 `;
 
-const S_LobbyCard = styled(Surface)`
+const S_RoomCard = styled(Surface)`
   display: flex;
   max-width: 56rem;
   flex-direction: column;

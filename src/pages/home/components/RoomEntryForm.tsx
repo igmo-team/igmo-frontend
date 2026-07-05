@@ -12,7 +12,7 @@ import postGames from '../apis/postGames';
 import {
   getNicknameErrorMessage,
   getRoomCodeErrorMessage,
-} from '../utils/lobbyEntryValidation';
+} from '../utils/roomEntryValidation';
 
 type ErrorResponse = {
   message?: string;
@@ -20,7 +20,7 @@ type ErrorResponse = {
 
 type EntryMode = 'create' | 'join';
 
-export function LobbyEntryForm() {
+export function RoomEntryForm() {
   const navigate = useNavigate();
   const roomCodeInputRef = useRef<HTMLInputElement>(null);
   const [nickname, setNickname] = useState('');
@@ -46,7 +46,7 @@ export function LobbyEntryForm() {
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
     onSuccess: ({ roomCode, playerId, snapshot }) => {
-      navigate(`${PAGE_URL.LOBBY}/${roomCode}`, {
+      navigate(`${PAGE_URL.ROOM}/${roomCode}`, {
         state: {
           playerId,
           snapshot,
@@ -69,7 +69,7 @@ export function LobbyEntryForm() {
   const { mutate: joinGame, isPending: isJoinGamePending } = useMutation({
     mutationFn: postGamePlayer,
     onSuccess: ({ playerId, snapshot }) => {
-      navigate(`${PAGE_URL.LOBBY}/${snapshot.roomCode}`, {
+      navigate(`${PAGE_URL.ROOM}/${snapshot.roomCode}`, {
         state: {
           playerId,
           snapshot,
