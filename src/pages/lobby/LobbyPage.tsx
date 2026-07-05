@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -15,12 +15,17 @@ type LobbyLocationState = {
   playerId: string;
 };
 
+const COPY_FEEDBACK_DURATION_MS = 1500;
+
 export function LobbyPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const lobbyState = getLobbyLocationState(location.state);
   const [isCopied, setIsCopied] = useState(false);
+  const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const snapshot = lobbyState?.snapshot;
   const players = snapshot?.players ?? [];
@@ -30,18 +35,12 @@ export function LobbyPage() {
     : '';
 
   useEffect(() => {
-    if (!isCopied) {
-      return;
-    }
-
-    const timeoutId = window.setTimeout(() => {
-      setIsCopied(false);
-    }, 1500);
-
     return () => {
-      window.clearTimeout(timeoutId);
+      if (copyFeedbackTimeoutId.current) {
+        clearTimeout(copyFeedbackTimeoutId.current);
+      }
     };
-  }, [isCopied]);
+  }, []);
 
   const handleCopyButtonClick = async () => {
     if (!inviteLink || !navigator.clipboard) {
@@ -51,7 +50,21 @@ export function LobbyPage() {
     try {
       await navigator.clipboard.writeText(inviteLink);
       setIsCopied(true);
+
+      if (copyFeedbackTimeoutId.current) {
+        clearTimeout(copyFeedbackTimeoutId.current);
+      }
+
+      copyFeedbackTimeoutId.current = setTimeout(() => {
+        setIsCopied(false);
+        copyFeedbackTimeoutId.current = null;
+      }, COPY_FEEDBACK_DURATION_MS);
     } catch {
+      if (copyFeedbackTimeoutId.current) {
+        clearTimeout(copyFeedbackTimeoutId.current);
+        copyFeedbackTimeoutId.current = null;
+      }
+
       setIsCopied(false);
     }
   };
