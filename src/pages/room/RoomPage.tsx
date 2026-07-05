@@ -5,6 +5,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
+import { createStompClient } from '../../common/socket/createStompClient';
 
 import { RoomPlayerList } from './components/RoomPlayerList';
 
@@ -26,19 +27,56 @@ export function RoomPage() {
     () => getRoomEntryState(location.state),
     [location.state],
   );
-  const [snapshot] = useState<RoomSnapshot | null>(
-    entryState?.snapshot ?? null,
+  const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
+    null,
   );
   const [isCopied, setIsCopied] = useState(false);
   const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
+  const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
   const players = snapshot?.players ?? [];
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
   const inviteLink = displayRoomCode
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
+
+  useEffect(() => {
+    if (!roomCode) {
+      return;
+    }
+
+    let isActive = true;
+    const client = createStompClient();
+
+    if (entryState) {
+      client.connectHeaders = {
+        roomCode,
+        playerId: entryState.playerId,
+        secret: entryState.secret,
+      };
+    }
+
+    client.onConnect = () => {
+      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+        if (!isActive) {
+          return;
+        }
+
+        const nextSnapshot = JSON.parse(message.body) as RoomSnapshot;
+
+        setReceivedSnapshot(nextSnapshot);
+      });
+    };
+
+    client.activate();
+
+    return () => {
+      isActive = false;
+      client.deactivate();
+    };
+  }, [entryState, roomCode]);
 
   useEffect(() => {
     return () => {
