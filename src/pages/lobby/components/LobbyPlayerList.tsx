@@ -15,6 +15,8 @@ const AVATAR_COLORS = [
   { background: '#9AA0FF', color: '#FFFFFF' },
   { background: '#FFD6F2', color: '#1B1130' },
   { background: '#2BB673', color: '#FFFFFF' },
+  { background: '#FFB35C', color: '#1B1130' },
+  { background: '#FF4D6D', color: '#FFFFFF' },
 ];
 
 export function LobbyPlayerList({
