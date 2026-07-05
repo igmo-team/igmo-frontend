@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -10,9 +10,10 @@ import { RoomPlayerList } from './components/RoomPlayerList';
 
 import type { RoomSnapshot } from '../../domain/room/types';
 
-type RoomLocationState = {
+type RoomEntryState = {
   snapshot: RoomSnapshot;
   playerId: string;
+  secret: string;
 };
 
 const COPY_FEEDBACK_DURATION_MS = 1500;
@@ -21,13 +22,18 @@ export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const roomState = getRoomLocationState(location.state);
+  const entryState = useMemo(
+    () => getRoomEntryState(location.state),
+    [location.state],
+  );
+  const [snapshot] = useState<RoomSnapshot | null>(
+    entryState?.snapshot ?? null,
+  );
   const [isCopied, setIsCopied] = useState(false);
   const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
-  const snapshot = roomState?.snapshot;
   const players = snapshot?.players ?? [];
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
   const inviteLink = displayRoomCode
@@ -100,7 +106,7 @@ export function RoomPage() {
           <S_PlayerGuide>
             {snapshot
               ? '친구에게 링크를 공유하세요'
-              : '홈에서 다시 입장하면 목록을 볼 수 있어요'}
+              : '실시간 방 정보를 기다리고 있어요'}
           </S_PlayerGuide>
         </S_PlayerHeader>
 
@@ -108,13 +114,10 @@ export function RoomPage() {
           <RoomPlayerList
             players={players}
             hostId={snapshot.hostId}
-            currentPlayerId={roomState.playerId}
+            currentPlayerId={entryState?.playerId}
           />
         ) : (
-          <S_EmptyState>
-            입장 정보가 없어요. 홈에서 닉네임과 방 코드를 입력해 다시
-            들어와주세요.
-          </S_EmptyState>
+          <S_EmptyState>방 정보를 불러오는 중이에요.</S_EmptyState>
         )}
 
         <S_ActionGroup>
@@ -135,16 +138,17 @@ export function RoomPage() {
   );
 }
 
-function getRoomLocationState(state: unknown): RoomLocationState | null {
+function getRoomEntryState(state: unknown): RoomEntryState | null {
   if (!state || typeof state !== 'object') {
     return null;
   }
 
-  const maybeState = state as Partial<RoomLocationState>;
+  const maybeState = state as Partial<RoomEntryState>;
   const maybeSnapshot = maybeState.snapshot;
 
   if (
     typeof maybeState.playerId !== 'string' ||
+    typeof maybeState.secret !== 'string' ||
     !maybeSnapshot ||
     typeof maybeSnapshot.roomCode !== 'string' ||
     !Array.isArray(maybeSnapshot.players)
@@ -154,6 +158,7 @@ function getRoomLocationState(state: unknown): RoomLocationState | null {
 
   return {
     playerId: maybeState.playerId,
+    secret: maybeState.secret,
     snapshot: maybeSnapshot,
   };
 }
