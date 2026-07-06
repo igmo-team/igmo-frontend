@@ -3,13 +3,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { createStompClient } from '../../common/socket/createStompClient';
 
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
 import { RoomPromptingView } from './components/RoomPromptingView';
-import { S_EmptyState, S_RoomCard } from './components/RoomView.styles';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { parseRoomSnapshot } from './utils/parseRoomSnapshot';
 import { parseSocketError } from './utils/parseSocketError';
@@ -252,4 +252,21 @@ const S_Page = styled.main`
   justify-content: center;
   padding: 4.4rem 2rem 9.6rem;
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
+`;
+
+const S_RoomCard = styled(Surface)`
+  display: flex;
+  max-width: 56rem;
+  flex-direction: column;
+`;
+
+const S_EmptyState = styled.p`
+  width: 100%;
+  padding: 2rem;
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-radius: ${({ theme }) => theme.RADIUS.MD};
+  background: ${({ theme }) => theme.COLOR.PINK50};
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B4_R}
 `;
