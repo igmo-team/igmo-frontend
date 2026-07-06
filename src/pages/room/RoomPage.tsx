@@ -90,7 +90,8 @@ export function RoomPage() {
     !snapshot ||
     !isHost ||
     !isLobbyPhase ||
-    (hasEnoughPlayers && (!areGuestsReady || !isSocketConnected));
+    !areGuestsReady ||
+    !isSocketConnected;
   const isPrimaryActionDisabled = isHost
     ? isStartButtonDisabled
     : isReadyButtonDisabled;
@@ -242,12 +243,16 @@ export function RoomPage() {
       return;
     }
 
+    if (!areGuestsReady) {
+      return;
+    }
+
     if (!hasEnoughPlayers) {
       alert('게임을 시작하려면 최소 3명이 필요합니다.');
       return;
     }
 
-    if (!roomCode || !areGuestsReady || !stompClientRef.current?.connected) {
+    if (!roomCode || !stompClientRef.current?.connected) {
       return;
     }
 
@@ -520,12 +525,12 @@ function getActionGuideText({
   }
 
   if (isHost) {
-    if (!hasEnoughPlayers) {
-      return '게임을 시작하려면 최소 3명이 필요해요';
-    }
-
     if (!areGuestsReady) {
       return '모든 참가자가 준비하면 시작할 수 있어요';
+    }
+
+    if (!hasEnoughPlayers) {
+      return '게임을 시작하려면 최소 3명이 필요해요';
     }
 
     if (!isSocketConnected) {
