@@ -9,7 +9,7 @@ import { createStompClient } from '../../common/socket/createStompClient';
 
 import { RoomPlayerList } from './components/RoomPlayerList';
 
-import type { RoomSnapshot } from '../../domain/room/types';
+import type { RoomMessage, RoomSnapshot } from '../../domain/room/types';
 
 type RoomEntryState = {
   snapshot: RoomSnapshot;
@@ -210,10 +210,35 @@ function getRoomEntryState(state: unknown): RoomEntryState | null {
 
 function parseRoomSnapshot(body: string): RoomSnapshot | null {
   try {
-    return JSON.parse(body) as RoomSnapshot;
+    const data = JSON.parse(body) as RoomMessage<RoomSnapshot> | RoomSnapshot;
+
+    if (isRoomSnapshot(data)) {
+      return data;
+    }
+
+    if (data.type === 'LOBBY_SNAPSHOT' && isRoomSnapshot(data.payload)) {
+      return data.payload;
+    }
   } catch {
     return null;
   }
+
+  return null;
+}
+
+function isRoomSnapshot(value: unknown): value is RoomSnapshot {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const snapshot = value as Partial<RoomSnapshot>;
+
+  return (
+    typeof snapshot.roomCode === 'string' &&
+    typeof snapshot.phase === 'string' &&
+    typeof snapshot.hostId === 'string' &&
+    Array.isArray(snapshot.players)
+  );
 }
 
 const S_Page = styled.main`
