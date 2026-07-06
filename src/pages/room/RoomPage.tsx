@@ -22,6 +22,26 @@ type ErrorResponse = {
   message?: string;
 };
 
+type RoomLobbyViewProps = {
+  snapshot: RoomSnapshot;
+  currentPlayerId?: string;
+  displayRoomCode: string;
+  inviteLink: string;
+  isCopied: boolean;
+  socketErrorMessage: string;
+  primaryActionText: string;
+  actionGuideText: string;
+  isPrimaryActionDisabled: boolean;
+  onCopyButtonClick: () => void;
+  onPrimaryActionClick: () => void;
+  onLeaveButtonClick: () => void;
+};
+
+type RoomPromptingViewProps = {
+  snapshot: RoomSnapshot;
+  currentPlayerId?: string;
+};
+
 const COPY_FEEDBACK_DURATION_MS = 1500;
 const MINIMUM_START_PLAYER_COUNT = 3;
 
@@ -241,70 +261,156 @@ export function RoomPage() {
     ? handleStartButtonClick
     : handleReadyButtonClick;
 
+  if (!snapshot) {
+    return (
+      <S_Page>
+        <S_RoomCard padding="lg" shadow>
+          <S_EmptyState>방 정보를 불러오는 중이에요.</S_EmptyState>
+        </S_RoomCard>
+      </S_Page>
+    );
+  }
+
   return (
     <S_Page>
-      <S_RoomCard padding="lg" shadow>
-        <S_RoomHeader>
-          <S_SectionLabel>방 코드</S_SectionLabel>
-          <S_RoomCode>{displayRoomCode}</S_RoomCode>
-        </S_RoomHeader>
+      {snapshot.phase === 'LOBBY' && (
+        <RoomLobbyView
+          snapshot={snapshot}
+          currentPlayerId={entryState?.playerId}
+          displayRoomCode={displayRoomCode}
+          inviteLink={inviteLink}
+          isCopied={isCopied}
+          socketErrorMessage={socketErrorMessage}
+          primaryActionText={primaryActionText}
+          actionGuideText={actionGuideText}
+          isPrimaryActionDisabled={isPrimaryActionDisabled}
+          onCopyButtonClick={handleCopyButtonClick}
+          onPrimaryActionClick={handlePrimaryActionClick}
+          onLeaveButtonClick={handleLeaveButtonClick}
+        />
+      )}
 
-        <S_InviteBox>
-          <S_InviteLink>{inviteLink}</S_InviteLink>
-          <S_CopyButton
-            type="button"
-            variant="dark"
-            size="sm"
-            width="hug"
-            disabled={!inviteLink}
-            onClick={handleCopyButtonClick}
-          >
-            {isCopied ? '복사됨!' : '링크 복사'}
-          </S_CopyButton>
-        </S_InviteBox>
+      {snapshot.phase === 'PROMPTING' && (
+        <RoomPromptingView
+          snapshot={snapshot}
+          currentPlayerId={entryState?.playerId}
+        />
+      )}
 
-        <S_PlayerHeader>
-          <S_PlayerTitle>플레이어 {players.length}명</S_PlayerTitle>
-          <S_PlayerGuide>
-            {snapshot
-              ? '친구에게 링크를 공유하세요'
-              : '실시간 방 정보를 기다리고 있어요'}
-          </S_PlayerGuide>
-        </S_PlayerHeader>
-
-        {snapshot ? (
-          <RoomPlayerList
-            players={players}
-            hostId={snapshot.hostId}
-            currentPlayerId={entryState?.playerId}
-          />
-        ) : (
-          <S_EmptyState>방 정보를 불러오는 중이에요.</S_EmptyState>
-        )}
-
-        <S_ActionGroup>
-          {socketErrorMessage && (
-            <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
-          )}
-          {actionGuideText && <S_ActionGuide>{actionGuideText}</S_ActionGuide>}
-          <Button
-            type="button"
-            disabled={isPrimaryActionDisabled}
-            onClick={handlePrimaryActionClick}
-          >
-            {primaryActionText}
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            size="md"
-            onClick={handleLeaveButtonClick}
-          >
-            나가기
-          </Button>
-        </S_ActionGroup>
-      </S_RoomCard>
+      {snapshot.phase !== 'LOBBY' && snapshot.phase !== 'PROMPTING' && (
+        <RoomPendingPhaseView snapshot={snapshot} />
+      )}
     </S_Page>
+  );
+}
+
+function RoomLobbyView({
+  snapshot,
+  currentPlayerId,
+  displayRoomCode,
+  inviteLink,
+  isCopied,
+  socketErrorMessage,
+  primaryActionText,
+  actionGuideText,
+  isPrimaryActionDisabled,
+  onCopyButtonClick,
+  onPrimaryActionClick,
+  onLeaveButtonClick,
+}: RoomLobbyViewProps) {
+  return (
+    <S_RoomCard padding="lg" shadow>
+      <S_RoomHeader>
+        <S_SectionLabel>방 코드</S_SectionLabel>
+        <S_RoomCode>{displayRoomCode}</S_RoomCode>
+      </S_RoomHeader>
+
+      <S_InviteBox>
+        <S_InviteLink>{inviteLink}</S_InviteLink>
+        <S_CopyButton
+          type="button"
+          variant="dark"
+          size="sm"
+          width="hug"
+          disabled={!inviteLink}
+          onClick={onCopyButtonClick}
+        >
+          {isCopied ? '복사됨!' : '링크 복사'}
+        </S_CopyButton>
+      </S_InviteBox>
+
+      <S_PlayerHeader>
+        <S_PlayerTitle>플레이어 {snapshot.players.length}명</S_PlayerTitle>
+        <S_PlayerGuide>친구에게 링크를 공유하세요</S_PlayerGuide>
+      </S_PlayerHeader>
+
+      <RoomPlayerList
+        players={snapshot.players}
+        hostId={snapshot.hostId}
+        currentPlayerId={currentPlayerId}
+      />
+
+      <S_ActionGroup>
+        {socketErrorMessage && (
+          <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+        )}
+        {actionGuideText && <S_ActionGuide>{actionGuideText}</S_ActionGuide>}
+        <Button
+          type="button"
+          disabled={isPrimaryActionDisabled}
+          onClick={onPrimaryActionClick}
+        >
+          {primaryActionText}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          onClick={onLeaveButtonClick}
+        >
+          나가기
+        </Button>
+      </S_ActionGroup>
+    </S_RoomCard>
+  );
+}
+
+function RoomPromptingView({
+  snapshot,
+  currentPlayerId,
+}: RoomPromptingViewProps) {
+  return (
+    <S_RoomCard padding="lg" shadow>
+      <S_RoomHeader>
+        <S_SectionLabel>방 코드</S_SectionLabel>
+        <S_RoomCode>{snapshot.roomCode}</S_RoomCode>
+      </S_RoomHeader>
+
+      <S_PhaseTitle>프롬프트 입력</S_PhaseTitle>
+      <S_PhaseGuide>질문을 준비하고 있어요.</S_PhaseGuide>
+
+      <S_PlayerHeader>
+        <S_PlayerTitle>플레이어 {snapshot.players.length}명</S_PlayerTitle>
+        <S_PlayerGuide>게임이 시작됐어요</S_PlayerGuide>
+      </S_PlayerHeader>
+      <RoomPlayerList
+        players={snapshot.players}
+        hostId={snapshot.hostId}
+        currentPlayerId={currentPlayerId}
+      />
+    </S_RoomCard>
+  );
+}
+
+function RoomPendingPhaseView({ snapshot }: { snapshot: RoomSnapshot }) {
+  return (
+    <S_RoomCard padding="lg" shadow>
+      <S_RoomHeader>
+        <S_SectionLabel>방 코드</S_SectionLabel>
+        <S_RoomCode>{snapshot.roomCode}</S_RoomCode>
+      </S_RoomHeader>
+      <S_EmptyState>다음 화면을 준비하고 있어요.</S_EmptyState>
+    </S_RoomCard>
   );
 }
 
@@ -523,6 +629,20 @@ const S_EmptyState = styled.p`
   border: ${({ theme }) => theme.BORDER.DEFAULT};
   border-radius: ${({ theme }) => theme.RADIUS.MD};
   background: ${({ theme }) => theme.COLOR.PINK50};
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B4_R}
+`;
+
+const S_PhaseTitle = styled.h1`
+  margin-top: 0.8rem;
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE2}
+`;
+
+const S_PhaseGuide = styled.p`
+  margin-top: 0.8rem;
   color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
   text-align: center;
   ${({ theme }) => theme.TYPOGRAPHY.B4_R}
