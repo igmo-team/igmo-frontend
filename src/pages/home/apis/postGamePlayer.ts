@@ -13,6 +13,7 @@ type PostGamePlayerBody = {
 
 type PostGamePlayerResponse = {
   playerId: string;
+  secret: string;
   snapshot: RoomSnapshot;
 };
 

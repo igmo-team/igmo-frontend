@@ -45,10 +45,11 @@ export function RoomEntryForm() {
 
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
-    onSuccess: ({ roomCode, playerId, snapshot }) => {
+    onSuccess: ({ roomCode, playerId, secret, snapshot }) => {
       navigate(`${PAGE_URL.ROOM}/${roomCode}`, {
         state: {
           playerId,
+          secret,
           snapshot,
         },
       });
@@ -68,10 +69,11 @@ export function RoomEntryForm() {
 
   const { mutate: joinGame, isPending: isJoinGamePending } = useMutation({
     mutationFn: postGamePlayer,
-    onSuccess: ({ playerId, snapshot }) => {
+    onSuccess: ({ playerId, secret, snapshot }) => {
       navigate(`${PAGE_URL.ROOM}/${snapshot.roomCode}`, {
         state: {
           playerId,
+          secret,
           snapshot,
         },
       });

@@ -1,18 +1,20 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Button, Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
+import { createStompClient } from '../../common/socket/createStompClient';
 
 import { RoomPlayerList } from './components/RoomPlayerList';
 
 import type { RoomSnapshot } from '../../domain/room/types';
 
-type RoomLocationState = {
+type RoomEntryState = {
   snapshot: RoomSnapshot;
   playerId: string;
+  secret: string;
 };
 
 const COPY_FEEDBACK_DURATION_MS = 1500;
@@ -21,13 +23,19 @@ export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const roomState = getRoomLocationState(location.state);
+  const entryState = useMemo(
+    () => getRoomEntryState(location.state),
+    [location.state],
+  );
+  const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
+    null,
+  );
   const [isCopied, setIsCopied] = useState(false);
   const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
-  const snapshot = roomState?.snapshot;
+  const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
   const players = snapshot?.players ?? [];
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
   const inviteLink = displayRoomCode
@@ -35,11 +43,60 @@ export function RoomPage() {
     : '';
 
   useEffect(() => {
-    return () => {
-      if (copyFeedbackTimeoutId.current) {
-        clearTimeout(copyFeedbackTimeoutId.current);
-      }
+    if (roomCode && !entryState) {
+      navigate(PAGE_URL.HOME, { replace: true });
+    }
+  }, [entryState, navigate, roomCode]);
+
+  useEffect(() => {
+    if (!roomCode || !entryState) {
+      return;
+    }
+
+    let isActive = true;
+    const client = createStompClient();
+
+    if (entryState) {
+      client.connectHeaders = {
+        roomCode,
+        playerId: entryState.playerId,
+        secret: entryState.secret,
+      };
+    }
+
+    client.onConnect = () => {
+      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+        if (!isActive) {
+          return;
+        }
+
+        const nextSnapshot = parseRoomSnapshot(message.body);
+
+        if (!nextSnapshot) {
+          return;
+        }
+
+        setReceivedSnapshot(nextSnapshot);
+      });
     };
+
+    client.activate();
+
+    return () => {
+      isActive = false;
+      client.deactivate();
+    };
+  }, [entryState, roomCode]);
+
+  const clearCopyFeedbackTimeout = () => {
+    if (copyFeedbackTimeoutId.current) {
+      clearTimeout(copyFeedbackTimeoutId.current);
+      copyFeedbackTimeoutId.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return clearCopyFeedbackTimeout;
   }, []);
 
   const handleCopyButtonClick = async () => {
@@ -51,20 +108,14 @@ export function RoomPage() {
       await navigator.clipboard.writeText(inviteLink);
       setIsCopied(true);
 
-      if (copyFeedbackTimeoutId.current) {
-        clearTimeout(copyFeedbackTimeoutId.current);
-      }
+      clearCopyFeedbackTimeout();
 
       copyFeedbackTimeoutId.current = setTimeout(() => {
         setIsCopied(false);
         copyFeedbackTimeoutId.current = null;
       }, COPY_FEEDBACK_DURATION_MS);
     } catch {
-      if (copyFeedbackTimeoutId.current) {
-        clearTimeout(copyFeedbackTimeoutId.current);
-        copyFeedbackTimeoutId.current = null;
-      }
-
+      clearCopyFeedbackTimeout();
       setIsCopied(false);
     }
   };
@@ -100,7 +151,7 @@ export function RoomPage() {
           <S_PlayerGuide>
             {snapshot
               ? '친구에게 링크를 공유하세요'
-              : '홈에서 다시 입장하면 목록을 볼 수 있어요'}
+              : '실시간 방 정보를 기다리고 있어요'}
           </S_PlayerGuide>
         </S_PlayerHeader>
 
@@ -108,13 +159,10 @@ export function RoomPage() {
           <RoomPlayerList
             players={players}
             hostId={snapshot.hostId}
-            currentPlayerId={roomState.playerId}
+            currentPlayerId={entryState?.playerId}
           />
         ) : (
-          <S_EmptyState>
-            입장 정보가 없어요. 홈에서 닉네임과 방 코드를 입력해 다시
-            들어와주세요.
-          </S_EmptyState>
+          <S_EmptyState>방 정보를 불러오는 중이에요.</S_EmptyState>
         )}
 
         <S_ActionGroup>
@@ -135,16 +183,17 @@ export function RoomPage() {
   );
 }
 
-function getRoomLocationState(state: unknown): RoomLocationState | null {
+function getRoomEntryState(state: unknown): RoomEntryState | null {
   if (!state || typeof state !== 'object') {
     return null;
   }
 
-  const maybeState = state as Partial<RoomLocationState>;
+  const maybeState = state as Partial<RoomEntryState>;
   const maybeSnapshot = maybeState.snapshot;
 
   if (
     typeof maybeState.playerId !== 'string' ||
+    typeof maybeState.secret !== 'string' ||
     !maybeSnapshot ||
     typeof maybeSnapshot.roomCode !== 'string' ||
     !Array.isArray(maybeSnapshot.players)
@@ -154,8 +203,17 @@ function getRoomLocationState(state: unknown): RoomLocationState | null {
 
   return {
     playerId: maybeState.playerId,
+    secret: maybeState.secret,
     snapshot: maybeSnapshot,
   };
+}
+
+function parseRoomSnapshot(body: string): RoomSnapshot | null {
+  try {
+    return JSON.parse(body) as RoomSnapshot;
+  } catch {
+    return null;
+  }
 }
 
 const S_Page = styled.main`
