@@ -10,19 +10,12 @@ import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { S_EmptyState, S_RoomCard } from './components/RoomView.styles';
+import { getRoomEntryState } from './utils/getRoomEntryState';
+import { parseRoomSnapshot } from './utils/parseRoomSnapshot';
+import { parseSocketError } from './utils/parseSocketError';
 
-import type { RoomMessage, RoomSnapshot } from '../../domain/room/types';
+import type { RoomSnapshot } from '../../domain/room/types';
 import type { Client } from '@stomp/stompjs';
-
-type RoomEntryState = {
-  snapshot: RoomSnapshot;
-  playerId: string;
-  secret: string;
-};
-
-type ErrorResponse = {
-  message?: string;
-};
 
 const COPY_FEEDBACK_DURATION_MS = 1500;
 
@@ -250,78 +243,6 @@ export function RoomPage() {
       )}
     </S_Page>
   );
-}
-
-function getRoomEntryState(state: unknown): RoomEntryState | null {
-  if (!state || typeof state !== 'object') {
-    return null;
-  }
-
-  const maybeState = state as Partial<RoomEntryState>;
-  const maybeSnapshot = maybeState.snapshot;
-
-  if (
-    typeof maybeState.playerId !== 'string' ||
-    typeof maybeState.secret !== 'string' ||
-    !maybeSnapshot ||
-    typeof maybeSnapshot.roomCode !== 'string' ||
-    !Array.isArray(maybeSnapshot.players)
-  ) {
-    return null;
-  }
-
-  return {
-    playerId: maybeState.playerId,
-    secret: maybeState.secret,
-    snapshot: maybeSnapshot,
-  };
-}
-
-function parseRoomSnapshot(body: string): RoomSnapshot | null {
-  try {
-    const data = JSON.parse(body) as RoomMessage<RoomSnapshot> | RoomSnapshot;
-
-    if (isRoomSnapshot(data)) {
-      return data;
-    }
-
-    if (data.type === 'LOBBY_SNAPSHOT' && isRoomSnapshot(data.payload)) {
-      return data.payload;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function isRoomSnapshot(value: unknown): value is RoomSnapshot {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const snapshot = value as Partial<RoomSnapshot>;
-
-  return (
-    typeof snapshot.roomCode === 'string' &&
-    typeof snapshot.phase === 'string' &&
-    typeof snapshot.hostId === 'string' &&
-    Array.isArray(snapshot.players)
-  );
-}
-
-function parseSocketError(body: string) {
-  try {
-    const error = JSON.parse(body) as ErrorResponse;
-
-    if (error.message) {
-      return error.message;
-    }
-  } catch {
-    return '요청을 처리하지 못했어요. 다시 시도해주세요.';
-  }
-
-  return '요청을 처리하지 못했어요. 다시 시도해주세요.';
 }
 
 const S_Page = styled.main`
