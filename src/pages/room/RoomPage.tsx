@@ -43,7 +43,13 @@ export function RoomPage() {
     : '';
 
   useEffect(() => {
-    if (!roomCode) {
+    if (roomCode && !entryState) {
+      navigate(PAGE_URL.HOME, { replace: true });
+    }
+  }, [entryState, navigate, roomCode]);
+
+  useEffect(() => {
+    if (!roomCode || !entryState) {
       return;
     }
 
