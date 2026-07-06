@@ -3,11 +3,13 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import { Button, Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { createStompClient } from '../../common/socket/createStompClient';
 
-import { RoomPlayerList } from './components/RoomPlayerList';
+import { RoomLobbyView } from './components/RoomLobbyView';
+import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
+import { RoomPromptingView } from './components/RoomPromptingView';
+import { S_EmptyState, S_RoomCard } from './components/RoomView.styles';
 
 import type { RoomMessage, RoomSnapshot } from '../../domain/room/types';
 import type { Client } from '@stomp/stompjs';
@@ -20,28 +22,6 @@ type RoomEntryState = {
 
 type ErrorResponse = {
   message?: string;
-};
-
-type RoomLobbyViewProps = {
-  snapshot: RoomSnapshot;
-  currentPlayerId?: string;
-  displayRoomCode: string;
-  inviteLink: string;
-  isCopied: boolean;
-  isSocketConnected: boolean;
-  socketErrorMessage: string;
-  onCopyButtonClick: () => void;
-  onReadyButtonClick: (nextReady: boolean) => void;
-  onStartButtonClick: (
-    snapshot: RoomSnapshot,
-    currentPlayerId?: string,
-  ) => void;
-  onLeaveButtonClick: () => void;
-};
-
-type RoomPromptingViewProps = {
-  snapshot: RoomSnapshot;
-  currentPlayerId?: string;
 };
 
 const COPY_FEEDBACK_DURATION_MS = 1500;
@@ -272,164 +252,6 @@ export function RoomPage() {
   );
 }
 
-function RoomLobbyView({
-  snapshot,
-  currentPlayerId,
-  displayRoomCode,
-  inviteLink,
-  isCopied,
-  isSocketConnected,
-  socketErrorMessage,
-  onCopyButtonClick,
-  onReadyButtonClick,
-  onStartButtonClick,
-  onLeaveButtonClick,
-}: RoomLobbyViewProps) {
-  const currentPlayer = snapshot.players.find(
-    (player) => player.id === currentPlayerId,
-  );
-  const isHost = currentPlayer?.id === snapshot.hostId;
-  const areAllGuestsReady = snapshot.players
-    .filter((player) => player.id !== snapshot.hostId)
-    .every((player) => player.ready);
-
-  return (
-    <S_RoomCard padding="lg" shadow>
-      <S_RoomHeader>
-        <S_SectionLabel>방 코드</S_SectionLabel>
-        <S_RoomCode>{displayRoomCode}</S_RoomCode>
-      </S_RoomHeader>
-
-      <S_InviteBox>
-        <S_InviteLink>{inviteLink}</S_InviteLink>
-        <S_CopyButton
-          type="button"
-          variant="dark"
-          size="sm"
-          width="hug"
-          disabled={!inviteLink}
-          onClick={onCopyButtonClick}
-        >
-          {isCopied ? '복사됨!' : '링크 복사'}
-        </S_CopyButton>
-      </S_InviteBox>
-
-      <S_PlayerHeader>
-        <S_PlayerTitle>플레이어 {snapshot.players.length}명</S_PlayerTitle>
-        <S_PlayerGuide>친구에게 링크를 공유하세요</S_PlayerGuide>
-      </S_PlayerHeader>
-
-      <RoomPlayerList
-        players={snapshot.players}
-        hostId={snapshot.hostId}
-        currentPlayerId={currentPlayerId}
-      />
-
-      <S_ActionGroup>
-        {socketErrorMessage && (
-          <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
-        )}
-        {isHost ? (
-          <>
-            {!areAllGuestsReady && (
-              <S_ActionGuide>
-                모든 참가자가 준비하면 시작할 수 있어요
-              </S_ActionGuide>
-            )}
-            {areAllGuestsReady && snapshot.players.length < 3 && (
-              <S_ActionGuide>
-                게임을 시작하려면 최소 3명이 필요해요
-              </S_ActionGuide>
-            )}
-            {areAllGuestsReady &&
-              snapshot.players.length >= 3 &&
-              isSocketConnected && (
-                <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
-              )}
-            <Button
-              type="button"
-              disabled={!areAllGuestsReady || !isSocketConnected}
-              onClick={() => onStartButtonClick(snapshot, currentPlayerId)}
-            >
-              시작하기
-            </Button>
-          </>
-        ) : (
-          <>
-            {!isSocketConnected && (
-              <S_ActionGuide>실시간 연결을 준비하고 있어요</S_ActionGuide>
-            )}
-            {isSocketConnected && currentPlayer?.ready && (
-              <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
-            )}
-            {isSocketConnected && !currentPlayer?.ready && (
-              <S_ActionGuide>준비되면 버튼을 눌러주세요</S_ActionGuide>
-            )}
-            <Button
-              type="button"
-              disabled={!currentPlayer || !isSocketConnected}
-              onClick={() => {
-                if (currentPlayer) {
-                  onReadyButtonClick(!currentPlayer.ready);
-                }
-              }}
-            >
-              {currentPlayer?.ready ? '준비 해제' : '준비하기'}
-            </Button>
-          </>
-        )}
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          onClick={onLeaveButtonClick}
-        >
-          나가기
-        </Button>
-      </S_ActionGroup>
-    </S_RoomCard>
-  );
-}
-
-function RoomPromptingView({
-  snapshot,
-  currentPlayerId,
-}: RoomPromptingViewProps) {
-  return (
-    <S_RoomCard padding="lg" shadow>
-      <S_RoomHeader>
-        <S_SectionLabel>방 코드</S_SectionLabel>
-        <S_RoomCode>{snapshot.roomCode}</S_RoomCode>
-      </S_RoomHeader>
-
-      <S_PhaseTitle>프롬프트 입력</S_PhaseTitle>
-      <S_PhaseGuide>질문을 준비하고 있어요.</S_PhaseGuide>
-
-      <S_PlayerHeader>
-        <S_PlayerTitle>플레이어 {snapshot.players.length}명</S_PlayerTitle>
-        <S_PlayerGuide>게임이 시작됐어요</S_PlayerGuide>
-      </S_PlayerHeader>
-      <RoomPlayerList
-        players={snapshot.players}
-        hostId={snapshot.hostId}
-        currentPlayerId={currentPlayerId}
-      />
-    </S_RoomCard>
-  );
-}
-
-function RoomPendingPhaseView({ snapshot }: { snapshot: RoomSnapshot }) {
-  return (
-    <S_RoomCard padding="lg" shadow>
-      <S_RoomHeader>
-        <S_SectionLabel>방 코드</S_SectionLabel>
-        <S_RoomCode>{snapshot.roomCode}</S_RoomCode>
-      </S_RoomHeader>
-      <S_EmptyState>다음 화면을 준비하고 있어요.</S_EmptyState>
-    </S_RoomCard>
-  );
-}
-
 function getRoomEntryState(state: unknown): RoomEntryState | null {
   if (!state || typeof state !== 'object') {
     return null;
@@ -509,118 +331,4 @@ const S_Page = styled.main`
   justify-content: center;
   padding: 4.4rem 2rem 9.6rem;
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
-`;
-
-const S_RoomCard = styled(Surface)`
-  display: flex;
-  max-width: 56rem;
-  flex-direction: column;
-`;
-
-const S_RoomHeader = styled.div`
-  text-align: center;
-`;
-
-const S_SectionLabel = styled.p`
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  letter-spacing: 0.08em;
-  ${({ theme }) => theme.TYPOGRAPHY.LABEL1}
-`;
-
-const S_RoomCode = styled.p`
-  margin: 0.2rem 0 1.4rem;
-  color: ${({ theme }) => theme.COLOR.PRIMARY500};
-  font-family: 'Jua', 'Pretendard', 'Pretendard Variable', sans-serif;
-  font-size: clamp(4.2rem, 9vw, 6rem);
-  line-height: 1.1;
-  letter-spacing: 0.12em;
-`;
-
-const S_InviteBox = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-  padding: 0.6rem 0.6rem 0.6rem 1.6rem;
-  border: ${({ theme }) => theme.BORDER.DEFAULT};
-  border-radius: 1.4rem;
-  background: ${({ theme }) => theme.COLOR.PINK50};
-`;
-
-const S_InviteLink = styled.span`
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  ${({ theme }) => theme.TYPOGRAPHY.B4_B}
-`;
-
-const S_CopyButton = styled(Button)`
-  min-width: 8.2rem;
-`;
-
-const S_PlayerHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.2rem;
-  margin: 2.2rem 0 1.2rem;
-`;
-
-const S_PlayerTitle = styled.h1`
-  flex: none;
-  color: ${({ theme }) => theme.COLOR.TEXT};
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
-`;
-
-const S_PlayerGuide = styled.p`
-  min-width: 0;
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  text-align: right;
-  ${({ theme }) => theme.TYPOGRAPHY.B6_B}
-`;
-
-const S_EmptyState = styled.p`
-  width: 100%;
-  padding: 2rem;
-  border: ${({ theme }) => theme.BORDER.DEFAULT};
-  border-radius: ${({ theme }) => theme.RADIUS.MD};
-  background: ${({ theme }) => theme.COLOR.PINK50};
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  text-align: center;
-  ${({ theme }) => theme.TYPOGRAPHY.B4_R}
-`;
-
-const S_PhaseTitle = styled.h1`
-  margin-top: 0.8rem;
-  color: ${({ theme }) => theme.COLOR.TEXT};
-  text-align: center;
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE2}
-`;
-
-const S_PhaseGuide = styled.p`
-  margin-top: 0.8rem;
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  text-align: center;
-  ${({ theme }) => theme.TYPOGRAPHY.B4_R}
-`;
-
-const S_ActionGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.2rem;
-  margin-top: 2.2rem;
-`;
-
-const S_ErrorMessage = styled.p`
-  color: ${({ theme }) => theme.COLOR.DANGER};
-  text-align: center;
-  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
-`;
-
-const S_ActionGuide = styled.p`
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  text-align: center;
-  ${({ theme }) => theme.TYPOGRAPHY.B5_R}
 `;
