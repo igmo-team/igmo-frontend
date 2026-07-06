@@ -10,6 +10,7 @@ import { createStompClient } from '../../common/socket/createStompClient';
 import { RoomPlayerList } from './components/RoomPlayerList';
 
 import type { RoomMessage, RoomSnapshot } from '../../domain/room/types';
+import type { Client } from '@stomp/stompjs';
 
 type RoomEntryState = {
   snapshot: RoomSnapshot;
@@ -17,7 +18,12 @@ type RoomEntryState = {
   secret: string;
 };
 
+type ErrorResponse = {
+  message?: string;
+};
+
 const COPY_FEEDBACK_DURATION_MS = 1500;
+const MINIMUM_START_PLAYER_COUNT = 3;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -31,6 +37,9 @@ export function RoomPage() {
     null,
   );
   const [isCopied, setIsCopied] = useState(false);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [socketErrorMessage, setSocketErrorMessage] = useState('');
+  const stompClientRef = useRef<Client | null>(null);
   const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -41,6 +50,38 @@ export function RoomPage() {
   const inviteLink = displayRoomCode
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
+  const currentPlayer = players.find(
+    (player) => player.id === entryState?.playerId,
+  );
+  const isHost = currentPlayer?.id === snapshot?.hostId;
+  const isLobbyPhase = snapshot?.phase === 'LOBBY';
+  const guestPlayers = players.filter(
+    (player) => player.id !== snapshot?.hostId,
+  );
+  const hasEnoughPlayers = players.length >= MINIMUM_START_PLAYER_COUNT;
+  const areGuestsReady = guestPlayers.every((player) => player.ready);
+  const primaryActionText = getPrimaryActionText({
+    isHost: Boolean(isHost),
+    isReady: Boolean(currentPlayer?.ready),
+  });
+  const isReadyButtonDisabled =
+    !isLobbyPhase || !currentPlayer || isHost || !isSocketConnected;
+  const isStartButtonDisabled =
+    !snapshot ||
+    !isHost ||
+    !isLobbyPhase ||
+    (hasEnoughPlayers && (!areGuestsReady || !isSocketConnected));
+  const isPrimaryActionDisabled = isHost
+    ? isStartButtonDisabled
+    : isReadyButtonDisabled;
+  const actionGuideText = getActionGuideText({
+    areGuestsReady,
+    currentPlayerReady: Boolean(currentPlayer?.ready),
+    hasEnoughPlayers,
+    isHost: Boolean(isHost),
+    isLobbyPhase: Boolean(isLobbyPhase),
+    isSocketConnected,
+  });
 
   useEffect(() => {
     if (roomCode && !entryState) {
@@ -55,6 +96,7 @@ export function RoomPage() {
 
     let isActive = true;
     const client = createStompClient();
+    stompClientRef.current = client;
 
     if (entryState) {
       client.connectHeaders = {
@@ -65,6 +107,13 @@ export function RoomPage() {
     }
 
     client.onConnect = () => {
+      if (!isActive) {
+        return;
+      }
+
+      setIsSocketConnected(true);
+      setSocketErrorMessage('');
+
       client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
         if (!isActive) {
           return;
@@ -77,14 +126,39 @@ export function RoomPage() {
         }
 
         setReceivedSnapshot(nextSnapshot);
+        setSocketErrorMessage('');
       });
+
+      client.subscribe('/user/queue/errors', (message) => {
+        if (!isActive) {
+          return;
+        }
+
+        setSocketErrorMessage(parseSocketError(message.body));
+      });
+    };
+
+    client.onDisconnect = () => {
+      if (isActive) {
+        setIsSocketConnected(false);
+      }
+    };
+
+    client.onWebSocketClose = () => {
+      if (isActive) {
+        setIsSocketConnected(false);
+      }
     };
 
     client.activate();
 
     return () => {
       isActive = false;
-      client.deactivate();
+      if (stompClientRef.current === client) {
+        stompClientRef.current = null;
+      }
+      setIsSocketConnected(false);
+      void client.deactivate();
     };
   }, [entryState, roomCode]);
 
@@ -123,6 +197,49 @@ export function RoomPage() {
   const handleLeaveButtonClick = () => {
     navigate(PAGE_URL.HOME);
   };
+
+  const handleReadyButtonClick = () => {
+    if (
+      !roomCode ||
+      !currentPlayer ||
+      isHost ||
+      !isLobbyPhase ||
+      !stompClientRef.current?.connected
+    ) {
+      return;
+    }
+
+    setSocketErrorMessage('');
+    stompClientRef.current.publish({
+      destination: `/app/rooms/${roomCode}/ready`,
+      body: JSON.stringify({ ready: !currentPlayer.ready }),
+      headers: { 'content-type': 'application/json' },
+    });
+  };
+
+  const handleStartButtonClick = () => {
+    if (!isHost || !isLobbyPhase) {
+      return;
+    }
+
+    if (!hasEnoughPlayers) {
+      alert('게임을 시작하려면 최소 3명이 필요합니다.');
+      return;
+    }
+
+    if (!roomCode || !areGuestsReady || !stompClientRef.current?.connected) {
+      return;
+    }
+
+    setSocketErrorMessage('');
+    stompClientRef.current.publish({
+      destination: `/app/rooms/${roomCode}/start`,
+    });
+  };
+
+  const handlePrimaryActionClick = isHost
+    ? handleStartButtonClick
+    : handleReadyButtonClick;
 
   return (
     <S_Page>
@@ -166,8 +283,16 @@ export function RoomPage() {
         )}
 
         <S_ActionGroup>
-          <Button type="button" disabled>
-            게임 시작
+          {socketErrorMessage && (
+            <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+          )}
+          {actionGuideText && <S_ActionGuide>{actionGuideText}</S_ActionGuide>}
+          <Button
+            type="button"
+            disabled={isPrimaryActionDisabled}
+            onClick={handlePrimaryActionClick}
+          >
+            {primaryActionText}
           </Button>
           <Button
             type="button"
@@ -239,6 +364,78 @@ function isRoomSnapshot(value: unknown): value is RoomSnapshot {
     typeof snapshot.hostId === 'string' &&
     Array.isArray(snapshot.players)
   );
+}
+
+function parseSocketError(body: string) {
+  try {
+    const error = JSON.parse(body) as ErrorResponse;
+
+    if (error.message) {
+      return error.message;
+    }
+  } catch {
+    return '요청을 처리하지 못했어요. 다시 시도해주세요.';
+  }
+
+  return '요청을 처리하지 못했어요. 다시 시도해주세요.';
+}
+
+function getPrimaryActionText({
+  isHost,
+  isReady,
+}: {
+  isHost: boolean;
+  isReady: boolean;
+}) {
+  if (isHost) {
+    return '시작하기';
+  }
+
+  return isReady ? '준비 해제' : '준비하기';
+}
+
+function getActionGuideText({
+  areGuestsReady,
+  currentPlayerReady,
+  hasEnoughPlayers,
+  isHost,
+  isLobbyPhase,
+  isSocketConnected,
+}: {
+  areGuestsReady: boolean;
+  currentPlayerReady: boolean;
+  hasEnoughPlayers: boolean;
+  isHost: boolean;
+  isLobbyPhase: boolean;
+  isSocketConnected: boolean;
+}) {
+  if (!isLobbyPhase) {
+    return '';
+  }
+
+  if (isHost) {
+    if (!hasEnoughPlayers) {
+      return '게임을 시작하려면 최소 3명이 필요해요';
+    }
+
+    if (!areGuestsReady) {
+      return '모든 참가자가 준비하면 시작할 수 있어요';
+    }
+
+    if (!isSocketConnected) {
+      return '실시간 연결을 준비하고 있어요';
+    }
+
+    return '게임을 시작할 수 있어요';
+  }
+
+  if (!isSocketConnected) {
+    return '실시간 연결을 준비하고 있어요';
+  }
+
+  return currentPlayerReady
+    ? '준비 완료 상태예요'
+    : '준비되면 버튼을 눌러주세요';
 }
 
 const S_Page = styled.main`
@@ -336,4 +533,16 @@ const S_ActionGroup = styled.div`
   flex-direction: column;
   gap: 1.2rem;
   margin-top: 2.2rem;
+`;
+
+const S_ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.COLOR.DANGER};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
+const S_ActionGuide = styled.p`
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_R}
 `;
