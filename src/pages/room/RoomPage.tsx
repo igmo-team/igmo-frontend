@@ -82,12 +82,15 @@ export function RoomPage() {
     };
   }, [entryState, roomCode]);
 
+  const clearCopyFeedbackTimeout = () => {
+    if (copyFeedbackTimeoutId.current) {
+      clearTimeout(copyFeedbackTimeoutId.current);
+      copyFeedbackTimeoutId.current = null;
+    }
+  };
+
   useEffect(() => {
-    return () => {
-      if (copyFeedbackTimeoutId.current) {
-        clearTimeout(copyFeedbackTimeoutId.current);
-      }
-    };
+    return clearCopyFeedbackTimeout;
   }, []);
 
   const handleCopyButtonClick = async () => {
@@ -99,20 +102,14 @@ export function RoomPage() {
       await navigator.clipboard.writeText(inviteLink);
       setIsCopied(true);
 
-      if (copyFeedbackTimeoutId.current) {
-        clearTimeout(copyFeedbackTimeoutId.current);
-      }
+      clearCopyFeedbackTimeout();
 
       copyFeedbackTimeoutId.current = setTimeout(() => {
         setIsCopied(false);
         copyFeedbackTimeoutId.current = null;
       }, COPY_FEEDBACK_DURATION_MS);
     } catch {
-      if (copyFeedbackTimeoutId.current) {
-        clearTimeout(copyFeedbackTimeoutId.current);
-        copyFeedbackTimeoutId.current = null;
-      }
-
+      clearCopyFeedbackTimeout();
       setIsCopied(false);
     }
   };
