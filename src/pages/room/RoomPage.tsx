@@ -64,7 +64,11 @@ export function RoomPage() {
           return;
         }
 
-        const nextSnapshot = JSON.parse(message.body) as RoomSnapshot;
+        const nextSnapshot = parseRoomSnapshot(message.body);
+
+        if (!nextSnapshot) {
+          return;
+        }
 
         setReceivedSnapshot(nextSnapshot);
       });
@@ -199,6 +203,14 @@ function getRoomEntryState(state: unknown): RoomEntryState | null {
     secret: maybeState.secret,
     snapshot: maybeSnapshot,
   };
+}
+
+function parseRoomSnapshot(body: string): RoomSnapshot | null {
+  try {
+    return JSON.parse(body) as RoomSnapshot;
+  } catch {
+    return null;
+  }
 }
 
 const S_Page = styled.main`
