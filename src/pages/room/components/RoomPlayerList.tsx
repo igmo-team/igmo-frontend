@@ -45,12 +45,15 @@ export function RoomPlayerList({
               {getInitial(player.nickname)}
             </S_Avatar>
             <S_Nickname title={player.nickname}>{player.nickname}</S_Nickname>
-            {(isCurrentPlayer || isHost) && (
-              <S_BadgeList aria-label="플레이어 상태">
-                {isCurrentPlayer && <S_Badge>나</S_Badge>}
-                {isHost && <S_Badge>방장</S_Badge>}
-              </S_BadgeList>
-            )}
+            <S_BadgeList aria-label="플레이어 상태">
+              {isCurrentPlayer && <S_Badge>나</S_Badge>}
+              {isHost && <S_Badge>방장</S_Badge>}
+              {!isHost && (
+                <S_ReadyBadge ready={player.ready}>
+                  {player.ready ? '준비 완료' : '대기 중'}
+                </S_ReadyBadge>
+              )}
+            </S_BadgeList>
           </S_PlayerCard>
         );
       })}
@@ -125,6 +128,15 @@ const S_Badge = styled.span`
   background: ${({ theme }) => theme.COLOR.PRIMARY500};
   color: ${({ theme }) => theme.COLOR.WHITE};
   ${({ theme }) => theme.TYPOGRAPHY.LABEL4}
+`;
+
+const S_ReadyBadge = styled(S_Badge, {
+  shouldForwardProp: (prop) => prop !== 'ready',
+})<{ ready: boolean }>`
+  background: ${({ ready, theme }) =>
+    ready ? theme.COLOR.PRIMARY500 : theme.COLOR.PRIMARY100};
+  color: ${({ ready, theme }) =>
+    ready ? theme.COLOR.WHITE : theme.COLOR.TEXT_SUBTLE};
 `;
 
 const S_EmptyMessage = styled.p`
