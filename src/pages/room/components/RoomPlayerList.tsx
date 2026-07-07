@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import { CrownIcon } from './CrownIcon';
+import { ROOM_AVATAR_COLORS } from '../constants/avatarColors';
 
 import type { RoomPlayer } from '../../../domain/room/types';
 
@@ -9,17 +10,6 @@ type RoomPlayerListProps = {
   hostId?: string;
   currentPlayerId?: string;
 };
-
-const AVATAR_COLORS = [
-  { background: '#FF3FBE', color: '#FFFFFF' },
-  { background: '#22C9DD', color: '#1B1130' },
-  { background: '#C8B6FF', color: '#1B1130' },
-  { background: '#9AA0FF', color: '#FFFFFF' },
-  { background: '#FFD6F2', color: '#1B1130' },
-  { background: '#2BB673', color: '#FFFFFF' },
-  { background: '#FFB35C', color: '#1B1130' },
-  { background: '#FF4D6D', color: '#FFFFFF' },
-];
 
 export function RoomPlayerList({
   players,
@@ -35,7 +25,8 @@ export function RoomPlayerList({
       {players.map((player, index) => {
         const isCurrentPlayer = player.id === currentPlayerId;
         const isHost = player.id === hostId;
-        const avatarColor = AVATAR_COLORS[index % AVATAR_COLORS.length];
+        const avatarColor =
+          ROOM_AVATAR_COLORS[index % ROOM_AVATAR_COLORS.length];
 
         return (
           <S_PlayerCard key={player.id}>

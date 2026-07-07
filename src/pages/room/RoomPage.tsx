@@ -7,12 +7,16 @@ import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 
+import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomLobbyView } from './components/RoomLobbyView';
-import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
+import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
+
+const TEMPORARY_ROUND = 1;
+const TEMPORARY_TIMER_SECONDS = 12;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -73,9 +77,9 @@ export function RoomPage() {
     );
   }
 
-  return (
-    <S_Page>
-      {snapshot.phase === 'LOBBY' && (
+  if (snapshot.phase === 'LOBBY') {
+    return (
+      <S_Page>
         <RoomLobbyView
           snapshot={snapshot}
           currentPlayerId={entryState?.playerId}
@@ -89,19 +93,24 @@ export function RoomPage() {
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
         />
-      )}
+      </S_Page>
+    );
+  }
 
-      {snapshot.phase === 'PROMPTING' && (
-        <RoomPromptingView
-          snapshot={snapshot}
-          currentPlayerId={entryState?.playerId}
-        />
-      )}
+  return (
+    <S_GamePage>
+      <RoomGameHeader
+        snapshot={snapshot}
+        currentPlayerId={entryState?.playerId}
+        round={TEMPORARY_ROUND}
+        phaseLabel={getRoomPhaseLabel(snapshot.phase)}
+        timerSeconds={TEMPORARY_TIMER_SECONDS}
+      />
 
-      {snapshot.phase !== 'LOBBY' && snapshot.phase !== 'PROMPTING' && (
-        <RoomPendingPhaseView snapshot={snapshot} />
-      )}
-    </S_Page>
+      <S_GameContent>
+        {snapshot.phase === 'PROMPTING' && <RoomPromptingView />}
+      </S_GameContent>
+    </S_GamePage>
   );
 }
 
@@ -112,6 +121,18 @@ const S_Page = styled.main`
   justify-content: center;
   padding: 4.4rem 2rem 9.6rem;
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
+`;
+
+const S_GamePage = styled.main`
+  min-height: 100dvh;
+  padding: 1.4rem 1.8rem 9.6rem;
+  background: ${({ theme }) => theme.COLOR.BACKGROUND};
+`;
+
+const S_GameContent = styled.div`
+  width: 100%;
+  max-width: 64rem;
+  margin: 4.8rem auto 0;
 `;
 
 const S_RoomCard = styled(Surface)`
