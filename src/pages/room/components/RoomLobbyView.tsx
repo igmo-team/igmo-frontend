@@ -81,22 +81,26 @@ export function RoomLobbyView({
         )}
         {isHost ? (
           <>
-            {!allGuestsReady && (
+            {!isSocketConnected && (
+              <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
+            )}
+            {isSocketConnected && !allGuestsReady && (
               <S_ActionGuide>
                 모든 참가자가 준비하면 시작할 수 있어요
               </S_ActionGuide>
             )}
-            {allGuestsReady &&
+            {isSocketConnected &&
+              allGuestsReady &&
               snapshot.players.length < MIN_PLAYERS_TO_START && (
                 <S_ActionGuide>
                   게임을 시작하려면 최소 {MIN_PLAYERS_TO_START}명이 필요해요
                 </S_ActionGuide>
               )}
-            {allGuestsReady &&
-              snapshot.players.length >= MIN_PLAYERS_TO_START &&
-              isSocketConnected && (
+            {isSocketConnected &&
+              allGuestsReady &&
+              snapshot.players.length >= MIN_PLAYERS_TO_START && (
                 <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
-            )}
+              )}
             <Button
               type="button"
               disabled={
@@ -112,7 +116,7 @@ export function RoomLobbyView({
         ) : (
           <>
             {!isSocketConnected && (
-              <S_ActionGuide>실시간 연결을 준비하고 있어요</S_ActionGuide>
+              <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
             )}
             {isSocketConnected && currentPlayer?.ready && (
               <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
