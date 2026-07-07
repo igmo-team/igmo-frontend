@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -10,11 +10,10 @@ import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { useRoomSocket } from './hooks/useRoomSocket';
+import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 
 import type { RoomSnapshot } from '../../domain/room/types';
-
-const COPY_FEEDBACK_DURATION_MS = 1500;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -28,54 +27,19 @@ export function RoomPage() {
   const { receivedSnapshot, isConnected, errorMessage, sendReady, sendStart } =
     useRoomSocket({ roomCode, entryState });
 
-  const [isCopied, setIsCopied] = useState(false);
-  const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-
   const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
   const inviteLink = displayRoomCode
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
 
+  const { isCopied, copyUrl } = useUrlCopy(inviteLink);
+
   useEffect(() => {
     if (roomCode && !entryState) {
       navigate(PAGE_URL.HOME, { replace: true });
     }
   }, [entryState, navigate, roomCode]);
-
-  const clearCopyFeedbackTimeout = () => {
-    if (copyFeedbackTimeoutId.current) {
-      clearTimeout(copyFeedbackTimeoutId.current);
-      copyFeedbackTimeoutId.current = null;
-    }
-  };
-
-  useEffect(() => {
-    return clearCopyFeedbackTimeout;
-  }, []);
-
-  const handleCopyButtonClick = async () => {
-    if (!inviteLink || !navigator.clipboard) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(inviteLink);
-      setIsCopied(true);
-
-      clearCopyFeedbackTimeout();
-
-      copyFeedbackTimeoutId.current = setTimeout(() => {
-        setIsCopied(false);
-        copyFeedbackTimeoutId.current = null;
-      }, COPY_FEEDBACK_DURATION_MS);
-    } catch {
-      clearCopyFeedbackTimeout();
-      setIsCopied(false);
-    }
-  };
 
   const handleLeaveButtonClick = () => {
     navigate(PAGE_URL.HOME);
@@ -126,7 +90,7 @@ export function RoomPage() {
           isCopied={isCopied}
           isSocketConnected={isConnected}
           socketErrorMessage={errorMessage}
-          onCopyButtonClick={handleCopyButtonClick}
+          onCopyButtonClick={copyUrl}
           onReadyButtonClick={sendReady}
           onStartButtonClick={handleStartButtonClick}
           onLeaveButtonClick={handleLeaveButtonClick}
