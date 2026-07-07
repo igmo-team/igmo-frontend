@@ -19,7 +19,6 @@ type UseRoomSocketResult = {
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => void;
-  clearError: () => void;
 };
 
 export function useRoomSocket({
@@ -126,16 +125,11 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/start`);
   };
 
-  const clearError = () => {
-    setErrorMessage('');
-  };
-
   return {
     receivedSnapshot,
     isConnected,
     errorMessage,
     sendReady,
     sendStart,
-    clearError,
   };
 }
