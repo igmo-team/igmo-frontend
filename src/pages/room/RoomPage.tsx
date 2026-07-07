@@ -13,6 +13,7 @@ import { RoomPromptingView } from './components/RoomPromptingView';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
+import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 const TEMPORARY_ROUND = 1;
 const TEMPORARY_TIMER_SECONDS = 12;
@@ -96,25 +97,21 @@ export function RoomPage() {
     );
   }
 
-  if (snapshot.phase === 'PROMPTING') {
-    return (
-      <S_GamePage>
-        <RoomGameHeader
-          snapshot={snapshot}
-          currentPlayerId={entryState?.playerId}
-          round={TEMPORARY_ROUND}
-          phaseLabel="프롬프트 입력"
-          timerSeconds={TEMPORARY_TIMER_SECONDS}
-        />
+  return (
+    <S_GamePage>
+      <RoomGameHeader
+        snapshot={snapshot}
+        currentPlayerId={entryState?.playerId}
+        round={TEMPORARY_ROUND}
+        phaseLabel={getRoomPhaseLabel(snapshot.phase)}
+        timerSeconds={TEMPORARY_TIMER_SECONDS}
+      />
 
-        <S_GameContent>
-          <RoomPromptingView />
-        </S_GameContent>
-      </S_GamePage>
-    );
-  }
-
-  return null;
+      <S_GameContent>
+        {snapshot.phase === 'PROMPTING' && <RoomPromptingView />}
+      </S_GameContent>
+    </S_GamePage>
+  );
 }
 
 const S_Page = styled.main`
