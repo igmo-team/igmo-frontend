@@ -123,11 +123,11 @@ const S_BadgeList = styled.div`
 `;
 
 const S_Badge = styled.span`
-  padding: 0.1rem 0.7rem;
+  padding: 0.3rem 0.7rem;
   border-radius: ${({ theme }) => theme.RADIUS.PILL};
   background: ${({ theme }) => theme.COLOR.PRIMARY500};
   color: ${({ theme }) => theme.COLOR.WHITE};
-  ${({ theme }) => theme.TYPOGRAPHY.LABEL4}
+  ${({ theme }) => theme.TYPOGRAPHY.LABEL2}
 `;
 
 const S_ReadyBadge = styled(S_Badge, {
