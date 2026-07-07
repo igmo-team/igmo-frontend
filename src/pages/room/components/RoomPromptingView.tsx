@@ -4,7 +4,17 @@ import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
 
-export function RoomPromptingView() {
+type RoomPromptingViewProps = {
+  isSocketConnected: boolean;
+  socketErrorMessage: string;
+  onSubmit: (prompt: string) => void;
+};
+
+export function RoomPromptingView({
+  isSocketConnected,
+  socketErrorMessage,
+  onSubmit,
+}: RoomPromptingViewProps) {
   const [promptText, setPromptText] = useState('');
   const isPromptEmpty = promptText.trim().length === 0;
 
@@ -12,6 +22,16 @@ export function RoomPromptingView() {
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     setPromptText(event.target.value);
+  };
+
+  const handleGenerateClick = () => {
+    const trimmedPrompt = promptText.trim();
+
+    if (trimmedPrompt.length === 0) {
+      return;
+    }
+
+    onSubmit(trimmedPrompt);
   };
 
   return (
@@ -31,7 +51,15 @@ export function RoomPromptingView() {
           onChange={handlePromptChange}
         />
 
-        <Button type="button" disabled={isPromptEmpty}>
+        {socketErrorMessage && (
+          <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+        )}
+
+        <Button
+          type="button"
+          disabled={isPromptEmpty || !isSocketConnected}
+          onClick={handleGenerateClick}
+        >
           그림 생성하기
         </Button>
       </S_InputGroup>
@@ -66,4 +94,10 @@ const S_InputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;
+`;
+
+const S_ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.COLOR.DANGER};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
 `;
