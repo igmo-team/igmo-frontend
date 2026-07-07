@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import { CrownIcon } from './CrownIcon';
+
 import type { RoomPlayer } from '../../../domain/room/types';
 
 type RoomPlayerListProps = {
@@ -37,20 +39,29 @@ export function RoomPlayerList({
 
         return (
           <S_PlayerCard key={player.id}>
-            <S_Avatar
-              aria-hidden="true"
-              backgroundColor={avatarColor.background}
-              textColor={avatarColor.color}
-            >
-              {getInitial(player.nickname)}
-            </S_Avatar>
+            {isCurrentPlayer && <S_MeBadge>나</S_MeBadge>}
+            <S_AvatarWrapper>
+              <S_Avatar
+                aria-hidden="true"
+                backgroundColor={avatarColor.background}
+                textColor={avatarColor.color}
+              >
+                {getInitial(player.nickname)}
+              </S_Avatar>
+              {isHost && (
+                <S_HostIcon role="img" aria-label="방장">
+                  <CrownIcon aria-hidden="true" />
+                </S_HostIcon>
+              )}
+            </S_AvatarWrapper>
             <S_Nickname title={player.nickname}>{player.nickname}</S_Nickname>
-            {(isCurrentPlayer || isHost) && (
-              <S_BadgeList aria-label="플레이어 상태">
-                {isCurrentPlayer && <S_Badge>나</S_Badge>}
-                {isHost && <S_Badge>방장</S_Badge>}
-              </S_BadgeList>
-            )}
+            <S_BadgeList aria-label="플레이어 상태">
+              {!isHost && (
+                <S_ReadyBadge ready={player.ready}>
+                  {player.ready ? '준비 완료' : '대기 중'}
+                </S_ReadyBadge>
+              )}
+            </S_BadgeList>
           </S_PlayerCard>
         );
       })}
@@ -70,6 +81,7 @@ const S_List = styled.ul`
 `;
 
 const S_PlayerCard = styled.li`
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 12rem;
@@ -77,10 +89,16 @@ const S_PlayerCard = styled.li`
   align-items: center;
   justify-content: flex-start;
   gap: 0.7rem;
+  overflow: hidden;
   padding: 1.4rem 0.6rem;
   border: ${({ theme }) => theme.BORDER.DEFAULT};
   border-radius: ${({ theme }) => theme.RADIUS.MD};
   background: ${({ theme }) => theme.COLOR.PINK50};
+`;
+
+const S_AvatarWrapper = styled.div`
+  position: relative;
+  flex: none;
 `;
 
 const S_Avatar = styled('div', {
@@ -102,6 +120,25 @@ const S_Avatar = styled('div', {
   ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
 `;
 
+const S_HostIcon = styled.span`
+  position: absolute;
+  top: -0.8rem;
+  right: -0.8rem;
+  display: grid;
+  width: 2.2rem;
+  height: 2.2rem;
+  place-items: center;
+  border: ${({ theme }) => theme.BORDER.THIN};
+  border-radius: 50%;
+  background: ${({ theme }) => theme.COLOR.WHITE};
+  color: ${({ theme }) => theme.COLOR.PRIMARY500};
+
+  svg {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+`;
+
 const S_Nickname = styled.span`
   max-width: 7.4rem;
   overflow: hidden;
@@ -109,6 +146,20 @@ const S_Nickname = styled.span`
   text-overflow: ellipsis;
   white-space: nowrap;
   ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
+const S_MeBadge = styled.span`
+  position: absolute;
+  top: 0;
+  left: -2.4rem;
+  display: grid;
+  width: 7rem;
+  height: 2rem;
+  place-items: center;
+  background: ${({ theme }) => theme.COLOR.PRIMARY500};
+  color: ${({ theme }) => theme.COLOR.WHITE};
+  transform: rotate(-45deg);
+  ${({ theme }) => theme.TYPOGRAPHY.LABEL4}
 `;
 
 const S_BadgeList = styled.div`
@@ -119,12 +170,16 @@ const S_BadgeList = styled.div`
   gap: 0.4rem;
 `;
 
-const S_Badge = styled.span`
-  padding: 0.1rem 0.7rem;
+const S_ReadyBadge = styled('span', {
+  shouldForwardProp: (prop) => prop !== 'ready',
+})<{ ready: boolean }>`
+  padding: 0.3rem 0.7rem;
   border-radius: ${({ theme }) => theme.RADIUS.PILL};
-  background: ${({ theme }) => theme.COLOR.PRIMARY500};
-  color: ${({ theme }) => theme.COLOR.WHITE};
-  ${({ theme }) => theme.TYPOGRAPHY.LABEL4}
+  background: ${({ ready, theme }) =>
+    ready ? theme.COLOR.SUCCESS : theme.COLOR.PRIMARY100};
+  color: ${({ ready, theme }) =>
+    ready ? theme.COLOR.WHITE : theme.COLOR.TEXT_SUBTLE};
+  ${({ theme }) => theme.TYPOGRAPHY.LABEL2}
 `;
 
 const S_EmptyMessage = styled.p`

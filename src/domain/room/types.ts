@@ -7,11 +7,17 @@ export type RoomPlayer = {
 
 export type RoomPhase =
   | 'LOBBY'
+  | 'PROMPTING'
   | 'GENERATING'
   | 'SUBMITTING'
   | 'VOTING'
   | 'RESULTS'
   | 'ENDED';
+
+export type RoomMessage<TPayload> = {
+  type: 'LOBBY_SNAPSHOT';
+  payload: TPayload;
+};
 
 export type RoomSnapshot = {
   roomCode: string;
