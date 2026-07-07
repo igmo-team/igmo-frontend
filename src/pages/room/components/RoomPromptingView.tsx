@@ -13,8 +13,9 @@ export function RoomPromptingView() {
       <S_Title>AI에게 어떤 그림을 그리게 할까요?</S_Title>
       <S_Guide>친구들이 헷갈릴 만큼 생생하게 적어보세요.</S_Guide>
 
-      <S_Textarea
+      <Textarea
         value={promptText}
+        tone="white"
         rows={4}
         placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
         shadow
@@ -43,12 +44,6 @@ const S_Guide = styled.p`
   margin-top: 0.8rem;
   color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
   ${({ theme }) => theme.TYPOGRAPHY.B3_B}
-`;
-
-const S_Textarea = styled(Textarea)`
-  min-height: 15.2rem;
-  margin-top: 1.8rem;
-  background: ${({ theme }) => theme.COLOR.WHITE};
 `;
 
 const S_SubmitButton = styled(Button)`
