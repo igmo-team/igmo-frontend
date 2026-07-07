@@ -14,8 +14,10 @@ export type RoomPhase =
   | 'RESULTS'
   | 'ENDED';
 
+export type RoomMessageType = 'LOBBY_SNAPSHOT' | 'PROMPT_SUBMISSION_SNAPSHOT';
+
 export type RoomMessage<TPayload> = {
-  type: 'LOBBY_SNAPSHOT';
+  type: RoomMessageType;
   payload: TPayload;
 };
 
@@ -24,4 +26,17 @@ export type RoomSnapshot = {
   phase: RoomPhase;
   hostId: string;
   players: RoomPlayer[];
+};
+
+export type PromptSubmissionStatus = 'WAITING' | 'SUBMITTED';
+
+export type PromptEntry = {
+  player: RoomPlayer;
+  status: PromptSubmissionStatus;
+};
+
+export type PromptSubmissionSnapshot = {
+  roomCode: string;
+  phase: RoomPhase;
+  promptEntries: PromptEntry[];
 };
