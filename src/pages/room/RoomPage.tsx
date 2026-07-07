@@ -133,8 +133,9 @@ const S_GamePage = styled.main`
 `;
 
 const S_GameContent = styled.div`
-  width: min(100%, 64rem);
-  margin: clamp(4.8rem, 8vh, 7.2rem) auto 0;
+  width: 100%;
+  max-width: 64rem;
+  margin: 4.8rem auto 0;
 `;
 
 const S_RoomCard = styled(Surface)`
