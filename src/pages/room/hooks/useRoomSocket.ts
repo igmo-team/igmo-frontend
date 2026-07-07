@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { createStompClient } from '../../../common/socket/createStompClient';
+import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
 
-import type { RoomSnapshot } from '../../../domain/room/types';
+import type {
+  PromptSubmissionSnapshot,
+  RoomSnapshot,
+} from '../../../domain/room/types';
 import type { RoomEntryState } from '../utils/getRoomEntryState';
 import type { Client } from '@stomp/stompjs';
 
@@ -15,6 +19,7 @@ type UseRoomSocketParams = {
 
 type UseRoomSocketResult = {
   receivedSnapshot: RoomSnapshot | null;
+  promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
   isConnected: boolean;
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
@@ -29,6 +34,8 @@ export function useRoomSocket({
   const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
     null,
   );
+  const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
+    useState<PromptSubmissionSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const stompClientRef = useRef<Client | null>(null);
@@ -63,12 +70,18 @@ export function useRoomSocket({
 
         const nextSnapshot = parseRoomSnapshot(message.body);
 
-        if (!nextSnapshot) {
+        if (nextSnapshot) {
+          setReceivedSnapshot(nextSnapshot);
+          setErrorMessage('');
           return;
         }
 
-        setReceivedSnapshot(nextSnapshot);
-        setErrorMessage('');
+        const nextPromptSnapshot = parsePromptSubmissionSnapshot(message.body);
+
+        if (nextPromptSnapshot) {
+          setPromptSubmissionSnapshot(nextPromptSnapshot);
+          setErrorMessage('');
+        }
       });
 
       client.subscribe('/user/queue/errors', (message) => {
@@ -132,6 +145,7 @@ export function useRoomSocket({
 
   return {
     receivedSnapshot,
+    promptSubmissionSnapshot,
     isConnected,
     errorMessage,
     sendReady,
