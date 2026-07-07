@@ -121,10 +121,7 @@ export function RoomPage() {
 
       <S_GameContent>
         {snapshot.phase === 'PROMPTING' && (
-          <RoomPromptingView
-            snapshot={snapshot}
-            currentPlayerId={entryState?.playerId}
-          />
+          <RoomPromptingView />
         )}
 
         {snapshot.phase !== 'PROMPTING' && (
