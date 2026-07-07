@@ -4,9 +4,6 @@ import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
 
-const PROMPT_PLACEHOLDER =
-  '예: 빨간 마라탕 그릇에 코를 박고 먹는 호랑이, 김 모락모락, 귀여운 표정';
-
 export function RoomPromptingView() {
   const [promptText, setPromptText] = useState('');
   const isPromptEmpty = promptText.trim().length === 0;
@@ -14,14 +11,12 @@ export function RoomPromptingView() {
   return (
     <S_PromptSection>
       <S_Title>AI에게 어떤 그림을 그리게 할까요?</S_Title>
-      <S_Guide>
-        한국어로 자유롭게 적어주세요. 결과물은 영어로 정교하게 변환돼요.
-      </S_Guide>
+      <S_Guide>친구들이 헷갈릴 만큼 생생하게 적어보세요.</S_Guide>
 
       <S_Textarea
         value={promptText}
         rows={4}
-        placeholder={PROMPT_PLACEHOLDER}
+        placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
         shadow
         onChange={(event) => setPromptText(event.target.value)}
       />
