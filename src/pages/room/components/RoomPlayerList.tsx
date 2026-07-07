@@ -134,7 +134,7 @@ const S_ReadyBadge = styled(S_Badge, {
   shouldForwardProp: (prop) => prop !== 'ready',
 })<{ ready: boolean }>`
   background: ${({ ready, theme }) =>
-    ready ? theme.COLOR.PRIMARY500 : theme.COLOR.PRIMARY100};
+    ready ? theme.COLOR.SUCCESS : theme.COLOR.PRIMARY100};
   color: ${({ ready, theme }) =>
     ready ? theme.COLOR.WHITE : theme.COLOR.TEXT_SUBTLE};
 `;
