@@ -50,6 +50,14 @@ export default defineConfig([
       parser: tsParser,
     },
 
+    settings: {
+      'import/resolver': {
+        node: {
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
+      },
+    },
+
     rules: {
       'react-refresh/only-export-components': [
         'warn',
@@ -115,6 +123,25 @@ export default defineConfig([
         },
       ],
       'unused-imports/no-unused-imports': 'error',
+      'import/no-restricted-paths': [
+        'error',
+        {
+          zones: [
+            {
+              target: './src/common',
+              from: ['./src/domain', './src/pages'],
+              message:
+                'common은 domain/pages를 import할 수 없습니다 (.codex/instructions/folder-structure.md)',
+            },
+            {
+              target: './src/domain',
+              from: './src/pages',
+              message:
+                'domain은 pages를 import할 수 없습니다 (.codex/instructions/folder-structure.md)',
+            },
+          ],
+        },
+      ],
     },
   },
 ]);
