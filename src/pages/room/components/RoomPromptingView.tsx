@@ -10,21 +10,25 @@ export function RoomPromptingView() {
 
   return (
     <S_PromptSection>
-      <S_Title>AI에게 어떤 그림을 그리게 할까요?</S_Title>
-      <S_Guide>친구들이 헷갈릴 만큼 생생하게 적어보세요.</S_Guide>
+      <S_TextGroup>
+        <S_Title>AI에게 어떤 그림을 그리게 할까요?</S_Title>
+        <S_Guide>친구들이 헷갈릴 만큼 생생하게 적어보세요.</S_Guide>
+      </S_TextGroup>
 
-      <Textarea
-        value={promptText}
-        tone="white"
-        rows={4}
-        placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
-        shadow
-        onChange={(event) => setPromptText(event.target.value)}
-      />
+      <S_InputGroup>
+        <Textarea
+          value={promptText}
+          tone="white"
+          rows={4}
+          placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
+          shadow
+          onChange={(event) => setPromptText(event.target.value)}
+        />
 
-      <S_SubmitButton type="button" disabled={isPromptEmpty}>
-        그림 생성하기
-      </S_SubmitButton>
+        <Button type="button" disabled={isPromptEmpty}>
+          그림 생성하기
+        </Button>
+      </S_InputGroup>
     </S_PromptSection>
   );
 }
@@ -33,6 +37,13 @@ const S_PromptSection = styled.section`
   display: flex;
   width: 100%;
   flex-direction: column;
+  gap: 1.8rem;
+`;
+
+const S_TextGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 `;
 
 const S_Title = styled.h2`
@@ -41,11 +52,12 @@ const S_Title = styled.h2`
 `;
 
 const S_Guide = styled.p`
-  margin-top: 0.8rem;
   color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
   ${({ theme }) => theme.TYPOGRAPHY.B3_B}
 `;
 
-const S_SubmitButton = styled(Button)`
-  margin-top: 2.4rem;
+const S_InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2.4rem;
 `;
