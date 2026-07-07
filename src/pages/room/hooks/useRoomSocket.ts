@@ -19,6 +19,7 @@ type UseRoomSocketResult = {
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => void;
+  sendPrompt: (prompt: string) => void;
 };
 
 export function useRoomSocket({
@@ -125,11 +126,16 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/start`);
   };
 
+  const sendPrompt = (prompt: string) => {
+    publish(`/app/rooms/${roomCode}/prompts`, JSON.stringify({ prompt }));
+  };
+
   return {
     receivedSnapshot,
     isConnected,
     errorMessage,
     sendReady,
     sendStart,
+    sendPrompt,
   };
 }
