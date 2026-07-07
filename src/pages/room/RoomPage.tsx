@@ -20,7 +20,7 @@ import type { RoomPhase } from '../../domain/room/types';
 const ROOM_PHASE_LABELS: Record<RoomPhase, string> = {
   LOBBY: '대기',
   PROMPTING: '프롬프트 입력',
-  GENERATING: '이미지 생성',
+  GENERATING: '프롬프트 입력',
   SUBMITTING: '가짜 프롬프트',
   VOTING: '투표',
   RESULTS: '결과',
@@ -29,6 +29,7 @@ const ROOM_PHASE_LABELS: Record<RoomPhase, string> = {
 
 const TEMPORARY_ROUND = 1;
 const TEMPORARY_TIMER_SECONDS = 12;
+const PROMPT_INPUT_PHASES: RoomPhase[] = ['PROMPTING', 'GENERATING'];
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -120,11 +121,11 @@ export function RoomPage() {
       />
 
       <S_GameContent>
-        {snapshot.phase === 'PROMPTING' && (
+        {PROMPT_INPUT_PHASES.includes(snapshot.phase) && (
           <RoomPromptingView />
         )}
 
-        {snapshot.phase !== 'PROMPTING' && (
+        {!PROMPT_INPUT_PHASES.includes(snapshot.phase) && (
           <RoomPendingPhaseView snapshot={snapshot} />
         )}
       </S_GameContent>
