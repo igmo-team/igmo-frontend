@@ -8,6 +8,12 @@ export function RoomPromptingView() {
   const [promptText, setPromptText] = useState('');
   const isPromptEmpty = promptText.trim().length === 0;
 
+  const handlePromptChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    setPromptText(event.target.value);
+  };
+
   return (
     <S_PromptSection>
       <S_TextGroup>
@@ -22,7 +28,7 @@ export function RoomPromptingView() {
           rows={4}
           placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
           shadow
-          onChange={(event) => setPromptText(event.target.value)}
+          onChange={handlePromptChange}
         />
 
         <Button type="button" disabled={isPromptEmpty}>
