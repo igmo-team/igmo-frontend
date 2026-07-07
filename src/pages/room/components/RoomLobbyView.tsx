@@ -96,10 +96,14 @@ export function RoomLobbyView({
               snapshot.players.length >= MIN_PLAYERS_TO_START &&
               isSocketConnected && (
                 <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
-              )}
+            )}
             <Button
               type="button"
-              disabled={!allGuestsReady || !isSocketConnected}
+              disabled={
+                !allGuestsReady ||
+                snapshot.players.length < MIN_PLAYERS_TO_START ||
+                !isSocketConnected
+              }
               onClick={onStart}
             >
               시작하기
