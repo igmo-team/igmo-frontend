@@ -9,27 +9,13 @@ import { areAllGuestsReady } from '../../domain/room/gameStart';
 
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomLobbyView } from './components/RoomLobbyView';
-import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 
-import type { RoomPhase } from '../../domain/room/types';
-
-const ROOM_PHASE_LABELS: Record<RoomPhase, string> = {
-  LOBBY: '대기',
-  PROMPTING: '프롬프트 입력',
-  GENERATING: '프롬프트 입력',
-  SUBMITTING: '가짜 프롬프트',
-  VOTING: '투표',
-  RESULTS: '결과',
-  ENDED: '종료',
-};
-
 const TEMPORARY_ROUND = 1;
 const TEMPORARY_TIMER_SECONDS = 12;
-const PROMPT_INPUT_PHASES: RoomPhase[] = ['PROMPTING', 'GENERATING'];
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -110,27 +96,25 @@ export function RoomPage() {
     );
   }
 
-  return (
-    <S_GamePage>
-      <RoomGameHeader
-        snapshot={snapshot}
-        currentPlayerId={entryState?.playerId}
-        round={TEMPORARY_ROUND}
-        phaseLabel={ROOM_PHASE_LABELS[snapshot.phase]}
-        timerSeconds={TEMPORARY_TIMER_SECONDS}
-      />
+  if (snapshot.phase === 'PROMPTING') {
+    return (
+      <S_GamePage>
+        <RoomGameHeader
+          snapshot={snapshot}
+          currentPlayerId={entryState?.playerId}
+          round={TEMPORARY_ROUND}
+          phaseLabel="프롬프트 입력"
+          timerSeconds={TEMPORARY_TIMER_SECONDS}
+        />
 
-      <S_GameContent>
-        {PROMPT_INPUT_PHASES.includes(snapshot.phase) && (
+        <S_GameContent>
           <RoomPromptingView />
-        )}
+        </S_GameContent>
+      </S_GamePage>
+    );
+  }
 
-        {!PROMPT_INPUT_PHASES.includes(snapshot.phase) && (
-          <RoomPendingPhaseView snapshot={snapshot} />
-        )}
-      </S_GameContent>
-    </S_GamePage>
-  );
+  return null;
 }
 
 const S_Page = styled.main`
