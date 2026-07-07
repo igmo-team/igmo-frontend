@@ -5,17 +5,14 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
-import { createStompClient } from '../../common/socket/createStompClient';
 
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
 import { RoomPromptingView } from './components/RoomPromptingView';
+import { useRoomSocket } from './hooks/useRoomSocket';
 import { getRoomEntryState } from './utils/getRoomEntryState';
-import { parseRoomSnapshot } from './utils/parseRoomSnapshot';
-import { parseSocketError } from './utils/parseSocketError';
 
 import type { RoomSnapshot } from '../../domain/room/types';
-import type { Client } from '@stomp/stompjs';
 
 const COPY_FEEDBACK_DURATION_MS = 1500;
 
@@ -27,13 +24,11 @@ export function RoomPage() {
     () => getRoomEntryState(location.state),
     [location.state],
   );
-  const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
-    null,
-  );
+
+  const { receivedSnapshot, isConnected, errorMessage, sendReady, sendStart } =
+    useRoomSocket({ roomCode, entryState });
+
   const [isCopied, setIsCopied] = useState(false);
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
-  const [socketErrorMessage, setSocketErrorMessage] = useState('');
-  const stompClientRef = useRef<Client | null>(null);
   const copyFeedbackTimeoutId = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -49,79 +44,6 @@ export function RoomPage() {
       navigate(PAGE_URL.HOME, { replace: true });
     }
   }, [entryState, navigate, roomCode]);
-
-  useEffect(() => {
-    if (!roomCode || !entryState) {
-      return;
-    }
-
-    let isActive = true;
-    const client = createStompClient();
-    stompClientRef.current = client;
-
-    if (entryState) {
-      client.connectHeaders = {
-        roomCode,
-        playerId: entryState.playerId,
-        secret: entryState.secret,
-      };
-    }
-
-    client.onConnect = () => {
-      if (!isActive) {
-        return;
-      }
-
-      setIsSocketConnected(true);
-      setSocketErrorMessage('');
-
-      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
-        if (!isActive) {
-          return;
-        }
-
-        const nextSnapshot = parseRoomSnapshot(message.body);
-
-        if (!nextSnapshot) {
-          return;
-        }
-
-        setReceivedSnapshot(nextSnapshot);
-        setSocketErrorMessage('');
-      });
-
-      client.subscribe('/user/queue/errors', (message) => {
-        if (!isActive) {
-          return;
-        }
-
-        setSocketErrorMessage(parseSocketError(message.body));
-      });
-    };
-
-    client.onDisconnect = () => {
-      if (isActive) {
-        setIsSocketConnected(false);
-      }
-    };
-
-    client.onWebSocketClose = () => {
-      if (isActive) {
-        setIsSocketConnected(false);
-      }
-    };
-
-    client.activate();
-
-    return () => {
-      isActive = false;
-      if (stompClientRef.current === client) {
-        stompClientRef.current = null;
-      }
-      setIsSocketConnected(false);
-      void client.deactivate();
-    };
-  }, [entryState, roomCode]);
 
   const clearCopyFeedbackTimeout = () => {
     if (copyFeedbackTimeoutId.current) {
@@ -159,19 +81,6 @@ export function RoomPage() {
     navigate(PAGE_URL.HOME);
   };
 
-  const handleReadyButtonClick = (nextReady: boolean) => {
-    if (!roomCode || !stompClientRef.current?.connected) {
-      return;
-    }
-
-    setSocketErrorMessage('');
-    stompClientRef.current.publish({
-      destination: `/app/rooms/${roomCode}/ready`,
-      body: JSON.stringify({ ready: nextReady }),
-      headers: { 'content-type': 'application/json' },
-    });
-  };
-
   const handleStartButtonClick = (
     snapshot: RoomSnapshot,
     currentPlayerId?: string,
@@ -193,14 +102,7 @@ export function RoomPage() {
       return;
     }
 
-    if (!roomCode || !stompClientRef.current?.connected) {
-      return;
-    }
-
-    setSocketErrorMessage('');
-    stompClientRef.current.publish({
-      destination: `/app/rooms/${roomCode}/start`,
-    });
+    sendStart();
   };
 
   if (!snapshot) {
@@ -222,10 +124,10 @@ export function RoomPage() {
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
           isCopied={isCopied}
-          isSocketConnected={isSocketConnected}
-          socketErrorMessage={socketErrorMessage}
+          isSocketConnected={isConnected}
+          socketErrorMessage={errorMessage}
           onCopyButtonClick={handleCopyButtonClick}
-          onReadyButtonClick={handleReadyButtonClick}
+          onReadyButtonClick={sendReady}
           onStartButtonClick={handleStartButtonClick}
           onLeaveButtonClick={handleLeaveButtonClick}
         />
