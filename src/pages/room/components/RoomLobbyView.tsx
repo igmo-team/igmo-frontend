@@ -20,10 +20,7 @@ type RoomLobbyViewProps = {
   socketErrorMessage: string;
   onCopyButtonClick: () => void;
   onReadyButtonClick: (nextReady: boolean) => void;
-  onStartButtonClick: (
-    snapshot: RoomSnapshot,
-    currentPlayerId?: string,
-  ) => void;
+  onStart: () => void;
   onLeaveButtonClick: () => void;
 };
 
@@ -37,7 +34,7 @@ export function RoomLobbyView({
   socketErrorMessage,
   onCopyButtonClick,
   onReadyButtonClick,
-  onStartButtonClick,
+  onStart,
   onLeaveButtonClick,
 }: RoomLobbyViewProps) {
   const currentPlayer = snapshot.players.find(
@@ -103,7 +100,7 @@ export function RoomLobbyView({
             <Button
               type="button"
               disabled={!allGuestsReady || !isSocketConnected}
-              onClick={() => onStartButtonClick(snapshot, currentPlayerId)}
+              onClick={onStart}
             >
               시작하기
             </Button>

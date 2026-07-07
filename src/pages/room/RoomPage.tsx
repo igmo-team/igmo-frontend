@@ -17,8 +17,6 @@ import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 
-import type { RoomSnapshot } from '../../domain/room/types';
-
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
@@ -49,11 +47,15 @@ export function RoomPage() {
     navigate(PAGE_URL.HOME);
   };
 
-  const handleStartButtonClick = (
-    snapshot: RoomSnapshot,
-    currentPlayerId?: string,
-  ) => {
-    if (snapshot.phase !== 'LOBBY' || currentPlayerId !== snapshot.hostId) {
+  const handleStart = () => {
+    if (!snapshot) {
+      return;
+    }
+
+    if (
+      snapshot.phase !== 'LOBBY' ||
+      entryState?.playerId !== snapshot.hostId
+    ) {
       return;
     }
 
@@ -92,7 +94,7 @@ export function RoomPage() {
           socketErrorMessage={errorMessage}
           onCopyButtonClick={copyUrl}
           onReadyButtonClick={sendReady}
-          onStartButtonClick={handleStartButtonClick}
+          onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
         />
       )}
