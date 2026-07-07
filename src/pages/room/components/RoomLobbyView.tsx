@@ -1,6 +1,10 @@
 import styled from '@emotion/styled';
 
 import { Button, Surface } from '../../../common/components';
+import {
+  MIN_PLAYERS_TO_START,
+  areAllGuestsReady,
+} from '../../../domain/room/gameStart';
 
 import { RoomPlayerList } from './RoomPlayerList';
 
@@ -40,9 +44,7 @@ export function RoomLobbyView({
     (player) => player.id === currentPlayerId,
   );
   const isHost = currentPlayer?.id === snapshot.hostId;
-  const areAllGuestsReady = snapshot.players
-    .filter((player) => player.id !== snapshot.hostId)
-    .every((player) => player.ready);
+  const allGuestsReady = areAllGuestsReady(snapshot);
 
   return (
     <S_RoomCard padding="lg" shadow>
@@ -82,24 +84,25 @@ export function RoomLobbyView({
         )}
         {isHost ? (
           <>
-            {!areAllGuestsReady && (
+            {!allGuestsReady && (
               <S_ActionGuide>
                 모든 참가자가 준비하면 시작할 수 있어요
               </S_ActionGuide>
             )}
-            {areAllGuestsReady && snapshot.players.length < 3 && (
-              <S_ActionGuide>
-                게임을 시작하려면 최소 3명이 필요해요
-              </S_ActionGuide>
-            )}
-            {areAllGuestsReady &&
-              snapshot.players.length >= 3 &&
+            {allGuestsReady &&
+              snapshot.players.length < MIN_PLAYERS_TO_START && (
+                <S_ActionGuide>
+                  게임을 시작하려면 최소 {MIN_PLAYERS_TO_START}명이 필요해요
+                </S_ActionGuide>
+              )}
+            {allGuestsReady &&
+              snapshot.players.length >= MIN_PLAYERS_TO_START &&
               isSocketConnected && (
                 <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
               )}
             <Button
               type="button"
-              disabled={!areAllGuestsReady || !isSocketConnected}
+              disabled={!allGuestsReady || !isSocketConnected}
               onClick={() => onStartButtonClick(snapshot, currentPlayerId)}
             >
               시작하기

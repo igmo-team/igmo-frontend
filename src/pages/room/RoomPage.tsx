@@ -5,6 +5,10 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
+import {
+  MIN_PLAYERS_TO_START,
+  areAllGuestsReady,
+} from '../../domain/room/gameStart';
 
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPendingPhaseView } from './components/RoomPendingPhaseView';
@@ -53,15 +57,11 @@ export function RoomPage() {
       return;
     }
 
-    if (
-      !snapshot.players
-        .filter((player) => player.id !== snapshot.hostId)
-        .every((player) => player.ready)
-    ) {
+    if (!areAllGuestsReady(snapshot)) {
       return;
     }
 
-    if (snapshot.players.length < 3) {
+    if (snapshot.players.length < MIN_PLAYERS_TO_START) {
       alert('게임을 시작하려면 최소 3명이 필요합니다.');
       return;
     }
