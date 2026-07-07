@@ -118,7 +118,10 @@ export function useRoomSocket({
   };
 
   const sendReady = (nextReady: boolean) => {
-    publish(`/app/rooms/${roomCode}/ready`, JSON.stringify({ ready: nextReady }));
+    publish(
+      `/app/rooms/${roomCode}/ready`,
+      JSON.stringify({ ready: nextReady }),
+    );
   };
 
   const sendStart = () => {
