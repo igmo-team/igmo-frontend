@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -8,15 +8,21 @@ import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 
 import { RoomGameHeader } from './components/RoomGameHeader';
+import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPromptingView } from './components/RoomPromptingView';
+import { RoomPromptResultView } from './components/RoomPromptResultView';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
+import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 const TEMPORARY_ROUND = 1;
 const TEMPORARY_TIMER_SECONDS = 12;
+// TODO: 결과 화면 이미지 URL은 아직 스냅샷에 없어 임시 placeholder 사용. 스펙 확정 시 교체.
+const TEMPORARY_RESULT_IMAGE =
+  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='400' height='300' fill='%23f3d9e4'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='24' fill='%23b06'>미리보기</text></svg>";
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -27,8 +33,17 @@ export function RoomPage() {
     [location.state],
   );
 
-  const { receivedSnapshot, isConnected, errorMessage, sendReady, sendStart } =
-    useRoomSocket({ roomCode, entryState });
+  const {
+    receivedSnapshot,
+    promptSubmissionSnapshot,
+    isConnected,
+    errorMessage,
+    sendReady,
+    sendStart,
+    sendPrompt,
+  } = useRoomSocket({ roomCode, entryState });
+
+  const [submittedPrompt, setSubmittedPrompt] = useState('');
 
   const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
@@ -67,6 +82,11 @@ export function RoomPage() {
     sendStart();
   };
 
+  const handleSubmitPrompt = (prompt: string) => {
+    sendPrompt(prompt);
+    setSubmittedPrompt(prompt);
+  };
+
   if (!snapshot) {
     return (
       <S_Page>
@@ -97,6 +117,11 @@ export function RoomPage() {
     );
   }
 
+  const promptingView = getMyPromptingView(
+    promptSubmissionSnapshot,
+    entryState?.playerId,
+  );
+
   return (
     <S_GamePage>
       <RoomGameHeader
@@ -108,7 +133,27 @@ export function RoomPage() {
       />
 
       <S_GameContent>
-        {snapshot.phase === 'PROMPTING' && <RoomPromptingView />}
+        {snapshot.phase === 'PROMPTING' && (
+          <>
+            {promptingView === 'INPUT' && (
+              <RoomPromptingView
+                isSocketConnected={isConnected}
+                socketErrorMessage={errorMessage}
+                onSubmit={handleSubmitPrompt}
+              />
+            )}
+            {promptingView === 'GENERATING' && <RoomGeneratingView />}
+            {promptingView === 'RESULT' && (
+              <RoomPromptResultView
+                imageUrl={TEMPORARY_RESULT_IMAGE}
+                prompt={submittedPrompt}
+              />
+            )}
+            {promptingView === 'FAILED' && (
+              <RoomPromptResultView prompt={submittedPrompt} isFailed />
+            )}
+          </>
+        )}
       </S_GameContent>
     </S_GamePage>
   );

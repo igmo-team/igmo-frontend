@@ -28,13 +28,10 @@ export type RoomSnapshot = {
   players: RoomPlayer[];
 };
 
-export type PromptStatus = 'WAITING' | 'SUBMITTED' | 'EXPIRED';
-
-export type ImageStatus = 'NONE' | 'GENERATING' | 'READY' | 'FAILED';
+export type ImageStatus = 'WAITING' | 'GENERATING' | 'READY' | 'FAILED';
 
 export type PromptEntry = {
   player: RoomPlayer;
-  promptStatus: PromptStatus;
   imageStatus: ImageStatus;
 };
 

@@ -1,13 +1,21 @@
-import type { PromptSubmissionSnapshot } from '../../../domain/room/types';
+import type {
+  ImageStatus,
+  PromptSubmissionSnapshot,
+} from '../../../domain/room/types';
 
 export type PromptingViewState = 'INPUT' | 'GENERATING' | 'RESULT' | 'FAILED';
 
+// Record<ImageStatus, …>라 imageStatus에 상태가 추가/변경되면 여기서 컴파일 에러가 나 동기화가 강제된다.
+const IMAGE_STATUS_TO_VIEW: Record<ImageStatus, PromptingViewState> = {
+  WAITING: 'INPUT',
+  GENERATING: 'GENERATING',
+  READY: 'RESULT',
+  FAILED: 'FAILED',
+};
+
 /**
- * 현재 플레이어의 프롬프트 단계 화면 상태를 판별한다.
- * imageStatus를 우선 기준으로 하되, 제출 직후 imageStatus가 아직 NONE인
- * 순간에는 promptStatus(SUBMITTED)로 생성 중 화면을 유지한다.
- *
- * TODO: promptStatus === 'EXPIRED'(시간 초과 미제출) 처리 — 타이머 연동 시 함께.
+ * 현재 플레이어의 프롬프트 단계 화면 상태를 imageStatus 기준으로만 판별한다.
+ * 내 엔트리가 아직 없으면 입력 화면으로 둔다.
  */
 export function getMyPromptingView(
   snapshot: PromptSubmissionSnapshot | null,
@@ -17,19 +25,5 @@ export function getMyPromptingView(
     (promptEntry) => promptEntry.player.id === playerId,
   );
 
-  if (!entry) {
-    return 'INPUT';
-  }
-
-  switch (entry.imageStatus) {
-    case 'GENERATING':
-      return 'GENERATING';
-    case 'READY':
-      return 'RESULT';
-    case 'FAILED':
-      return 'FAILED';
-    case 'NONE':
-    default:
-      return entry.promptStatus === 'SUBMITTED' ? 'GENERATING' : 'INPUT';
-  }
+  return entry ? IMAGE_STATUS_TO_VIEW[entry.imageStatus] : 'INPUT';
 }
