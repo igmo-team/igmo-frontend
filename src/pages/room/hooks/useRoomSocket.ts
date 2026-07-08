@@ -7,6 +7,7 @@ import { parseSocketError } from '../utils/parseSocketError';
 
 import type {
   PromptSubmissionSnapshot,
+  RoomPhase,
   RoomSnapshot,
 } from '../../../domain/room/types';
 import type { RoomEntryState } from '../utils/getRoomEntryState';
@@ -18,6 +19,7 @@ type UseRoomSocketParams = {
 };
 
 type UseRoomSocketResult = {
+  phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
   isConnected: boolean;
@@ -31,6 +33,9 @@ export function useRoomSocket({
   roomCode,
   entryState,
 }: UseRoomSocketParams): UseRoomSocketResult {
+  const [phase, setPhase] = useState<RoomPhase>(
+    () => entryState?.snapshot.phase ?? 'LOBBY',
+  );
   const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
     null,
   );
@@ -72,6 +77,7 @@ export function useRoomSocket({
 
         if (nextSnapshot) {
           setReceivedSnapshot(nextSnapshot);
+          setPhase(nextSnapshot.phase);
           setErrorMessage('');
           return;
         }
@@ -80,6 +86,7 @@ export function useRoomSocket({
 
         if (nextPromptSnapshot) {
           setPromptSubmissionSnapshot(nextPromptSnapshot);
+          setPhase(nextPromptSnapshot.phase);
           setErrorMessage('');
         }
       });
@@ -147,6 +154,7 @@ export function useRoomSocket({
   };
 
   return {
+    phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
     isConnected,

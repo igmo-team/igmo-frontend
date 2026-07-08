@@ -34,6 +34,7 @@ export function RoomPage() {
   );
 
   const {
+    phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
     isConnected,
@@ -97,7 +98,7 @@ export function RoomPage() {
     );
   }
 
-  if (snapshot.phase === 'LOBBY') {
+  if (phase === 'LOBBY') {
     return (
       <S_Page>
         <RoomLobbyView
@@ -128,12 +129,12 @@ export function RoomPage() {
         snapshot={snapshot}
         currentPlayerId={entryState?.playerId}
         round={TEMPORARY_ROUND}
-        phaseLabel={getRoomPhaseLabel(snapshot.phase)}
+        phaseLabel={getRoomPhaseLabel(phase)}
         timerSeconds={TEMPORARY_TIMER_SECONDS}
       />
 
       <S_GameContent>
-        {snapshot.phase === 'PROMPTING' && (
+        {phase === 'PROMPTING' && (
           <>
             {promptingView === 'INPUT' && (
               <RoomPromptingView
