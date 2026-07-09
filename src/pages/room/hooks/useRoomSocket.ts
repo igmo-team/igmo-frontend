@@ -1,10 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { createStompClient } from '../../../common/socket/createStompClient';
+import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
 
-import type { RoomSnapshot } from '../../../domain/room/types';
+import type {
+  PromptSubmissionSnapshot,
+  RoomPhase,
+  RoomSnapshot,
+} from '../../../domain/room/types';
 import type { RoomEntryState } from '../utils/getRoomEntryState';
 import type { Client } from '@stomp/stompjs';
 
@@ -14,20 +19,28 @@ type UseRoomSocketParams = {
 };
 
 type UseRoomSocketResult = {
+  phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
+  promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
   isConnected: boolean;
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => void;
+  sendPrompt: (prompt: string) => void;
 };
 
 export function useRoomSocket({
   roomCode,
   entryState,
 }: UseRoomSocketParams): UseRoomSocketResult {
+  const [phase, setPhase] = useState<RoomPhase>(
+    () => entryState?.snapshot.phase ?? 'LOBBY',
+  );
   const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
     null,
   );
+  const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
+    useState<PromptSubmissionSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const stompClientRef = useRef<Client | null>(null);
@@ -62,12 +75,20 @@ export function useRoomSocket({
 
         const nextSnapshot = parseRoomSnapshot(message.body);
 
-        if (!nextSnapshot) {
+        if (nextSnapshot) {
+          setReceivedSnapshot(nextSnapshot);
+          setPhase(nextSnapshot.phase);
+          setErrorMessage('');
           return;
         }
 
-        setReceivedSnapshot(nextSnapshot);
-        setErrorMessage('');
+        const nextPromptSnapshot = parsePromptSubmissionSnapshot(message.body);
+
+        if (nextPromptSnapshot) {
+          setPromptSubmissionSnapshot(nextPromptSnapshot);
+          setPhase(nextPromptSnapshot.phase);
+          setErrorMessage('');
+        }
       });
 
       client.subscribe('/user/queue/errors', (message) => {
@@ -99,7 +120,7 @@ export function useRoomSocket({
         stompClientRef.current = null;
       }
       setIsConnected(false);
-      void client.deactivate();
+      client.deactivate();
     };
   }, [entryState, roomCode]);
 
@@ -118,18 +139,28 @@ export function useRoomSocket({
   };
 
   const sendReady = (nextReady: boolean) => {
-    publish(`/app/rooms/${roomCode}/ready`, JSON.stringify({ ready: nextReady }));
+    publish(
+      `/app/rooms/${roomCode}/ready`,
+      JSON.stringify({ ready: nextReady }),
+    );
   };
 
   const sendStart = () => {
     publish(`/app/rooms/${roomCode}/start`);
   };
 
+  const sendPrompt = (prompt: string) => {
+    publish(`/app/rooms/${roomCode}/prompts`, JSON.stringify({ prompt }));
+  };
+
   return {
+    phase,
     receivedSnapshot,
+    promptSubmissionSnapshot,
     isConnected,
     errorMessage,
     sendReady,
     sendStart,
+    sendPrompt,
   };
 }
