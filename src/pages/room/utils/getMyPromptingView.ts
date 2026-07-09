@@ -1,30 +1,27 @@
-// TODO(다음 범위): imageStatus 기반 화면 분기 유틸.
-// 개인 이미지 큐(다다음 범위)에서 imageStatus를 수신하면 아래 로직을 복구한다.
-/*
-import type {
-  ImageStatus,
-  PromptSubmissionSnapshot,
-} from '../../../domain/room/types';
+import type { ImageGenerationStatus } from '../../../domain/room/types';
 
 export type PromptingViewState = 'INPUT' | 'GENERATING' | 'RESULT' | 'FAILED';
 
-const IMAGE_STATUS_TO_VIEW: Record<ImageStatus, PromptingViewState> = {
-  WAITING: 'INPUT',
+const IMAGE_STATUS_TO_VIEW: Record<ImageGenerationStatus, PromptingViewState> = {
+  WAITING: 'GENERATING',
   GENERATING: 'GENERATING',
   READY: 'RESULT',
   FAILED: 'FAILED',
 };
 
+/**
+ * 현재 플레이어의 프롬프트 단계 화면 상태를 판별한다.
+ * - 제출 전(rooms 채널 submitted=false)이면 입력 화면.
+ * - 제출 후에는 개인 이미지 큐의 status로 생성 중/결과/실패를 가른다.
+ *   (제출 직후 큐 메시지가 오기 전 status는 undefined → 생성 중)
+ */
 export function getMyPromptingView(
-  snapshot: PromptSubmissionSnapshot | null,
-  playerId: string | undefined,
+  isSubmitted: boolean,
+  imageStatus: ImageGenerationStatus | undefined,
 ): PromptingViewState {
-  const entry = snapshot?.promptEntries.find(
-    (promptEntry) => promptEntry.player.id === playerId,
-  );
+  if (!isSubmitted) {
+    return 'INPUT';
+  }
 
-  return entry ? IMAGE_STATUS_TO_VIEW[entry.imageStatus] : 'INPUT';
+  return imageStatus ? IMAGE_STATUS_TO_VIEW[imageStatus] : 'GENERATING';
 }
-*/
-
-export {};
