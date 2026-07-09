@@ -28,11 +28,13 @@ export type RoomSnapshot = {
   players: RoomPlayer[];
 };
 
-export type ImageStatus = 'WAITING' | 'GENERATING' | 'READY' | 'FAILED';
+// TODO(다음 범위): imageStatus는 개인 이미지 큐에서 수신. 그때 복구.
+// export type ImageStatus = 'WAITING' | 'GENERATING' | 'READY' | 'FAILED';
 
 export type PromptEntry = {
   player: RoomPlayer;
-  imageStatus: ImageStatus;
+  submitted: boolean;
+  // imageStatus: ImageStatus; // TODO(다음 범위): 개인 이미지 큐 수신 시 복구
 };
 
 export type PromptSubmissionSnapshot = {

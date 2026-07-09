@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -8,21 +8,23 @@ import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 
 import { RoomGameHeader } from './components/RoomGameHeader';
-import { RoomGeneratingView } from './components/RoomGeneratingView';
+// TODO(다음 범위): 생성중/결과/실패 화면
+// import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPromptingView } from './components/RoomPromptingView';
-import { RoomPromptResultView } from './components/RoomPromptResultView';
+// import { RoomPromptResultView } from './components/RoomPromptResultView';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
-import { getMyPromptingView } from './utils/getMyPromptingView';
+// TODO(다음 범위): imageStatus 기반 분기
+// import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 const TEMPORARY_ROUND = 1;
 const TEMPORARY_TIMER_SECONDS = 12;
-// TODO: 결과 화면 이미지 URL은 아직 스냅샷에 없어 임시 placeholder 사용. 스펙 확정 시 교체.
-const TEMPORARY_RESULT_IMAGE =
-  "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='400' height='300' fill='%23f3d9e4'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='24' fill='%23b06'>미리보기</text></svg>";
+// TODO(다음 범위): 결과 화면 임시 이미지 (실제 URL은 개인 이미지 큐에서 수신)
+// const TEMPORARY_RESULT_IMAGE =
+//   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='400' height='300' fill='%23f3d9e4'/><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' font-size='24' fill='%23b06'>미리보기</text></svg>";
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -44,7 +46,8 @@ export function RoomPage() {
     sendPrompt,
   } = useRoomSocket({ roomCode, entryState });
 
-  const [submittedPrompt, setSubmittedPrompt] = useState('');
+  // TODO(다음 범위): 결과 화면에 표시할 내가 입력한 프롬프트 보관
+  // const [submittedPrompt, setSubmittedPrompt] = useState('');
 
   const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
@@ -85,7 +88,7 @@ export function RoomPage() {
 
   const handleSubmitPrompt = (prompt: string) => {
     sendPrompt(prompt);
-    setSubmittedPrompt(prompt);
+    // TODO(다음 범위): setSubmittedPrompt(prompt);
   };
 
   if (!snapshot) {
@@ -118,10 +121,16 @@ export function RoomPage() {
     );
   }
 
-  const promptingView = getMyPromptingView(
-    promptSubmissionSnapshot,
-    entryState?.playerId,
-  );
+  // TODO(다음 범위): imageStatus 기반 화면 분기 (개인 이미지 큐는 다다음 범위)
+  // const promptingView = getMyPromptingView(
+  //   promptSubmissionSnapshot,
+  //   entryState?.playerId,
+  // );
+
+  const isPromptSubmitted =
+    promptSubmissionSnapshot?.promptEntries.find(
+      (entry) => entry.player.id === entryState?.playerId,
+    )?.submitted ?? false;
 
   return (
     <S_GamePage>
@@ -134,15 +143,18 @@ export function RoomPage() {
       />
 
       <S_GameContent>
-        {phase === 'PROMPTING' && (
+        {phase === 'PROMPTING' && !isPromptSubmitted && (
+          <RoomPromptingView
+            isSocketConnected={isConnected}
+            socketErrorMessage={errorMessage}
+            onSubmit={handleSubmitPrompt}
+          />
+        )}
+
+        {/* TODO(다음 범위): 제출 후 화면(생성중/결과/실패).
+            imageStatus는 개인 이미지 큐(다다음 범위)에서 수신한다.
+        {phase === 'PROMPTING' && isPromptSubmitted && (
           <>
-            {promptingView === 'INPUT' && (
-              <RoomPromptingView
-                isSocketConnected={isConnected}
-                socketErrorMessage={errorMessage}
-                onSubmit={handleSubmitPrompt}
-              />
-            )}
             {promptingView === 'GENERATING' && <RoomGeneratingView />}
             {promptingView === 'RESULT' && (
               <RoomPromptResultView
@@ -154,7 +166,7 @@ export function RoomPage() {
               <RoomPromptResultView prompt={submittedPrompt} isFailed />
             )}
           </>
-        )}
+        )} */}
       </S_GameContent>
     </S_GamePage>
   );
