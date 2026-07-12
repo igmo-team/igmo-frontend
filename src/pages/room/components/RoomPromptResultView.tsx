@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import styled from '@emotion/styled';
 
 type RoomPromptResultViewProps = {
@@ -12,14 +14,26 @@ export function RoomPromptResultView({
   imageUrl,
   isFailed = false,
 }: RoomPromptResultViewProps) {
+  const [hasImageError, setHasImageError] = useState(false);
+
   return (
     <S_ResultSection>
-      <S_Title>{isFailed ? '그림 생성에 실패했어요' : '그림이 완성됐어요'}</S_Title>
+      <S_Title>
+        {isFailed ? '그림 생성에 실패했어요' : '그림이 완성됐어요'}
+      </S_Title>
 
-      {isFailed ? (
-        <S_ImageFallback>이미지 생성에 실패했습니다.</S_ImageFallback>
+      {isFailed || hasImageError ? (
+        <S_ImageFallback>
+          {isFailed
+            ? '이미지 생성에 실패했습니다.'
+            : '이미지를 불러오지 못했어요.'}
+        </S_ImageFallback>
       ) : (
-        <S_Image src={imageUrl} alt="생성된 그림" />
+        <S_Image
+          src={imageUrl}
+          alt="생성된 그림"
+          onError={() => setHasImageError(true)}
+        />
       )}
 
       <S_PromptBox>
