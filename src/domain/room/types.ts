@@ -28,13 +28,9 @@ export type RoomSnapshot = {
   players: RoomPlayer[];
 };
 
-// TODO(다음 범위): imageStatus는 개인 이미지 큐에서 수신. 그때 복구.
-// export type ImageStatus = 'WAITING' | 'GENERATING' | 'READY' | 'FAILED';
-
 export type PromptEntry = {
   player: RoomPlayer;
   submitted: boolean;
-  // imageStatus: ImageStatus; // TODO(다음 범위): 개인 이미지 큐 수신 시 복구
 };
 
 export type PromptSubmissionSnapshot = {
@@ -43,4 +39,18 @@ export type PromptSubmissionSnapshot = {
   promptStartedAt: string;
   promptDeadline: string;
   promptEntries: PromptEntry[];
+};
+
+// 개인 이미지 큐(/queue/image-generation)에서 받는 내 이미지 생성 상태
+export type ImageGenerationStatus =
+  | 'WAITING'
+  | 'GENERATING'
+  | 'READY'
+  | 'FAILED';
+
+export type ImageGenerationSnapshot = {
+  roomCode: string;
+  status: ImageGenerationStatus;
+  prompt: string;
+  imageUrl?: string;
 };

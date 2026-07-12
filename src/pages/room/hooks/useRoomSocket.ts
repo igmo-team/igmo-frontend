@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { createStompClient } from '../../../common/socket/createStompClient';
+import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
 
 import type {
+  ImageGenerationSnapshot,
   PromptSubmissionSnapshot,
   RoomPhase,
   RoomSnapshot,
@@ -22,6 +24,7 @@ type UseRoomSocketResult = {
   phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
+  imageGenerationSnapshot: ImageGenerationSnapshot | null;
   isConnected: boolean;
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
@@ -41,6 +44,8 @@ export function useRoomSocket({
   );
   const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
     useState<PromptSubmissionSnapshot | null>(null);
+  const [imageGenerationSnapshot, setImageGenerationSnapshot] =
+    useState<ImageGenerationSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const stompClientRef = useRef<Client | null>(null);
@@ -88,6 +93,20 @@ export function useRoomSocket({
           setPromptSubmissionSnapshot(nextPromptSnapshot);
           setPhase(nextPromptSnapshot.phase);
           setErrorMessage('');
+        }
+      });
+
+      client.subscribe('/user/queue/image-generation', (message) => {
+        if (!isActive) {
+          return;
+        }
+
+        const nextImageGenerationSnapshot = parseImageGenerationSnapshot(
+          message.body,
+        );
+
+        if (nextImageGenerationSnapshot) {
+          setImageGenerationSnapshot(nextImageGenerationSnapshot);
         }
       });
 
@@ -157,6 +176,7 @@ export function useRoomSocket({
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
+    imageGenerationSnapshot,
     isConnected,
     errorMessage,
     sendReady,
