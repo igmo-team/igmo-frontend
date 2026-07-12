@@ -114,6 +114,11 @@ export function RoomPage() {
       (entry) => entry.player.id === entryState?.playerId,
     )?.submitted ?? false;
 
+  const submittedPlayerIds =
+    promptSubmissionSnapshot?.promptEntries
+      .filter((entry) => entry.submitted)
+      .map((entry) => entry.player.id) ?? [];
+
   const promptingView = getMyPromptingView(
     isPromptSubmitted,
     imageGenerationSnapshot?.status,
@@ -124,6 +129,7 @@ export function RoomPage() {
       <RoomGameHeader
         snapshot={snapshot}
         currentPlayerId={entryState?.playerId}
+        submittedPlayerIds={submittedPlayerIds}
         round={TEMPORARY_ROUND}
         phaseLabel={getRoomPhaseLabel(phase)}
         timerSeconds={TEMPORARY_TIMER_SECONDS}

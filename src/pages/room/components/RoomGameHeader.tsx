@@ -8,6 +8,7 @@ import type { RoomSnapshot } from '../../../domain/room/types';
 type RoomGameHeaderProps = {
   snapshot: RoomSnapshot;
   currentPlayerId?: string;
+  submittedPlayerIds?: string[];
   round: number;
   phaseLabel: string;
   timerSeconds: number;
@@ -16,6 +17,7 @@ type RoomGameHeaderProps = {
 export function RoomGameHeader({
   snapshot,
   currentPlayerId,
+  submittedPlayerIds = [],
   round,
   phaseLabel,
   timerSeconds,
@@ -36,16 +38,20 @@ export function RoomGameHeader({
             const avatarColor =
               ROOM_AVATAR_COLORS[index % ROOM_AVATAR_COLORS.length];
             const isCurrentPlayer = player.id === currentPlayerId;
+            const isSubmitted = submittedPlayerIds.includes(player.id);
 
             return (
-              <S_AvatarItem key={player.id}>
+              <S_AvatarItem key={player.id} submitted={isSubmitted}>
                 <S_Avatar
-                  aria-label={`${player.nickname}${isCurrentPlayer ? ' 나' : ''}`}
+                  aria-label={`${player.nickname}${isCurrentPlayer ? ' 나' : ''}${isSubmitted ? ' 제출 완료' : ''}`}
                   backgroundColor={avatarColor.background}
                   textColor={avatarColor.color}
                 >
                   {getInitial(player.nickname)}
                 </S_Avatar>
+                {isSubmitted && (
+                  <S_SubmittedBadge aria-hidden="true">✓</S_SubmittedBadge>
+                )}
               </S_AvatarItem>
             );
           })}
@@ -116,7 +122,11 @@ const S_AvatarStack = styled.ul`
   padding-left: 0.7rem;
 `;
 
-const S_AvatarItem = styled.li`
+const S_AvatarItem = styled('li', {
+  shouldForwardProp: (prop) => prop !== 'submitted',
+})<{ submitted: boolean }>`
+  position: relative;
+  z-index: ${({ submitted }) => (submitted ? 2 : 1)};
   margin-left: -0.7rem;
 `;
 
@@ -136,6 +146,23 @@ const S_Avatar = styled('div', {
   background: ${({ backgroundColor }) => backgroundColor};
   color: ${({ textColor }) => textColor};
   ${({ theme }) => theme.TYPOGRAPHY.B4_B}
+`;
+
+const S_SubmittedBadge = styled.span`
+  position: absolute;
+  right: -0.2rem;
+  bottom: -0.1rem;
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  place-items: center;
+  border: ${({ theme }) => theme.BORDER.THIN};
+  border-radius: 50%;
+  background: ${({ theme }) => theme.COLOR.SUCCESS};
+  color: ${({ theme }) => theme.COLOR.WHITE};
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1;
 `;
 
 const S_Timer = styled.div`
