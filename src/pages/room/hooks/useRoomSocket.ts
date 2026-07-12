@@ -96,7 +96,7 @@ export function useRoomSocket({
         }
       });
 
-      client.subscribe('/queue/image-generation', (message) => {
+      client.subscribe('/user/queue/image-generation', (message) => {
         if (!isActive) {
           return;
         }
