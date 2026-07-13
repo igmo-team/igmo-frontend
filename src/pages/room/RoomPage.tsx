@@ -10,6 +10,7 @@ import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
+import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
 import { useRoomSocket } from './hooks/useRoomSocket';
@@ -152,12 +153,7 @@ export function RoomPage() {
                 prompt={imageGenerationSnapshot?.prompt ?? ''}
               />
             )}
-            {promptingView === 'FAILED' && (
-              <RoomPromptResultView
-                isFailed
-                prompt={imageGenerationSnapshot?.prompt ?? ''}
-              />
-            )}
+            {promptingView === 'FAILED' && <RoomPromptFailedView />}
           </>
         )}
       </S_GameContent>
