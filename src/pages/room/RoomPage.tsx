@@ -51,9 +51,10 @@ export function RoomPage() {
     : '';
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-  const timerSeconds = useCountdownSeconds(
+  const countdownSeconds = useCountdownSeconds(
     promptSubmissionSnapshot?.promptDeadline,
   );
+  const timerSeconds = Math.min(countdownSeconds, PROMPT_TIMER_TOTAL_SECONDS);
   const timerProgressRatio = Math.min(
     Math.max(timerSeconds / PROMPT_TIMER_TOTAL_SECONDS, 0),
     1,
