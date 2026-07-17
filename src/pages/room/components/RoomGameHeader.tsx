@@ -5,6 +5,9 @@ import { ROOM_AVATAR_COLORS } from '../constants/avatarColors';
 
 import type { RoomSnapshot } from '../../../domain/room/types';
 
+const TIMER_PROGRESS_RADIUS = 26;
+const TIMER_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * TIMER_PROGRESS_RADIUS;
+
 type RoomGameHeaderProps = {
   snapshot: RoomSnapshot;
   currentPlayerId?: string;
@@ -12,6 +15,7 @@ type RoomGameHeaderProps = {
   round: number;
   phaseLabel: string;
   timerSeconds: number;
+  timerProgressRatio: number;
 };
 
 export function RoomGameHeader({
@@ -21,7 +25,11 @@ export function RoomGameHeader({
   round,
   phaseLabel,
   timerSeconds,
+  timerProgressRatio,
 }: RoomGameHeaderProps) {
+  const timerProgressOffset =
+    TIMER_PROGRESS_CIRCUMFERENCE * (1 - timerProgressRatio);
+
   return (
     <S_Header>
       <S_PhaseSummary>
@@ -57,7 +65,19 @@ export function RoomGameHeader({
           })}
         </S_AvatarStack>
 
-        <S_Timer aria-label={`남은 시간 ${timerSeconds}초`}>
+        <S_Timer
+          aria-label={`남은 시간 ${timerSeconds}초`}
+        >
+          <S_TimerSvg aria-hidden="true" viewBox="0 0 58 58">
+            <S_TimerTrack cx="29" cy="29" r={TIMER_PROGRESS_RADIUS} />
+            <S_TimerProgress
+              cx="29"
+              cy="29"
+              r={TIMER_PROGRESS_RADIUS}
+              strokeDasharray={TIMER_PROGRESS_CIRCUMFERENCE}
+              strokeDashoffset={timerProgressOffset}
+            />
+          </S_TimerSvg>
           <S_TimerInner>{timerSeconds}</S_TimerInner>
         </S_Timer>
       </S_StatusGroup>
@@ -166,17 +186,39 @@ const S_SubmittedBadge = styled.span`
 `;
 
 const S_Timer = styled.div`
+  position: relative;
   display: grid;
   width: 5.8rem;
   height: 5.8rem;
   flex: none;
   place-items: center;
-  border-radius: 50%;
-  background: ${({ theme }) =>
-    `conic-gradient(${theme.COLOR.PRIMARY500} 80deg, #EFE8FE 0deg)`};
+`;
+
+const S_TimerSvg = styled.svg`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg);
+`;
+
+const S_TimerTrack = styled.circle`
+  fill: none;
+  stroke: #efe8fe;
+  stroke-width: 6;
+`;
+
+const S_TimerProgress = styled.circle`
+  fill: none;
+  stroke: ${({ theme }) => theme.COLOR.PRIMARY500};
+  stroke-linecap: round;
+  stroke-width: 6;
+  transition: stroke-dashoffset 0.3s ease;
 `;
 
 const S_TimerInner = styled.span`
+  position: relative;
   display: grid;
   width: 4.8rem;
   height: 4.8rem;

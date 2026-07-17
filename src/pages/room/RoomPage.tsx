@@ -13,6 +13,7 @@ import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
+import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getMyPromptingView } from './utils/getMyPromptingView';
@@ -20,7 +21,7 @@ import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 const TEMPORARY_ROUND = 1;
-const TEMPORARY_TIMER_SECONDS = 12;
+const PROMPT_TIMER_TOTAL_SECONDS = 30;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -50,6 +51,13 @@ export function RoomPage() {
     : '';
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
+  const timerSeconds = useCountdownSeconds(
+    promptSubmissionSnapshot?.promptDeadline,
+  );
+  const timerProgressRatio = Math.min(
+    Math.max(timerSeconds / PROMPT_TIMER_TOTAL_SECONDS, 0),
+    1,
+  );
 
   useEffect(() => {
     if (roomCode && !entryState) {
@@ -133,7 +141,8 @@ export function RoomPage() {
         submittedPlayerIds={submittedPlayerIds}
         round={TEMPORARY_ROUND}
         phaseLabel={getRoomPhaseLabel(phase)}
-        timerSeconds={TEMPORARY_TIMER_SECONDS}
+        timerSeconds={timerSeconds}
+        timerProgressRatio={timerProgressRatio}
       />
 
       <S_GameContent>

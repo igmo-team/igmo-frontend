@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
-import { CrownIcon } from './CrownIcon';
 import { ROOM_AVATAR_COLORS } from '../constants/avatarColors';
+
+import { CrownIcon } from './CrownIcon';
 
 import type { RoomPlayer } from '../../../domain/room/types';
 
