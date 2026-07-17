@@ -146,7 +146,7 @@ export function RoomPage() {
       />
 
       <S_GameContent>
-        {phase === 'PROMPTING' && (
+        {phase === 'GENERATING' && (
           <>
             {promptingView === 'INPUT' && (
               <RoomPromptingView
