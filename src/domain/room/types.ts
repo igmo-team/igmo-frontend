@@ -7,7 +7,6 @@ export type RoomPlayer = {
 
 export type RoomPhase =
   | 'LOBBY'
-  | 'PROMPTING'
   | 'GENERATING'
   | 'SUBMITTING'
   | 'VOTING'
