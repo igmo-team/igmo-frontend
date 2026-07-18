@@ -21,7 +21,6 @@ import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 const TEMPORARY_ROUND = 1;
-const PROMPT_TIMER_TOTAL_SECONDS = 30;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -54,11 +53,15 @@ export function RoomPage() {
   const countdownSeconds = useCountdownSeconds(
     promptSubmissionSnapshot?.promptDeadline,
   );
-  const timerSeconds = Math.min(countdownSeconds, PROMPT_TIMER_TOTAL_SECONDS);
-  const timerProgressRatio = Math.min(
-    Math.max(timerSeconds / PROMPT_TIMER_TOTAL_SECONDS, 0),
-    1,
+  const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
+    promptSubmissionSnapshot?.promptStartedAt,
+    promptSubmissionSnapshot?.promptDeadline,
   );
+  const timerSeconds = Math.min(countdownSeconds, promptTimerTotalSeconds);
+  const timerProgressRatio =
+    promptTimerTotalSeconds > 0
+      ? Math.min(Math.max(timerSeconds / promptTimerTotalSeconds, 0), 1)
+      : 0;
 
   useEffect(() => {
     if (roomCode && !entryState) {
@@ -169,6 +172,21 @@ export function RoomPage() {
       </S_GameContent>
     </S_GamePage>
   );
+}
+
+function getPromptTimerTotalSeconds(startedAt?: string, deadline?: string) {
+  if (!startedAt || !deadline) {
+    return 0;
+  }
+
+  const startedAtTime = new Date(startedAt).getTime();
+  const deadlineTime = new Date(deadline).getTime();
+
+  if (Number.isNaN(startedAtTime) || Number.isNaN(deadlineTime)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round((deadlineTime - startedAtTime) / 1000));
 }
 
 const S_Page = styled.main`
