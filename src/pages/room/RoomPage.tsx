@@ -145,8 +145,14 @@ export function RoomPage() {
         submittedPlayerIds={submittedPlayerIds}
         round={TEMPORARY_ROUND}
         phaseLabel={getRoomPhaseLabel(phase)}
-        timerSeconds={timerSeconds}
-        timerProgressRatio={timerProgressRatio}
+        timer={
+          promptingView === 'INPUT'
+            ? {
+                seconds: timerSeconds,
+                progressRatio: timerProgressRatio,
+              }
+            : null
+        }
       />
 
       <S_GameContent>

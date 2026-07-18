@@ -8,14 +8,18 @@ import type { RoomSnapshot } from '../../../domain/room/types';
 const TIMER_PROGRESS_RADIUS = 26;
 const TIMER_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * TIMER_PROGRESS_RADIUS;
 
+type TimerState = {
+  seconds: number;
+  progressRatio: number;
+};
+
 type RoomGameHeaderProps = {
   snapshot: RoomSnapshot;
   currentPlayerId?: string;
   submittedPlayerIds?: string[];
   round: number;
   phaseLabel: string;
-  timerSeconds: number;
-  timerProgressRatio: number;
+  timer?: TimerState | null;
 };
 
 export function RoomGameHeader({
@@ -24,11 +28,10 @@ export function RoomGameHeader({
   submittedPlayerIds = [],
   round,
   phaseLabel,
-  timerSeconds,
-  timerProgressRatio,
+  timer = null,
 }: RoomGameHeaderProps) {
   const timerProgressOffset =
-    TIMER_PROGRESS_CIRCUMFERENCE * (1 - timerProgressRatio);
+    TIMER_PROGRESS_CIRCUMFERENCE * (1 - (timer?.progressRatio ?? 0));
 
   return (
     <S_Header>
@@ -65,21 +68,21 @@ export function RoomGameHeader({
           })}
         </S_AvatarStack>
 
-        <S_Timer
-          aria-label={`남은 시간 ${timerSeconds}초`}
-        >
-          <S_TimerSvg aria-hidden="true" viewBox="0 0 58 58">
-            <S_TimerTrack cx="29" cy="29" r={TIMER_PROGRESS_RADIUS} />
-            <S_TimerProgress
-              cx="29"
-              cy="29"
-              r={TIMER_PROGRESS_RADIUS}
-              strokeDasharray={TIMER_PROGRESS_CIRCUMFERENCE}
-              strokeDashoffset={timerProgressOffset}
-            />
-          </S_TimerSvg>
-          <S_TimerInner>{timerSeconds}</S_TimerInner>
-        </S_Timer>
+        {timer && (
+          <S_Timer aria-label={`남은 시간 ${timer.seconds}초`}>
+            <S_TimerSvg aria-hidden="true" viewBox="0 0 58 58">
+              <S_TimerTrack cx="29" cy="29" r={TIMER_PROGRESS_RADIUS} />
+              <S_TimerProgress
+                cx="29"
+                cy="29"
+                r={TIMER_PROGRESS_RADIUS}
+                strokeDasharray={TIMER_PROGRESS_CIRCUMFERENCE}
+                strokeDashoffset={timerProgressOffset}
+              />
+            </S_TimerSvg>
+            <S_TimerInner>{timer.seconds}</S_TimerInner>
+          </S_Timer>
+        )}
       </S_StatusGroup>
     </S_Header>
   );
