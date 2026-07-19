@@ -13,6 +13,7 @@ import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
+import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getMyPromptingView } from './utils/getMyPromptingView';
@@ -20,7 +21,6 @@ import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 const TEMPORARY_ROUND = 1;
-const TEMPORARY_TIMER_SECONDS = 12;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -50,6 +50,18 @@ export function RoomPage() {
     : '';
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
+  const countdownSeconds = useCountdownSeconds(
+    promptSubmissionSnapshot?.promptDeadline,
+  );
+  const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
+    promptSubmissionSnapshot?.promptStartedAt,
+    promptSubmissionSnapshot?.promptDeadline,
+  );
+  const timerSeconds = Math.min(countdownSeconds, promptTimerTotalSeconds);
+  const timerProgressRatio =
+    promptTimerTotalSeconds > 0
+      ? Math.min(Math.max(timerSeconds / promptTimerTotalSeconds, 0), 1)
+      : 0;
 
   useEffect(() => {
     if (roomCode && !entryState) {
@@ -124,6 +136,7 @@ export function RoomPage() {
     isPromptSubmitted,
     imageGenerationSnapshot?.status,
   );
+  const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
 
   return (
     <S_GamePage>
@@ -133,7 +146,14 @@ export function RoomPage() {
         submittedPlayerIds={submittedPlayerIds}
         round={TEMPORARY_ROUND}
         phaseLabel={getRoomPhaseLabel(phase)}
-        timerSeconds={TEMPORARY_TIMER_SECONDS}
+        timer={
+          shouldShowTimer
+            ? {
+                seconds: timerSeconds,
+                progressRatio: timerProgressRatio,
+              }
+            : null
+        }
       />
 
       <S_GameContent>
@@ -159,6 +179,21 @@ export function RoomPage() {
       </S_GameContent>
     </S_GamePage>
   );
+}
+
+function getPromptTimerTotalSeconds(startedAt?: string, deadline?: string) {
+  if (!startedAt || !deadline) {
+    return 0;
+  }
+
+  const startedAtTime = new Date(startedAt).getTime();
+  const deadlineTime = new Date(deadline).getTime();
+
+  if (Number.isNaN(startedAtTime) || Number.isNaN(deadlineTime)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round((deadlineTime - startedAtTime) / 1000));
 }
 
 const S_Page = styled.main`
