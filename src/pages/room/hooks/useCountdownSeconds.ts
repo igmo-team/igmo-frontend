@@ -11,17 +11,32 @@ export function useCountdownSeconds(deadline?: string | null) {
       return;
     }
 
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const updateCurrentTime = () => {
+      const nextCurrentTime = Date.now();
+
+      setCurrentTime(nextCurrentTime);
+
+      if (nextCurrentTime >= deadlineTime && intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
     const timeoutId = setTimeout(() => {
-      setCurrentTime(Date.now());
+      updateCurrentTime();
     }, 0);
 
-    const intervalId = setInterval(() => {
-      setCurrentTime(Date.now());
+    intervalId = setInterval(() => {
+      updateCurrentTime();
     }, COUNTDOWN_INTERVAL_MS);
 
     return () => {
       clearTimeout(timeoutId);
-      clearInterval(intervalId);
+      if (intervalId !== null) {
+        clearInterval(intervalId);
+      }
     };
   }, [deadlineTime]);
 
