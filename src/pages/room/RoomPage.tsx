@@ -136,6 +136,7 @@ export function RoomPage() {
     isPromptSubmitted,
     imageGenerationSnapshot?.status,
   );
+  const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
 
   return (
     <S_GamePage>
@@ -146,7 +147,7 @@ export function RoomPage() {
         round={TEMPORARY_ROUND}
         phaseLabel={getRoomPhaseLabel(phase)}
         timer={
-          promptingView === 'INPUT'
+          shouldShowTimer
             ? {
                 seconds: timerSeconds,
                 progressRatio: timerProgressRatio,
