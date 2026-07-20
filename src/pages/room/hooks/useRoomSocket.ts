@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import { createStompClient } from '../../../common/socket/createStompClient';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
+import { parsePlayingSnapshot } from '../utils/parsePlayingSnapshot';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
 
 import type {
   ImageGenerationSnapshot,
+  PlayingSnapshot,
   PromptSubmissionSnapshot,
   RoomPhase,
   RoomSnapshot,
@@ -24,6 +26,7 @@ type UseRoomSocketResult = {
   phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
+  playingSnapshot: PlayingSnapshot | null;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
   isConnected: boolean;
   errorMessage: string;
@@ -44,6 +47,8 @@ export function useRoomSocket({
   );
   const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
     useState<PromptSubmissionSnapshot | null>(null);
+  const [playingSnapshot, setPlayingSnapshot] =
+    useState<PlayingSnapshot | null>(null);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
     useState<ImageGenerationSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -83,6 +88,15 @@ export function useRoomSocket({
         if (nextSnapshot) {
           setReceivedSnapshot(nextSnapshot);
           setPhase(nextSnapshot.phase);
+          setErrorMessage('');
+          return;
+        }
+
+        const nextPlayingSnapshot = parsePlayingSnapshot(message.body);
+
+        if (nextPlayingSnapshot) {
+          setPlayingSnapshot(nextPlayingSnapshot);
+          setPhase(nextPlayingSnapshot.phase);
           setErrorMessage('');
           return;
         }
@@ -176,6 +190,7 @@ export function useRoomSocket({
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
+    playingSnapshot,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,
