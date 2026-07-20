@@ -3,6 +3,7 @@ import type { RoomPhase } from '../../../domain/room/types';
 const ROOM_PHASE_LABELS: Record<RoomPhase, string> = {
   LOBBY: '대기',
   GENERATING: '이미지 생성',
+  PLAYING: '프롬프트 추측',
   SUBMITTING: '가짜 프롬프트',
   VOTING: '투표',
   RESULTS: '결과',
