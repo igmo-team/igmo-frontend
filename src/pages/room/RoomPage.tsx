@@ -24,7 +24,7 @@ import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
 const TEMPORARY_ROUND = 1;
-const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 30;
+const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 10;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
