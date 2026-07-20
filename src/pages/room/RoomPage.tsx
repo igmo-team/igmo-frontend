@@ -7,6 +7,7 @@ import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 
+import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
@@ -21,6 +22,8 @@ import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 const TEMPORARY_ROUND = 1;
+// TODO: 서버가 라운드 시작 신호를 내려주면 실제 phase 조건으로 교체한다
+const TEMPORARY_IS_COUNTDOWN_VISIBLE = true;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -177,6 +180,8 @@ export function RoomPage() {
           </>
         )}
       </S_GameContent>
+
+      {TEMPORARY_IS_COUNTDOWN_VISIBLE && <RoomCountdownOverlay />}
     </S_GamePage>
   );
 }
