@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -19,6 +19,11 @@ export function RoomPlayingView({
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
   const isPromptEmpty = promptText.trim().length === 0;
   const isSubmitDisabled = isPromptEmpty || isQuestioner;
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPromptText('');
+  }, [snapshot.roundNumber, snapshot.questioner.id, snapshot.imageUrl]);
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
