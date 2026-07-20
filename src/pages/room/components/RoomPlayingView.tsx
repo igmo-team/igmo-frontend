@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
 
-import type { PlayingSnapshot } from '../../../domain/room/types';
+import type { RoundSnapshot } from '../../../domain/room/types';
 
 type RoomPlayingViewProps = {
-  snapshot: PlayingSnapshot;
+  snapshot: RoundSnapshot;
   currentPlayerId?: string;
 };
 
@@ -16,10 +16,9 @@ export function RoomPlayingView({
   currentPlayerId,
 }: RoomPlayingViewProps) {
   const [promptText, setPromptText] = useState('');
-  const isImageOwner = snapshot.imageOwner.id === currentPlayerId;
+  const isQuestioner = snapshot.questioner.id === currentPlayerId;
   const isPromptEmpty = promptText.trim().length === 0;
-  const isSubmitDisabled =
-    isPromptEmpty || !snapshot.promptSubmissionOpen || isImageOwner;
+  const isSubmitDisabled = isPromptEmpty || isQuestioner;
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
@@ -35,10 +34,10 @@ export function RoomPlayingView({
         ) : (
           <S_ImagePlaceholder aria-hidden="true" />
         )}
-        <S_ImageLabel>{snapshot.imageOwner.nickname}'s IMAGE</S_ImageLabel>
+        <S_ImageLabel>{snapshot.questioner.nickname}'s IMAGE</S_ImageLabel>
       </S_ImageFrame>
 
-      {isImageOwner ? (
+      {isQuestioner ? (
         <S_OwnerWaiting role="status">
           다른 참가자들이 가짜 프롬프트를 작성 중이에요.
         </S_OwnerWaiting>
@@ -58,7 +57,6 @@ export function RoomPlayingView({
               rows={3}
               placeholder="예: 노을 지는 한강에서 컵라면 먹는 고양이"
               shadow
-              disabled={!snapshot.promptSubmissionOpen}
               onChange={handlePromptChange}
             />
 

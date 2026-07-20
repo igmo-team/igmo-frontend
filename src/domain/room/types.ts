@@ -17,7 +17,7 @@ export type RoomPhase =
 export type RoomMessageType =
   | 'LOBBY_SNAPSHOT'
   | 'PROMPT_SUBMISSION_SNAPSHOT'
-  | 'PLAYING_SNAPSHOT';
+  | 'ROUND_SNAPSHOT';
 
 export type RoomMessage<TPayload> = {
   type: RoomMessageType;
@@ -44,17 +44,20 @@ export type PromptSubmissionSnapshot = {
   promptEntries: PromptEntry[];
 };
 
-export type PlayingSnapshot = {
+export type RoundGuessEntry = {
+  player: RoomPlayer;
+  submitted: boolean;
+};
+
+export type RoundSnapshot = {
   roomCode: string;
   phase: RoomPhase;
-  round: number;
-  turnId: string;
-  promptStartedAt: string;
-  promptDeadline: string;
+  roundNumber: number;
+  totalRoundCount: number;
+  questioner: RoomPlayer;
   imageUrl: string;
-  promptSubmissionOpen: boolean;
-  imageOwner: RoomPlayer;
-  players: RoomPlayer[];
+  guessDeadline: string;
+  guessEntries: RoundGuessEntry[];
 };
 
 // 개인 이미지 큐(/queue/image-generation)에서 받는 내 이미지 생성 상태

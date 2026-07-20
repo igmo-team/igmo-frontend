@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from 'react';
 
 import { createStompClient } from '../../../common/socket/createStompClient';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
-import { parsePlayingSnapshot } from '../utils/parsePlayingSnapshot';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
+import { parseRoundSnapshot } from '../utils/parseRoundSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
 
 import type {
   ImageGenerationSnapshot,
-  PlayingSnapshot,
   PromptSubmissionSnapshot,
   RoomPhase,
   RoomSnapshot,
+  RoundSnapshot,
 } from '../../../domain/room/types';
 import type { RoomEntryState } from '../utils/getRoomEntryState';
 import type { Client } from '@stomp/stompjs';
@@ -26,7 +26,7 @@ type UseRoomSocketResult = {
   phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
-  playingSnapshot: PlayingSnapshot | null;
+  roundSnapshot: RoundSnapshot | null;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
   isConnected: boolean;
   errorMessage: string;
@@ -47,8 +47,9 @@ export function useRoomSocket({
   );
   const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
     useState<PromptSubmissionSnapshot | null>(null);
-  const [playingSnapshot, setPlayingSnapshot] =
-    useState<PlayingSnapshot | null>(null);
+  const [roundSnapshot, setRoundSnapshot] = useState<RoundSnapshot | null>(
+    null,
+  );
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
     useState<ImageGenerationSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -92,11 +93,11 @@ export function useRoomSocket({
           return;
         }
 
-        const nextPlayingSnapshot = parsePlayingSnapshot(message.body);
+        const nextRoundSnapshot = parseRoundSnapshot(message.body);
 
-        if (nextPlayingSnapshot) {
-          setPlayingSnapshot(nextPlayingSnapshot);
-          setPhase(nextPlayingSnapshot.phase);
+        if (nextRoundSnapshot) {
+          setRoundSnapshot(nextRoundSnapshot);
+          setPhase(nextRoundSnapshot.phase);
           setErrorMessage('');
           return;
         }
@@ -190,7 +191,7 @@ export function useRoomSocket({
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
-    playingSnapshot,
+    roundSnapshot,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,

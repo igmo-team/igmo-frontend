@@ -21,6 +21,8 @@ import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
+import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
+
 const TEMPORARY_ROUND = 1;
 
 export function RoomPage() {
@@ -36,7 +38,7 @@ export function RoomPage() {
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
-    playingSnapshot,
+    roundSnapshot,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,
@@ -52,18 +54,16 @@ export function RoomPage() {
     : '';
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-  const promptDeadline =
+  const timerDeadline =
     phase === 'PLAYING'
-      ? playingSnapshot?.promptDeadline
+      ? roundSnapshot?.guessDeadline
       : promptSubmissionSnapshot?.promptDeadline;
-  const promptStartedAt =
-    phase === 'PLAYING'
-      ? playingSnapshot?.promptStartedAt
-      : promptSubmissionSnapshot?.promptStartedAt;
-  const countdownSeconds = useCountdownSeconds(promptDeadline);
+  const timerStartedAt =
+    phase === 'PLAYING' ? undefined : promptSubmissionSnapshot?.promptStartedAt;
+  const countdownSeconds = useCountdownSeconds(timerDeadline);
   const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
-    promptStartedAt,
-    promptDeadline,
+    timerStartedAt,
+    timerDeadline,
   );
   const timerSeconds = Math.min(countdownSeconds, promptTimerTotalSeconds);
   const timerProgressRatio =
@@ -145,16 +145,20 @@ export function RoomPage() {
     imageGenerationSnapshot?.status,
   );
   const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
-  const shouldShowPlayingTimer = phase === 'PLAYING' && Boolean(playingSnapshot);
+  const shouldShowPlayingTimer = phase === 'PLAYING' && Boolean(roundSnapshot);
   const headerPlayers =
-    phase === 'PLAYING' && playingSnapshot
-      ? playingSnapshot.players
+    phase === 'PLAYING' && roundSnapshot
+      ? getRoundPlayers(roundSnapshot)
       : snapshot.players;
   const headerSubmittedPlayerIds =
-    phase === 'GENERATING' ? submittedPlayerIds : [];
+    phase === 'GENERATING'
+      ? submittedPlayerIds
+      : (roundSnapshot?.guessEntries
+          .filter((entry) => entry.submitted)
+          .map((entry) => entry.player.id) ?? []);
   const headerRound =
-    phase === 'PLAYING' && playingSnapshot
-      ? playingSnapshot.round
+    phase === 'PLAYING' && roundSnapshot
+      ? roundSnapshot.roundNumber
       : TEMPORARY_ROUND;
 
   return (
@@ -169,7 +173,7 @@ export function RoomPage() {
           shouldShowTimer || shouldShowPlayingTimer
             ? {
                 seconds: timerSeconds,
-                progressRatio: timerProgressRatio,
+                progressRatio: shouldShowPlayingTimer ? 1 : timerProgressRatio,
               }
             : null
         }
@@ -197,9 +201,9 @@ export function RoomPage() {
         )}
 
         {phase === 'PLAYING' &&
-          (playingSnapshot ? (
+          (roundSnapshot ? (
             <RoomPlayingView
-              snapshot={playingSnapshot}
+              snapshot={roundSnapshot}
               currentPlayerId={entryState?.playerId}
             />
           ) : (
@@ -208,6 +212,13 @@ export function RoomPage() {
       </S_GameContent>
     </S_GamePage>
   );
+}
+
+function getRoundPlayers(snapshot: RoundSnapshot): RoomPlayer[] {
+  return [
+    snapshot.questioner,
+    ...snapshot.guessEntries.map((entry) => entry.player),
+  ];
 }
 
 function getPromptTimerTotalSeconds(startedAt?: string, deadline?: string) {
