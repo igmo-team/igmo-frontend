@@ -4,6 +4,7 @@ import { createStompClient } from '../../../common/socket/createStompClient';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
+import { parseRoundSnapshot } from '../utils/parseRoundSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
 
 import type {
@@ -11,6 +12,7 @@ import type {
   PromptSubmissionSnapshot,
   RoomPhase,
   RoomSnapshot,
+  RoundSnapshot,
 } from '../../../domain/room/types';
 import type { RoomEntryState } from '../utils/getRoomEntryState';
 import type { Client } from '@stomp/stompjs';
@@ -24,6 +26,7 @@ type UseRoomSocketResult = {
   phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
+  roundSnapshot: RoundSnapshot | null;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
   isConnected: boolean;
   errorMessage: string;
@@ -44,6 +47,9 @@ export function useRoomSocket({
   );
   const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
     useState<PromptSubmissionSnapshot | null>(null);
+  const [roundSnapshot, setRoundSnapshot] = useState<RoundSnapshot | null>(
+    null,
+  );
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
     useState<ImageGenerationSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -83,6 +89,15 @@ export function useRoomSocket({
         if (nextSnapshot) {
           setReceivedSnapshot(nextSnapshot);
           setPhase(nextSnapshot.phase);
+          setErrorMessage('');
+          return;
+        }
+
+        const nextRoundSnapshot = parseRoundSnapshot(message.body);
+
+        if (nextRoundSnapshot) {
+          setRoundSnapshot(nextRoundSnapshot);
+          setPhase(nextRoundSnapshot.phase);
           setErrorMessage('');
           return;
         }
@@ -176,6 +191,7 @@ export function useRoomSocket({
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
+    roundSnapshot,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,

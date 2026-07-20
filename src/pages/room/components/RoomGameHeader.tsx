@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import { LogoMark } from '../../../common/components';
 import { ROOM_AVATAR_COLORS } from '../constants/avatarColors';
 
-import type { RoomSnapshot } from '../../../domain/room/types';
+import type { RoomPlayer } from '../../../domain/room/types';
 
 const TIMER_PROGRESS_RADIUS = 26;
 const TIMER_PROGRESS_CIRCUMFERENCE = 2 * Math.PI * TIMER_PROGRESS_RADIUS;
@@ -14,7 +14,7 @@ type TimerState = {
 };
 
 type RoomGameHeaderProps = {
-  snapshot: RoomSnapshot;
+  players: RoomPlayer[];
   currentPlayerId?: string;
   submittedPlayerIds?: string[];
   round: number;
@@ -23,7 +23,7 @@ type RoomGameHeaderProps = {
 };
 
 export function RoomGameHeader({
-  snapshot,
+  players,
   currentPlayerId,
   submittedPlayerIds = [],
   round,
@@ -45,7 +45,7 @@ export function RoomGameHeader({
 
       <S_StatusGroup>
         <S_AvatarStack aria-label="게임 참가자 목록">
-          {snapshot.players.map((player, index) => {
+          {players.map((player, index) => {
             const avatarColor =
               ROOM_AVATAR_COLORS[index % ROOM_AVATAR_COLORS.length];
             const isCurrentPlayer = player.id === currentPlayerId;

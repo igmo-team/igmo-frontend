@@ -11,6 +11,7 @@ import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
+import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
@@ -21,9 +22,12 @@ import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
+import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
+
 const TEMPORARY_ROUND = 1;
 // TODO: 서버가 라운드 시작 신호를 내려주면 실제 phase 조건으로 교체한다
 const TEMPORARY_IS_COUNTDOWN_VISIBLE = true;
+const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 10;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -38,6 +42,7 @@ export function RoomPage() {
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
+    roundSnapshot,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,
@@ -53,18 +58,30 @@ export function RoomPage() {
     : '';
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-  const countdownSeconds = useCountdownSeconds(
+  const promptCountdownSeconds = useCountdownSeconds(
     promptSubmissionSnapshot?.promptDeadline,
+  );
+  const guessCountdownSeconds = useCountdownSeconds(
+    roundSnapshot?.guessDeadline,
   );
   const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
     promptSubmissionSnapshot?.promptStartedAt,
     promptSubmissionSnapshot?.promptDeadline,
   );
-  const timerSeconds = Math.min(countdownSeconds, promptTimerTotalSeconds);
-  const timerProgressRatio =
+  const promptTimerSeconds = Math.min(
+    promptCountdownSeconds,
+    promptTimerTotalSeconds,
+  );
+  const promptTimerProgressRatio =
     promptTimerTotalSeconds > 0
-      ? Math.min(Math.max(timerSeconds / promptTimerTotalSeconds, 0), 1)
+      ? Math.min(Math.max(promptTimerSeconds / promptTimerTotalSeconds, 0), 1)
       : 0;
+  const guessTimerSeconds = Math.min(
+    guessCountdownSeconds,
+    TEMPORARY_GUESS_TIMER_TOTAL_SECONDS,
+  );
+  const guessTimerProgressRatio =
+    guessTimerSeconds / TEMPORARY_GUESS_TIMER_TOTAL_SECONDS;
 
   useEffect(() => {
     if (roomCode && !entryState) {
@@ -140,22 +157,40 @@ export function RoomPage() {
     imageGenerationSnapshot?.status,
   );
   const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
+  const shouldShowPlayingTimer = phase === 'PLAYING' && Boolean(roundSnapshot);
+  const headerPlayers =
+    phase === 'PLAYING' && roundSnapshot
+      ? getRoundPlayers(roundSnapshot)
+      : snapshot.players;
+  const headerSubmittedPlayerIds =
+    phase === 'GENERATING'
+      ? submittedPlayerIds
+      : (roundSnapshot?.guessEntries
+          .filter((entry) => entry.submitted)
+          .map((entry) => entry.player.id) ?? []);
+  const headerRound =
+    phase === 'PLAYING' && roundSnapshot
+      ? roundSnapshot.roundNumber
+      : TEMPORARY_ROUND;
 
   return (
     <S_GamePage>
       <RoomGameHeader
-        snapshot={snapshot}
+        players={headerPlayers}
         currentPlayerId={entryState?.playerId}
-        submittedPlayerIds={submittedPlayerIds}
-        round={TEMPORARY_ROUND}
+        submittedPlayerIds={headerSubmittedPlayerIds}
+        round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
         timer={
-          shouldShowTimer
-            ? {
-                seconds: timerSeconds,
-                progressRatio: timerProgressRatio,
-              }
-            : null
+          (shouldShowTimer && {
+            seconds: promptTimerSeconds,
+            progressRatio: promptTimerProgressRatio,
+          }) ||
+          (shouldShowPlayingTimer && {
+            seconds: guessTimerSeconds,
+            progressRatio: guessTimerProgressRatio,
+          }) ||
+          null
         }
       />
 
@@ -179,11 +214,28 @@ export function RoomPage() {
             {promptingView === 'FAILED' && <RoomPromptFailedView />}
           </>
         )}
+
+        {phase === 'PLAYING' &&
+          (roundSnapshot ? (
+            <RoomPlayingView
+              snapshot={roundSnapshot}
+              currentPlayerId={entryState?.playerId}
+            />
+          ) : (
+            <S_EmptyState>프롬프트 추측 정보를 불러오는 중이에요.</S_EmptyState>
+          ))}
       </S_GameContent>
 
       {TEMPORARY_IS_COUNTDOWN_VISIBLE && <RoomCountdownOverlay />}
     </S_GamePage>
   );
+}
+
+function getRoundPlayers(snapshot: RoundSnapshot): RoomPlayer[] {
+  return [
+    snapshot.questioner,
+    ...snapshot.guessEntries.map((entry) => entry.player),
+  ];
 }
 
 function getPromptTimerTotalSeconds(startedAt?: string, deadline?: string) {
