@@ -10,6 +10,7 @@ import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
+import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
@@ -35,6 +36,7 @@ export function RoomPage() {
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
+    playingSnapshot,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,
@@ -50,12 +52,18 @@ export function RoomPage() {
     : '';
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-  const countdownSeconds = useCountdownSeconds(
-    promptSubmissionSnapshot?.promptDeadline,
-  );
+  const promptDeadline =
+    phase === 'PLAYING'
+      ? playingSnapshot?.promptDeadline
+      : promptSubmissionSnapshot?.promptDeadline;
+  const promptStartedAt =
+    phase === 'PLAYING'
+      ? playingSnapshot?.promptStartedAt
+      : promptSubmissionSnapshot?.promptStartedAt;
+  const countdownSeconds = useCountdownSeconds(promptDeadline);
   const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
-    promptSubmissionSnapshot?.promptStartedAt,
-    promptSubmissionSnapshot?.promptDeadline,
+    promptStartedAt,
+    promptDeadline,
   );
   const timerSeconds = Math.min(countdownSeconds, promptTimerTotalSeconds);
   const timerProgressRatio =
@@ -137,17 +145,28 @@ export function RoomPage() {
     imageGenerationSnapshot?.status,
   );
   const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
+  const shouldShowPlayingTimer = phase === 'PLAYING' && Boolean(playingSnapshot);
+  const headerPlayers =
+    phase === 'PLAYING' && playingSnapshot
+      ? playingSnapshot.players
+      : snapshot.players;
+  const headerSubmittedPlayerIds =
+    phase === 'GENERATING' ? submittedPlayerIds : [];
+  const headerRound =
+    phase === 'PLAYING' && playingSnapshot
+      ? playingSnapshot.round
+      : TEMPORARY_ROUND;
 
   return (
     <S_GamePage>
       <RoomGameHeader
-        snapshot={snapshot}
+        players={headerPlayers}
         currentPlayerId={entryState?.playerId}
-        submittedPlayerIds={submittedPlayerIds}
-        round={TEMPORARY_ROUND}
+        submittedPlayerIds={headerSubmittedPlayerIds}
+        round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
         timer={
-          shouldShowTimer
+          shouldShowTimer || shouldShowPlayingTimer
             ? {
                 seconds: timerSeconds,
                 progressRatio: timerProgressRatio,
@@ -176,6 +195,16 @@ export function RoomPage() {
             {promptingView === 'FAILED' && <RoomPromptFailedView />}
           </>
         )}
+
+        {phase === 'PLAYING' &&
+          (playingSnapshot ? (
+            <RoomPlayingView
+              snapshot={playingSnapshot}
+              currentPlayerId={entryState?.playerId}
+            />
+          ) : (
+            <S_EmptyState>프롬프트 추측 정보를 불러오는 중이에요.</S_EmptyState>
+          ))}
       </S_GameContent>
     </S_GamePage>
   );
