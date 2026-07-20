@@ -24,6 +24,7 @@ import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
 const TEMPORARY_ROUND = 1;
+const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 30;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -54,22 +55,30 @@ export function RoomPage() {
     : '';
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-  const timerDeadline =
-    phase === 'PLAYING'
-      ? roundSnapshot?.guessDeadline
-      : promptSubmissionSnapshot?.promptDeadline;
-  const timerStartedAt =
-    phase === 'PLAYING' ? undefined : promptSubmissionSnapshot?.promptStartedAt;
-  const countdownSeconds = useCountdownSeconds(timerDeadline);
-  const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
-    timerStartedAt,
-    timerDeadline,
+  const promptCountdownSeconds = useCountdownSeconds(
+    promptSubmissionSnapshot?.promptDeadline,
   );
-  const timerSeconds = Math.min(countdownSeconds, promptTimerTotalSeconds);
-  const timerProgressRatio =
+  const guessCountdownSeconds = useCountdownSeconds(
+    roundSnapshot?.guessDeadline,
+  );
+  const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
+    promptSubmissionSnapshot?.promptStartedAt,
+    promptSubmissionSnapshot?.promptDeadline,
+  );
+  const promptTimerSeconds = Math.min(
+    promptCountdownSeconds,
+    promptTimerTotalSeconds,
+  );
+  const promptTimerProgressRatio =
     promptTimerTotalSeconds > 0
-      ? Math.min(Math.max(timerSeconds / promptTimerTotalSeconds, 0), 1)
+      ? Math.min(Math.max(promptTimerSeconds / promptTimerTotalSeconds, 0), 1)
       : 0;
+  const guessTimerSeconds = Math.min(
+    guessCountdownSeconds,
+    TEMPORARY_GUESS_TIMER_TOTAL_SECONDS,
+  );
+  const guessTimerProgressRatio =
+    guessTimerSeconds / TEMPORARY_GUESS_TIMER_TOTAL_SECONDS;
 
   useEffect(() => {
     if (roomCode && !entryState) {
@@ -170,12 +179,15 @@ export function RoomPage() {
         round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
         timer={
-          shouldShowTimer || shouldShowPlayingTimer
-            ? {
-                seconds: timerSeconds,
-                progressRatio: shouldShowPlayingTimer ? 1 : timerProgressRatio,
-              }
-            : null
+          (shouldShowTimer && {
+            seconds: promptTimerSeconds,
+            progressRatio: promptTimerProgressRatio,
+          }) ||
+          (shouldShowPlayingTimer && {
+            seconds: guessTimerSeconds,
+            progressRatio: guessTimerProgressRatio,
+          }) ||
+          null
         }
       />
 
