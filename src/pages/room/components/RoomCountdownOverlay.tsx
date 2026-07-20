@@ -113,7 +113,7 @@ const S_Overlay = styled('div', {
 const S_Number = styled.span`
   color: ${({ theme }) => theme.COLOR.PRIMARY500};
   font-family: 'Jua', 'Pretendard', 'Pretendard Variable', sans-serif;
-  font-size: clamp(9rem, 30vw, 16rem);
+  font-size: clamp(14rem, 30vw, 24rem);
   line-height: 1;
   text-shadow: 0.5rem 0.6rem 0 ${({ theme }) => theme.COLOR.TEXT};
   animation: ${numberPop} 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.35) both;
