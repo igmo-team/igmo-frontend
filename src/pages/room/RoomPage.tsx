@@ -215,6 +215,7 @@ export function RoomPage() {
         {phase === 'PLAYING' &&
           (roundSnapshot ? (
             <RoomPlayingView
+              key={`${roundSnapshot.roundNumber}-${roundSnapshot.questioner.id}-${roundSnapshot.imageUrl}`}
               snapshot={roundSnapshot}
               currentPlayerId={entryState?.playerId}
             />
