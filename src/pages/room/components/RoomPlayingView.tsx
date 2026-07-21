@@ -22,6 +22,7 @@ export function RoomPlayingView({
   onSubmit,
 }: RoomPlayingViewProps) {
   const [promptText, setPromptText] = useState('');
+  const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
   const isSubmitted =
     snapshot.guessEntries.find((entry) => entry.player.id === currentPlayerId)
@@ -31,12 +32,22 @@ export function RoomPlayingView({
     isPromptEmpty ||
     isQuestioner ||
     isSubmitted ||
+    isSubmitPending ||
     !isSocketConnected;
+  const submitButtonText = getSubmitButtonText(isSubmitted, isSubmitPending);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPromptText('');
+    setIsSubmitPending(false);
   }, [snapshot.roundNumber, snapshot.questioner.id, snapshot.imageUrl]);
+
+  useEffect(() => {
+    if (isSubmitted || socketErrorMessage || !isSocketConnected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsSubmitPending(false);
+    }
+  }, [isSubmitted, isSocketConnected, socketErrorMessage]);
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
@@ -49,6 +60,7 @@ export function RoomPlayingView({
       return;
     }
 
+    setIsSubmitPending(true);
     onSubmit(promptText);
   };
 
@@ -83,7 +95,7 @@ export function RoomPlayingView({
               rows={3}
               placeholder="예: 노을 지는 한강에서 컵라면 먹는 고양이"
               shadow
-              disabled={isSubmitted}
+              disabled={isSubmitted || isSubmitPending}
               onChange={handlePromptChange}
             />
 
@@ -96,13 +108,25 @@ export function RoomPlayingView({
               disabled={isSubmitDisabled}
               onClick={handleSubmitClick}
             >
-              {isSubmitted ? '제출 완료' : '제출하기'}
+              {submitButtonText}
             </Button>
           </S_InputGroup>
         </S_FormArea>
       )}
     </S_PlayingSection>
   );
+}
+
+function getSubmitButtonText(isSubmitted: boolean, isSubmitPending: boolean) {
+  if (isSubmitted) {
+    return '제출 완료';
+  }
+
+  if (isSubmitPending) {
+    return '제출 중...';
+  }
+
+  return '제출하기';
 }
 
 const S_PlayingSection = styled.section`

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -22,13 +22,23 @@ export function RoomVotingView({
   onSubmit,
 }: RoomVotingViewProps) {
   const [selectedOptionId, setSelectedOptionId] = useState('');
+  const [isVotePending, setIsVotePending] = useState(false);
   const isVoted =
     snapshot.voteEntries.find((entry) => entry.player.id === currentPlayerId)
       ?.voted ?? false;
-  const isConfirmDisabled = !selectedOptionId || isVoted || !isSocketConnected;
+  const isConfirmDisabled =
+    !selectedOptionId || isVoted || isVotePending || !isSocketConnected;
+  const confirmButtonText = getConfirmButtonText(isVoted, isVotePending);
+
+  useEffect(() => {
+    if (isVoted || socketErrorMessage || !isSocketConnected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsVotePending(false);
+    }
+  }, [isSocketConnected, isVoted, socketErrorMessage]);
 
   const handleOptionClick = (optionId: string) => {
-    if (isVoted) {
+    if (isVoted || isVotePending) {
       return;
     }
 
@@ -40,6 +50,7 @@ export function RoomVotingView({
       return;
     }
 
+    setIsVotePending(true);
     onSubmit(selectedOptionId);
   };
 
@@ -58,7 +69,7 @@ export function RoomVotingView({
             <S_OptionItem key={option.optionId}>
               <S_OptionButton
                 type="button"
-                disabled={isVoted}
+                disabled={isVoted || isVotePending}
                 selected={isSelected}
                 onClick={() => handleOptionClick(option.optionId)}
               >
@@ -80,11 +91,23 @@ export function RoomVotingView({
           disabled={isConfirmDisabled}
           onClick={handleConfirmClick}
         >
-          {isVoted ? '투표 완료' : '투표 확정'}
+          {confirmButtonText}
         </Button>
       </S_ActionArea>
     </S_VotingSection>
   );
+}
+
+function getConfirmButtonText(isVoted: boolean, isVotePending: boolean) {
+  if (isVoted) {
+    return '투표 완료';
+  }
+
+  if (isVotePending) {
+    return '투표 중...';
+  }
+
+  return '투표 확정';
 }
 
 function getOptionLabel(index: number) {
