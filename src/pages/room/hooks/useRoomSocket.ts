@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { createStompClient } from '../../../common/socket/createStompClient';
+import {
+  readHasPlayedCountdown,
+  writeHasPlayedCountdown,
+} from '../utils/countdownPlayedStorage';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
@@ -27,6 +31,8 @@ type UseRoomSocketResult = {
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
   roundSnapshot: RoundSnapshot | null;
+  // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
+  isCountdownTriggered: boolean;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
   isConnected: boolean;
   errorMessage: string;
@@ -50,6 +56,8 @@ export function useRoomSocket({
   const [roundSnapshot, setRoundSnapshot] = useState<RoundSnapshot | null>(
     null,
   );
+  const [isCountdownTriggered, setIsCountdownTriggered] = useState(false);
+  const hasHandledFirstRoundSnapshotRef = useRef(false);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
     useState<ImageGenerationSnapshot | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -96,6 +104,12 @@ export function useRoomSocket({
         const nextRoundSnapshot = parseRoundSnapshot(message.body);
 
         if (nextRoundSnapshot) {
+          if (!hasHandledFirstRoundSnapshotRef.current) {
+            hasHandledFirstRoundSnapshotRef.current = true;
+            setIsCountdownTriggered(!readHasPlayedCountdown(roomCode));
+            writeHasPlayedCountdown(roomCode);
+          }
+
           setRoundSnapshot(nextRoundSnapshot);
           setPhase(nextRoundSnapshot.phase);
           setErrorMessage('');
@@ -192,6 +206,7 @@ export function useRoomSocket({
     receivedSnapshot,
     promptSubmissionSnapshot,
     roundSnapshot,
+    isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,

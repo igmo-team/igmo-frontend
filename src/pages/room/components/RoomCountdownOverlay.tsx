@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { css, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,9 +9,20 @@ const EXIT_DURATION_MS = 180;
 
 type CountdownStatus = 'counting' | 'exiting' | 'done';
 
-export function RoomCountdownOverlay() {
+interface RoomCountdownOverlayProps {
+  onCountdownEnd?: () => void;
+}
+
+export function RoomCountdownOverlay({
+  onCountdownEnd,
+}: RoomCountdownOverlayProps) {
   const [status, setStatus] = useState<CountdownStatus>('counting');
   const [seconds, setSeconds] = useState(COUNTDOWN_START_SECONDS);
+  const onCountdownEndRef = useRef(onCountdownEnd);
+
+  useEffect(() => {
+    onCountdownEndRef.current = onCountdownEnd;
+  });
 
   useEffect(() => {
     let remainingSeconds = COUNTDOWN_START_SECONDS;
@@ -25,9 +36,9 @@ export function RoomCountdownOverlay() {
         return;
       }
 
-      // 마지막 숫자(1)를 유지한 채 오버레이 전체가 페이드로 사라진다.
       clearInterval(intervalId);
       setStatus('exiting');
+      onCountdownEndRef.current?.();
       exitTimeoutId = setTimeout(() => {
         setStatus('done');
       }, EXIT_DURATION_MS);
