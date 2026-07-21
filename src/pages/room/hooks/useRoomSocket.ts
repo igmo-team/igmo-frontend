@@ -10,6 +10,7 @@ import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSna
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
 import { parseRoundSnapshot } from '../utils/parseRoundSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
+import { parseVoteSnapshot } from '../utils/parseVoteSnapshot';
 
 import type {
   ImageGenerationSnapshot,
@@ -17,6 +18,7 @@ import type {
   RoomPhase,
   RoomSnapshot,
   RoundSnapshot,
+  VoteSnapshot,
 } from '../../../domain/room/types';
 import type { RoomEntryState } from '../utils/getRoomEntryState';
 import type { Client } from '@stomp/stompjs';
@@ -31,6 +33,7 @@ type UseRoomSocketResult = {
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
   roundSnapshot: RoundSnapshot | null;
+  voteSnapshot: VoteSnapshot | null;
   // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
   isCountdownTriggered: boolean;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
@@ -56,6 +59,7 @@ export function useRoomSocket({
   const [roundSnapshot, setRoundSnapshot] = useState<RoundSnapshot | null>(
     null,
   );
+  const [voteSnapshot, setVoteSnapshot] = useState<VoteSnapshot | null>(null);
   const [isCountdownTriggered, setIsCountdownTriggered] = useState(false);
   const hasHandledFirstRoundSnapshotRef = useRef(false);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
@@ -121,6 +125,15 @@ export function useRoomSocket({
         if (nextPromptSnapshot) {
           setPromptSubmissionSnapshot(nextPromptSnapshot);
           setPhase(nextPromptSnapshot.phase);
+          setErrorMessage('');
+          return;
+        }
+
+        const nextVoteSnapshot = parseVoteSnapshot(message.body);
+
+        if (nextVoteSnapshot) {
+          setVoteSnapshot(nextVoteSnapshot);
+          setPhase(nextVoteSnapshot.phase);
           setErrorMessage('');
         }
       });
@@ -206,6 +219,7 @@ export function useRoomSocket({
     receivedSnapshot,
     promptSubmissionSnapshot,
     roundSnapshot,
+    voteSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
