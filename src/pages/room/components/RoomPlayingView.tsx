@@ -9,26 +9,59 @@ import type { RoundSnapshot } from '../../../domain/room/types';
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
   currentPlayerId?: string;
+  isSocketConnected: boolean;
+  socketErrorMessage?: string;
+  onSubmit: (prompt: string) => void;
 };
 
 export function RoomPlayingView({
   snapshot,
   currentPlayerId,
+  isSocketConnected,
+  socketErrorMessage = '',
+  onSubmit,
 }: RoomPlayingViewProps) {
   const [promptText, setPromptText] = useState('');
+  const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
+  const isSubmitted =
+    snapshot.guessEntries.find((entry) => entry.player.id === currentPlayerId)
+      ?.submitted ?? false;
   const isPromptEmpty = promptText.trim().length === 0;
-  const isSubmitDisabled = isPromptEmpty || isQuestioner;
+  const isSubmitDisabled =
+    isPromptEmpty ||
+    isQuestioner ||
+    isSubmitted ||
+    isSubmitPending ||
+    !isSocketConnected;
+  const submitButtonText = getSubmitButtonText(isSubmitted, isSubmitPending);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPromptText('');
+    setIsSubmitPending(false);
   }, [snapshot.roundNumber, snapshot.questioner.id, snapshot.imageUrl]);
+
+  useEffect(() => {
+    if (isSubmitted || socketErrorMessage || !isSocketConnected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsSubmitPending(false);
+    }
+  }, [isSubmitted, isSocketConnected, socketErrorMessage]);
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
     setPromptText(event.target.value);
+  };
+
+  const handleSubmitClick = () => {
+    if (isSubmitDisabled) {
+      return;
+    }
+
+    setIsSubmitPending(true);
+    onSubmit(promptText);
   };
 
   return (
@@ -62,17 +95,38 @@ export function RoomPlayingView({
               rows={3}
               placeholder="예: 노을 지는 한강에서 컵라면 먹는 고양이"
               shadow
+              disabled={isSubmitted || isSubmitPending}
               onChange={handlePromptChange}
             />
 
-            <Button type="button" disabled={isSubmitDisabled}>
-              제출하기
+            {socketErrorMessage && (
+              <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+            )}
+
+            <Button
+              type="button"
+              disabled={isSubmitDisabled}
+              onClick={handleSubmitClick}
+            >
+              {submitButtonText}
             </Button>
           </S_InputGroup>
         </S_FormArea>
       )}
     </S_PlayingSection>
   );
+}
+
+function getSubmitButtonText(isSubmitted: boolean, isSubmitPending: boolean) {
+  if (isSubmitted) {
+    return '제출 완료';
+  }
+
+  if (isSubmitPending) {
+    return '제출 중...';
+  }
+
+  return '제출하기';
 }
 
 const S_PlayingSection = styled.section`
@@ -153,6 +207,12 @@ const S_InputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;
+`;
+
+const S_ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.COLOR.DANGER};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
 `;
 
 const S_OwnerWaiting = styled.p`

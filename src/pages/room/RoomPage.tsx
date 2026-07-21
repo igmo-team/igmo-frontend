@@ -51,6 +51,8 @@ export function RoomPage() {
     sendReady,
     sendStart,
     sendPrompt,
+    sendGuess,
+    sendVote,
   } = useRoomSocket({ roomCode, entryState });
 
   const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
@@ -249,6 +251,9 @@ export function RoomPage() {
             <RoomPlayingView
               snapshot={roundSnapshot}
               currentPlayerId={entryState?.playerId}
+              isSocketConnected={isConnected}
+              socketErrorMessage={errorMessage}
+              onSubmit={sendGuess}
             />
           ) : (
             <S_EmptyState>프롬프트 추측 정보를 불러오는 중이에요.</S_EmptyState>
@@ -258,6 +263,10 @@ export function RoomPage() {
           <RoomVotingView
             key={voteSnapshot.roundNumber}
             snapshot={voteSnapshot}
+            currentPlayerId={entryState?.playerId}
+            isSocketConnected={isConnected}
+            socketErrorMessage={errorMessage}
+            onSubmit={sendVote}
           />
         )}
       </S_GameContent>

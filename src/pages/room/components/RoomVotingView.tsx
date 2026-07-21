@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -8,15 +8,37 @@ import type { VoteSnapshot } from '../../../domain/room/types';
 
 type RoomVotingViewProps = {
   snapshot: VoteSnapshot;
+  currentPlayerId?: string;
+  isSocketConnected: boolean;
+  socketErrorMessage?: string;
+  onSubmit: (optionId: string) => void;
 };
 
-export function RoomVotingView({ snapshot }: RoomVotingViewProps) {
+export function RoomVotingView({
+  snapshot,
+  currentPlayerId,
+  isSocketConnected,
+  socketErrorMessage = '',
+  onSubmit,
+}: RoomVotingViewProps) {
   const [selectedOptionId, setSelectedOptionId] = useState('');
-  const [confirmedOptionId, setConfirmedOptionId] = useState('');
-  const isConfirmed = confirmedOptionId.length > 0;
+  const [isVotePending, setIsVotePending] = useState(false);
+  const isVoted =
+    snapshot.voteEntries.find((entry) => entry.player.id === currentPlayerId)
+      ?.voted ?? false;
+  const isConfirmDisabled =
+    !selectedOptionId || isVoted || isVotePending || !isSocketConnected;
+  const confirmButtonText = getConfirmButtonText(isVoted, isVotePending);
+
+  useEffect(() => {
+    if (isVoted || socketErrorMessage || !isSocketConnected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsVotePending(false);
+    }
+  }, [isSocketConnected, isVoted, socketErrorMessage]);
 
   const handleOptionClick = (optionId: string) => {
-    if (isConfirmed) {
+    if (isVoted || isVotePending) {
       return;
     }
 
@@ -24,11 +46,12 @@ export function RoomVotingView({ snapshot }: RoomVotingViewProps) {
   };
 
   const handleConfirmClick = () => {
-    if (!selectedOptionId || isConfirmed) {
+    if (isConfirmDisabled) {
       return;
     }
 
-    setConfirmedOptionId(selectedOptionId);
+    setIsVotePending(true);
+    onSubmit(selectedOptionId);
   };
 
   return (
@@ -46,7 +69,7 @@ export function RoomVotingView({ snapshot }: RoomVotingViewProps) {
             <S_OptionItem key={option.optionId}>
               <S_OptionButton
                 type="button"
-                disabled={isConfirmed}
+                disabled={isVoted || isVotePending}
                 selected={isSelected}
                 onClick={() => handleOptionClick(option.optionId)}
               >
@@ -60,16 +83,31 @@ export function RoomVotingView({ snapshot }: RoomVotingViewProps) {
 
       <S_ActionArea>
         <S_Notice>한번 투표하면 선택을 바꿀 수 없어요.</S_Notice>
+        {socketErrorMessage && (
+          <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+        )}
         <Button
           type="button"
-          disabled={!selectedOptionId || isConfirmed}
+          disabled={isConfirmDisabled}
           onClick={handleConfirmClick}
         >
-          {isConfirmed ? '투표 완료' : '투표 확정'}
+          {confirmButtonText}
         </Button>
       </S_ActionArea>
     </S_VotingSection>
   );
+}
+
+function getConfirmButtonText(isVoted: boolean, isVotePending: boolean) {
+  if (isVoted) {
+    return '투표 완료';
+  }
+
+  if (isVotePending) {
+    return '투표 중...';
+  }
+
+  return '투표 확정';
 }
 
 function getOptionLabel(index: number) {
@@ -170,6 +208,12 @@ const S_ActionArea = styled.div`
 
 const S_Notice = styled.p`
   color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
+const S_ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.COLOR.DANGER};
   text-align: center;
   ${({ theme }) => theme.TYPOGRAPHY.B5_B}
 `;
