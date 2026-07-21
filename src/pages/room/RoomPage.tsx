@@ -258,7 +258,6 @@ export function RoomPage() {
           <RoomVotingView
             key={voteSnapshot.roundNumber}
             snapshot={voteSnapshot}
-            currentPlayerId={entryState?.playerId}
           />
         )}
       </S_GameContent>

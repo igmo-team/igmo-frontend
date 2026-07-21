@@ -63,7 +63,6 @@ export type RoundSnapshot = {
 
 export type VoteOption = {
   optionId: string;
-  authorId?: string;
   text: string;
 };
 

@@ -8,19 +8,15 @@ import type { VoteSnapshot } from '../../../domain/room/types';
 
 type RoomVotingViewProps = {
   snapshot: VoteSnapshot;
-  currentPlayerId?: string;
 };
 
-export function RoomVotingView({
-  snapshot,
-  currentPlayerId,
-}: RoomVotingViewProps) {
+export function RoomVotingView({ snapshot }: RoomVotingViewProps) {
   const [selectedOptionId, setSelectedOptionId] = useState('');
   const [confirmedOptionId, setConfirmedOptionId] = useState('');
   const isConfirmed = confirmedOptionId.length > 0;
 
-  const handleOptionClick = (optionId: string, isOwnOption: boolean) => {
-    if (isOwnOption || isConfirmed) {
+  const handleOptionClick = (optionId: string) => {
+    if (isConfirmed) {
       return;
     }
 
@@ -39,28 +35,23 @@ export function RoomVotingView({
     <S_VotingSection>
       <S_TextGroup>
         <S_Title>진짜 프롬프트는? 🤔</S_Title>
-        <S_Guide>
-          실제로 입력한 프롬프트 하나를 고르세요. (내 답엔 투표 불가)
-        </S_Guide>
+        <S_Guide>실제로 입력한 프롬프트 하나를 고르세요.</S_Guide>
       </S_TextGroup>
 
       <S_OptionList aria-label="투표 선택지">
         {snapshot.voteOptions.map((option, index) => {
-          const isOwnOption =
-            Boolean(option.authorId) && option.authorId === currentPlayerId;
           const isSelected = option.optionId === selectedOptionId;
 
           return (
             <S_OptionItem key={option.optionId}>
               <S_OptionButton
                 type="button"
-                disabled={isOwnOption || isConfirmed}
+                disabled={isConfirmed}
                 selected={isSelected}
-                onClick={() => handleOptionClick(option.optionId, isOwnOption)}
+                onClick={() => handleOptionClick(option.optionId)}
               >
                 <S_OptionLabel>{getOptionLabel(index)}</S_OptionLabel>
                 <S_OptionText>{option.text}</S_OptionText>
-                {isOwnOption && <S_MyAnswerBadge>내 답</S_MyAnswerBadge>}
               </S_OptionButton>
             </S_OptionItem>
           );
@@ -124,7 +115,7 @@ const S_OptionButton = styled('button', {
   display: grid;
   width: 100%;
   min-height: 7.2rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 1.6rem;
   padding: 1.6rem 2rem;
@@ -169,15 +160,6 @@ const S_OptionText = styled.span`
   overflow-wrap: anywhere;
   text-align: left;
   ${({ theme }) => theme.TYPOGRAPHY.B2_B}
-`;
-
-const S_MyAnswerBadge = styled.span`
-  padding: 0.5rem 1rem;
-  border-radius: ${({ theme }) => theme.RADIUS.PILL};
-  background: ${({ theme }) => theme.COLOR.PRIMARY100};
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  white-space: nowrap;
-  ${({ theme }) => theme.TYPOGRAPHY.LABEL2}
 `;
 
 const S_ActionArea = styled.div`

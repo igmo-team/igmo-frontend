@@ -48,7 +48,6 @@ function isVoteOption(value: unknown): value is VoteOption {
 
   return (
     typeof option.optionId === 'string' &&
-    (option.authorId === undefined || typeof option.authorId === 'string') &&
     typeof option.text === 'string'
   );
 }
