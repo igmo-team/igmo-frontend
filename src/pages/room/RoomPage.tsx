@@ -52,6 +52,7 @@ export function RoomPage() {
     sendStart,
     sendPrompt,
     sendGuess,
+    sendVote,
   } = useRoomSocket({ roomCode, entryState });
 
   const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
@@ -261,6 +262,9 @@ export function RoomPage() {
           <RoomVotingView
             key={voteSnapshot.roundNumber}
             snapshot={voteSnapshot}
+            currentPlayerId={entryState?.playerId}
+            socketErrorMessage={errorMessage}
+            onSubmit={sendVote}
           />
         )}
       </S_GameContent>
