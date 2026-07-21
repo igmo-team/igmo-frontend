@@ -42,6 +42,7 @@ type UseRoomSocketResult = {
   sendReady: (nextReady: boolean) => void;
   sendStart: () => void;
   sendPrompt: (prompt: string) => void;
+  sendGuess: (guess: string) => void;
 };
 
 export function useRoomSocket({
@@ -214,6 +215,10 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/prompts`, JSON.stringify({ prompt }));
   };
 
+  const sendGuess = (guess: string) => {
+    publish(`/app/rooms/${roomCode}/guesses`, JSON.stringify({ guess }));
+  };
+
   return {
     phase,
     receivedSnapshot,
@@ -227,5 +232,6 @@ export function useRoomSocket({
     sendReady,
     sendStart,
     sendPrompt,
+    sendGuess,
   };
 }
