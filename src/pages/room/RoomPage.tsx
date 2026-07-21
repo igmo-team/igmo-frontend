@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 
+import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
@@ -40,6 +41,7 @@ export function RoomPage() {
     receivedSnapshot,
     promptSubmissionSnapshot,
     roundSnapshot,
+    isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
     errorMessage,
@@ -79,6 +81,11 @@ export function RoomPage() {
   );
   const guessTimerProgressRatio =
     guessTimerSeconds / TEMPORARY_GUESS_TIMER_TOTAL_SECONDS;
+
+  const [isCountdownDone, setIsCountdownDone] = useState(false);
+  const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
+  const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
+  const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
 
   useEffect(() => {
     if (roomCode && !entryState) {
@@ -153,20 +160,21 @@ export function RoomPage() {
     isPromptSubmitted,
     imageGenerationSnapshot?.status,
   );
+
   const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
-  const shouldShowPlayingTimer = phase === 'PLAYING' && Boolean(roundSnapshot);
+  const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
   const headerPlayers =
-    phase === 'PLAYING' && roundSnapshot
+    isPlayingViewVisible && roundSnapshot
       ? getRoundPlayers(roundSnapshot)
       : snapshot.players;
   const headerSubmittedPlayerIds =
-    phase === 'GENERATING'
+    phase === 'GENERATING' || isCountdownPlaying
       ? submittedPlayerIds
       : (roundSnapshot?.guessEntries
           .filter((entry) => entry.submitted)
           .map((entry) => entry.player.id) ?? []);
   const headerRound =
-    phase === 'PLAYING' && roundSnapshot
+    isPlayingViewVisible && roundSnapshot
       ? roundSnapshot.roundNumber
       : TEMPORARY_ROUND;
 
@@ -192,7 +200,7 @@ export function RoomPage() {
       />
 
       <S_GameContent>
-        {phase === 'GENERATING' && (
+        {(phase === 'GENERATING' || isCountdownPlaying) && (
           <>
             {promptingView === 'INPUT' && (
               <RoomPromptingView
@@ -212,7 +220,7 @@ export function RoomPage() {
           </>
         )}
 
-        {phase === 'PLAYING' &&
+        {isPlayingViewVisible &&
           (roundSnapshot ? (
             <RoomPlayingView
               snapshot={roundSnapshot}
@@ -222,6 +230,10 @@ export function RoomPage() {
             <S_EmptyState>프롬프트 추측 정보를 불러오는 중이에요.</S_EmptyState>
           ))}
       </S_GameContent>
+
+      {isCountdownTriggered && (
+        <RoomCountdownOverlay onCountdownEnd={handleCountdownEnd} />
+      )}
     </S_GamePage>
   );
 }
