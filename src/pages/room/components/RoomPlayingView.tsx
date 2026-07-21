@@ -9,6 +9,7 @@ import type { RoundSnapshot } from '../../../domain/room/types';
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
   currentPlayerId?: string;
+  isSocketConnected: boolean;
   socketErrorMessage?: string;
   onSubmit: (prompt: string) => void;
 };
@@ -16,6 +17,7 @@ type RoomPlayingViewProps = {
 export function RoomPlayingView({
   snapshot,
   currentPlayerId,
+  isSocketConnected,
   socketErrorMessage = '',
   onSubmit,
 }: RoomPlayingViewProps) {
@@ -25,7 +27,11 @@ export function RoomPlayingView({
     snapshot.guessEntries.find((entry) => entry.player.id === currentPlayerId)
       ?.submitted ?? false;
   const isPromptEmpty = promptText.trim().length === 0;
-  const isSubmitDisabled = isPromptEmpty || isQuestioner || isSubmitted;
+  const isSubmitDisabled =
+    isPromptEmpty ||
+    isQuestioner ||
+    isSubmitted ||
+    !isSocketConnected;
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

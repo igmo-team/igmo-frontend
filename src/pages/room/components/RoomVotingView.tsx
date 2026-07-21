@@ -9,6 +9,7 @@ import type { VoteSnapshot } from '../../../domain/room/types';
 type RoomVotingViewProps = {
   snapshot: VoteSnapshot;
   currentPlayerId?: string;
+  isSocketConnected: boolean;
   socketErrorMessage?: string;
   onSubmit: (optionId: string) => void;
 };
@@ -16,6 +17,7 @@ type RoomVotingViewProps = {
 export function RoomVotingView({
   snapshot,
   currentPlayerId,
+  isSocketConnected,
   socketErrorMessage = '',
   onSubmit,
 }: RoomVotingViewProps) {
@@ -23,6 +25,7 @@ export function RoomVotingView({
   const isVoted =
     snapshot.voteEntries.find((entry) => entry.player.id === currentPlayerId)
       ?.voted ?? false;
+  const isConfirmDisabled = !selectedOptionId || isVoted || !isSocketConnected;
 
   const handleOptionClick = (optionId: string) => {
     if (isVoted) {
@@ -33,7 +36,7 @@ export function RoomVotingView({
   };
 
   const handleConfirmClick = () => {
-    if (!selectedOptionId || isVoted) {
+    if (isConfirmDisabled) {
       return;
     }
 
@@ -74,7 +77,7 @@ export function RoomVotingView({
         )}
         <Button
           type="button"
-          disabled={!selectedOptionId || isVoted}
+          disabled={isConfirmDisabled}
           onClick={handleConfirmClick}
         >
           {isVoted ? '투표 완료' : '투표 확정'}

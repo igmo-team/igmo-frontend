@@ -251,6 +251,7 @@ export function RoomPage() {
             <RoomPlayingView
               snapshot={roundSnapshot}
               currentPlayerId={entryState?.playerId}
+              isSocketConnected={isConnected}
               socketErrorMessage={errorMessage}
               onSubmit={sendGuess}
             />
@@ -263,6 +264,7 @@ export function RoomPage() {
             key={voteSnapshot.roundNumber}
             snapshot={voteSnapshot}
             currentPlayerId={entryState?.playerId}
+            isSocketConnected={isConnected}
             socketErrorMessage={errorMessage}
             onSubmit={sendVote}
           />
