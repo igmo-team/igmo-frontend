@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { css, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,7 +10,7 @@ const EXIT_DURATION_MS = 180;
 type CountdownStatus = 'counting' | 'exiting' | 'done';
 
 interface RoomCountdownOverlayProps {
-  onCountdownEnd?: () => void;
+  onCountdownEnd: () => void;
 }
 
 export function RoomCountdownOverlay({
@@ -18,11 +18,6 @@ export function RoomCountdownOverlay({
 }: RoomCountdownOverlayProps) {
   const [status, setStatus] = useState<CountdownStatus>('counting');
   const [seconds, setSeconds] = useState(COUNTDOWN_START_SECONDS);
-  const onCountdownEndRef = useRef(onCountdownEnd);
-
-  useEffect(() => {
-    onCountdownEndRef.current = onCountdownEnd;
-  });
 
   useEffect(() => {
     let remainingSeconds = COUNTDOWN_START_SECONDS;
@@ -38,7 +33,7 @@ export function RoomCountdownOverlay({
 
       clearInterval(intervalId);
       setStatus('exiting');
-      onCountdownEndRef.current?.();
+      onCountdownEnd();
       exitTimeoutId = setTimeout(() => {
         setStatus('done');
       }, EXIT_DURATION_MS);
@@ -50,7 +45,7 @@ export function RoomCountdownOverlay({
         clearTimeout(exitTimeoutId);
       }
     };
-  }, []);
+  }, [onCountdownEnd]);
 
   if (status === 'done') {
     return null;

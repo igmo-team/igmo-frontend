@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -83,6 +83,7 @@ export function RoomPage() {
     guessTimerSeconds / TEMPORARY_GUESS_TIMER_TOTAL_SECONDS;
 
   const [isCountdownDone, setIsCountdownDone] = useState(false);
+  const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
   const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
 
@@ -231,7 +232,7 @@ export function RoomPage() {
       </S_GameContent>
 
       {isCountdownTriggered && (
-        <RoomCountdownOverlay onCountdownEnd={() => setIsCountdownDone(true)} />
+        <RoomCountdownOverlay onCountdownEnd={handleCountdownEnd} />
       )}
     </S_GamePage>
   );
