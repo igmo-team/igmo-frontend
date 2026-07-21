@@ -15,6 +15,7 @@ import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
+import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
@@ -26,6 +27,7 @@ import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
 const TEMPORARY_ROUND = 1;
 const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 10;
+const TEMPORARY_VOTE_TIMER_TOTAL_SECONDS = 10;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -41,6 +43,7 @@ export function RoomPage() {
     receivedSnapshot,
     promptSubmissionSnapshot,
     roundSnapshot,
+    voteSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
@@ -63,6 +66,7 @@ export function RoomPage() {
   const guessCountdownSeconds = useCountdownSeconds(
     roundSnapshot?.guessDeadline,
   );
+  const voteCountdownSeconds = useCountdownSeconds(voteSnapshot?.voteDeadline);
   const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
     promptSubmissionSnapshot?.promptStartedAt,
     promptSubmissionSnapshot?.promptDeadline,
@@ -81,6 +85,12 @@ export function RoomPage() {
   );
   const guessTimerProgressRatio =
     guessTimerSeconds / TEMPORARY_GUESS_TIMER_TOTAL_SECONDS;
+  const voteTimerSeconds = Math.min(
+    voteCountdownSeconds,
+    TEMPORARY_VOTE_TIMER_TOTAL_SECONDS,
+  );
+  const voteTimerProgressRatio =
+    voteTimerSeconds / TEMPORARY_VOTE_TIMER_TOTAL_SECONDS;
 
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
@@ -163,20 +173,30 @@ export function RoomPage() {
 
   const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
   const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
-  const headerPlayers =
-    isPlayingViewVisible && roundSnapshot
-      ? getRoundPlayers(roundSnapshot)
-      : snapshot.players;
-  const headerSubmittedPlayerIds =
-    phase === 'GENERATING' || isCountdownPlaying
-      ? submittedPlayerIds
-      : (roundSnapshot?.guessEntries
-          .filter((entry) => entry.submitted)
-          .map((entry) => entry.player.id) ?? []);
-  const headerRound =
-    isPlayingViewVisible && roundSnapshot
-      ? roundSnapshot.roundNumber
-      : TEMPORARY_ROUND;
+  const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
+  let headerPlayers = snapshot.players;
+  let headerSubmittedPlayerIds =
+    roundSnapshot?.guessEntries
+      .filter((entry) => entry.submitted)
+      .map((entry) => entry.player.id) ?? [];
+  let headerRound = TEMPORARY_ROUND;
+
+  if (phase === 'GENERATING' || isCountdownPlaying) {
+    headerSubmittedPlayerIds = submittedPlayerIds;
+  }
+
+  if (isPlayingViewVisible && roundSnapshot) {
+    headerPlayers = getRoundPlayers(roundSnapshot);
+    headerRound = roundSnapshot.roundNumber;
+  }
+
+  if (phase === 'VOTING' && voteSnapshot) {
+    headerPlayers = voteSnapshot.voteEntries.map((entry) => entry.player);
+    headerSubmittedPlayerIds = voteSnapshot.voteEntries
+      .filter((entry) => entry.voted)
+      .map((entry) => entry.player.id);
+    headerRound = voteSnapshot.roundNumber;
+  }
 
   return (
     <S_GamePage>
@@ -194,6 +214,10 @@ export function RoomPage() {
           (shouldShowPlayingTimer && {
             seconds: guessTimerSeconds,
             progressRatio: guessTimerProgressRatio,
+          }) ||
+          (shouldShowVotingTimer && {
+            seconds: voteTimerSeconds,
+            progressRatio: voteTimerProgressRatio,
           }) ||
           null
         }
@@ -229,6 +253,14 @@ export function RoomPage() {
           ) : (
             <S_EmptyState>프롬프트 추측 정보를 불러오는 중이에요.</S_EmptyState>
           ))}
+
+        {phase === 'VOTING' && voteSnapshot && (
+          <RoomVotingView
+            key={voteSnapshot.roundNumber}
+            snapshot={voteSnapshot}
+            currentPlayerId={entryState?.playerId}
+          />
+        )}
       </S_GameContent>
 
       {isCountdownTriggered && (
