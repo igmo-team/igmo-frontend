@@ -17,7 +17,8 @@ export type RoomPhase =
 export type RoomMessageType =
   | 'LOBBY_SNAPSHOT'
   | 'PROMPT_SUBMISSION_SNAPSHOT'
-  | 'ROUND_SNAPSHOT';
+  | 'ROUND_SNAPSHOT'
+  | 'VOTE_SNAPSHOT';
 
 export type RoomMessage<TPayload> = {
   type: RoomMessageType;
@@ -58,6 +59,26 @@ export type RoundSnapshot = {
   imageUrl: string;
   guessDeadline: string;
   guessEntries: RoundGuessEntry[];
+};
+
+export type VoteOption = {
+  optionId: string;
+  authorId?: string;
+  text: string;
+};
+
+export type VoteEntry = {
+  player: RoomPlayer;
+  voted: boolean;
+};
+
+export type VoteSnapshot = {
+  roomCode: string;
+  phase: RoomPhase;
+  roundNumber: number;
+  voteOptions: VoteOption[];
+  voteDeadline: string;
+  voteEntries: VoteEntry[];
 };
 
 // 개인 이미지 큐(/queue/image-generation)에서 받는 내 이미지 생성 상태
