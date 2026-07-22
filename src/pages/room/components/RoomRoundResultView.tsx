@@ -14,34 +14,47 @@ type RoomRoundResultViewProps = {
 };
 
 export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
+  const totalVoteCount = snapshot.results.reduce(
+    (sum, result) => sum + result.voteCount,
+    0,
+  );
+
   return (
     <S_ResultSection>
       <S_Title>결과 공개</S_Title>
 
       <S_ResultList aria-label="라운드 선택지 결과">
-        {snapshot.results.map((result, index) => (
-          <S_ResultItem key={`${result.player.id}-${result.guessText}`}>
-            <S_ResultCard isAnswer={result.isAnswer}>
-              <S_ResultMain>
-                <PlayerAvatar player={result.player} index={index} />
+        {snapshot.results.map((result, index) => {
+          const voteRatio =
+            totalVoteCount > 0 ? result.voteCount / totalVoteCount : 0;
 
-                <S_ResultTextGroup>
-                  <S_GuessText>{result.guessText}</S_GuessText>
-                  {result.voters.length > 0 && (
-                    <S_VoterText>{getVoterText(result.voters)}</S_VoterText>
-                  )}
-                </S_ResultTextGroup>
-              </S_ResultMain>
+          return (
+            <S_ResultItem key={`${result.player.id}-${result.guessText}`}>
+              <S_ResultCard
+                isAnswer={result.isAnswer}
+                voteRatio={voteRatio}
+              >
+                <S_ResultMain>
+                  <PlayerAvatar player={result.player} index={index} />
 
-              <S_ResultMeta>
-                {result.isAnswer && <S_AnswerBadge>정답</S_AnswerBadge>}
-                <S_VoteCount isAnswer={result.isAnswer}>
-                  {result.voteCount}표
-                </S_VoteCount>
-              </S_ResultMeta>
-            </S_ResultCard>
-          </S_ResultItem>
-        ))}
+                  <S_ResultTextGroup>
+                    <S_GuessText>{result.guessText}</S_GuessText>
+                    {result.voters.length > 0 && (
+                      <S_VoterText>{getVoterText(result.voters)}</S_VoterText>
+                    )}
+                  </S_ResultTextGroup>
+                </S_ResultMain>
+
+                <S_ResultMeta>
+                  {result.isAnswer && <S_AnswerBadge>정답</S_AnswerBadge>}
+                  <S_VoteCount isAnswer={result.isAnswer}>
+                    {result.voteCount}표
+                  </S_VoteCount>
+                </S_ResultMeta>
+              </S_ResultCard>
+            </S_ResultItem>
+          );
+        })}
       </S_ResultList>
 
       <S_ScoreBoard>
@@ -150,8 +163,8 @@ const S_ResultItem = styled.li`
 `;
 
 const S_ResultCard = styled('article', {
-  shouldForwardProp: (prop) => prop !== 'isAnswer',
-})<{ isAnswer: boolean }>`
+  shouldForwardProp: (prop) => prop !== 'isAnswer' && prop !== 'voteRatio',
+})<{ isAnswer: boolean; voteRatio: number }>`
   display: flex;
   width: 100%;
   min-height: 6.8rem;
@@ -163,10 +176,12 @@ const S_ResultCard = styled('article', {
     isAnswer ? theme.COLOR.SUCCESS : theme.COLOR.LINE};
   border-radius: ${({ theme }) => theme.RADIUS.LG};
   background:
-    ${({ theme, isAnswer }) =>
-      isAnswer
-        ? 'linear-gradient(90deg, #E5F8EC 0%, #E5F8EC 100%)'
-        : `linear-gradient(90deg, ${theme.COLOR.PRIMARY200} 0 50%, ${theme.COLOR.WHITE} 50% 100%)`};
+    ${({ theme, isAnswer, voteRatio }) => {
+      const progress = `${Math.min(Math.max(voteRatio, 0), 1) * 100}%`;
+      const progressColor = isAnswer ? '#E5F8EC' : theme.COLOR.PRIMARY200;
+
+      return `linear-gradient(90deg, ${progressColor} 0 ${progress}, ${theme.COLOR.WHITE} ${progress} 100%)`;
+    }};
   box-shadow: ${({ theme, isAnswer }) =>
     isAnswer ? `0 0.6rem 0 ${theme.COLOR.SUCCESS}` : 'none'};
 
