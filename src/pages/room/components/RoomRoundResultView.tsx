@@ -4,7 +4,6 @@ import { ROOM_AVATAR_COLORS } from '../constants/avatarColors';
 
 import type {
   RoomPlayer,
-  RoundPlayerScore,
   RoundResult,
   RoundResultSnapshot,
 } from '../../../domain/room/types';
@@ -15,8 +14,11 @@ type RoomRoundResultViewProps = {
 
 export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
   const totalVoteCount = snapshot.results.reduce(
-    (sum, result) => sum + result.voteCount,
+    (sum, result) => sum + result.voters.length,
     0,
+  );
+  const roundScores = [...snapshot.results].sort(
+    (a, b) => b.roundScore - a.roundScore,
   );
 
   return (
@@ -25,8 +27,9 @@ export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
 
       <S_ResultList aria-label="라운드 선택지 결과">
         {snapshot.results.map((result, index) => {
+          const voteCount = result.voters.length;
           const voteRatio =
-            totalVoteCount > 0 ? result.voteCount / totalVoteCount : 0;
+            totalVoteCount > 0 ? voteCount / totalVoteCount : 0;
 
           return (
             <S_ResultItem key={`${result.player.id}-${result.guessText}`}>
@@ -48,7 +51,7 @@ export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
                 <S_ResultMeta>
                   {result.isAnswer && <S_AnswerBadge>정답</S_AnswerBadge>}
                   <S_VoteCount isAnswer={result.isAnswer}>
-                    {result.voteCount}표
+                    {voteCount}표
                   </S_VoteCount>
                 </S_ResultMeta>
               </S_ResultCard>
@@ -61,7 +64,7 @@ export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
         <S_ScoreTitle>이번 라운드 점수</S_ScoreTitle>
 
         <S_ScoreList aria-label="이번 라운드 점수">
-          {snapshot.roundScores.map((roundScore, index) => (
+          {roundScores.map((roundScore, index) => (
             <S_ScoreItem key={roundScore.player.id}>
               <S_RankBadge rank={index + 1}>{getRankLabel(index)}</S_RankBadge>
 
@@ -132,7 +135,7 @@ function getRankLabel(index: number) {
   return String(index + 1);
 }
 
-function formatRoundScore(score: RoundPlayerScore['roundScore']) {
+function formatRoundScore(score: RoundResult['roundScore']) {
   if (score > 0) {
     return `+${score}`;
   }

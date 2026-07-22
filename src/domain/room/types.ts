@@ -85,25 +85,17 @@ export type RoundResult = {
   player: RoomPlayer;
   guessText: string;
   isAnswer: boolean;
-  voteCount: number;
+  roundScore: number;
   voters: RoomPlayer[];
+  scoreDetails: RoundScoreDetail[];
 };
 
-export type RoundScoreReason =
-  | 'CORRECT_ANSWER'
-  | 'FOOLED_PLAYER'
-  | 'QUESTIONER_BONUS';
+export type RoundScoreReason = 'CORRECT_ANSWER' | 'FOOLED_PLAYER' | 'QUESTIONER';
 
 export type RoundScoreDetail = {
   reason: RoundScoreReason;
   label: string;
   score: number;
-};
-
-export type RoundPlayerScore = {
-  player: RoomPlayer;
-  roundScore: number;
-  scoreDetails: RoundScoreDetail[];
 };
 
 export type RoundResultSnapshot = {
@@ -115,7 +107,6 @@ export type RoundResultSnapshot = {
   answerText: string;
   resultDeadline: string;
   results: RoundResult[];
-  roundScores: RoundPlayerScore[];
   players: RoomPlayer[];
 };
 

@@ -1,7 +1,6 @@
 import type {
   RoomMessage,
   RoomPlayer,
-  RoundPlayerScore,
   RoundResult,
   RoundResultSnapshot,
   RoundScoreDetail,
@@ -11,7 +10,7 @@ import type {
 const ROUND_SCORE_REASONS = [
   'CORRECT_ANSWER',
   'FOOLED_PLAYER',
-  'QUESTIONER_BONUS',
+  'QUESTIONER',
 ] as const satisfies readonly RoundScoreReason[];
 
 export function parseRoundResultSnapshot(
@@ -50,8 +49,6 @@ function isRoundResultSnapshot(value: unknown): value is RoundResultSnapshot {
     typeof snapshot.resultDeadline === 'string' &&
     Array.isArray(snapshot.results) &&
     snapshot.results.every(isRoundResult) &&
-    Array.isArray(snapshot.roundScores) &&
-    snapshot.roundScores.every(isRoundPlayerScore) &&
     Array.isArray(snapshot.players) &&
     snapshot.players.every(isRoomPlayer)
   );
@@ -68,24 +65,11 @@ function isRoundResult(value: unknown): value is RoundResult {
     isRoomPlayer(result.player) &&
     typeof result.guessText === 'string' &&
     typeof result.isAnswer === 'boolean' &&
-    typeof result.voteCount === 'number' &&
+    typeof result.roundScore === 'number' &&
     Array.isArray(result.voters) &&
-    result.voters.every(isRoomPlayer)
-  );
-}
-
-function isRoundPlayerScore(value: unknown): value is RoundPlayerScore {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const roundScore = value as Partial<RoundPlayerScore>;
-
-  return (
-    isRoomPlayer(roundScore.player) &&
-    typeof roundScore.roundScore === 'number' &&
-    Array.isArray(roundScore.scoreDetails) &&
-    roundScore.scoreDetails.every(isRoundScoreDetail)
+    result.voters.every(isRoomPlayer) &&
+    Array.isArray(result.scoreDetails) &&
+    result.scoreDetails.every(isRoundScoreDetail)
   );
 }
 
