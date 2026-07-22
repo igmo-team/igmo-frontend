@@ -8,6 +8,7 @@ import {
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
+import { parseRoundResultSnapshot } from '../utils/parseRoundResultSnapshot';
 import { parseRoundSnapshot } from '../utils/parseRoundSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
 import { parseVoteSnapshot } from '../utils/parseVoteSnapshot';
@@ -17,6 +18,7 @@ import type {
   PromptSubmissionSnapshot,
   RoomPhase,
   RoomSnapshot,
+  RoundResultSnapshot,
   RoundSnapshot,
   VoteSnapshot,
 } from '../../../domain/room/types';
@@ -34,6 +36,7 @@ type UseRoomSocketResult = {
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
   roundSnapshot: RoundSnapshot | null;
   voteSnapshot: VoteSnapshot | null;
+  roundResultSnapshot: RoundResultSnapshot | null;
   // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
   isCountdownTriggered: boolean;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
@@ -62,6 +65,8 @@ export function useRoomSocket({
     null,
   );
   const [voteSnapshot, setVoteSnapshot] = useState<VoteSnapshot | null>(null);
+  const [roundResultSnapshot, setRoundResultSnapshot] =
+    useState<RoundResultSnapshot | null>(null);
   const [isCountdownTriggered, setIsCountdownTriggered] = useState(false);
   const hasHandledFirstRoundSnapshotRef = useRef(false);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
@@ -136,6 +141,15 @@ export function useRoomSocket({
         if (nextVoteSnapshot) {
           setVoteSnapshot(nextVoteSnapshot);
           setPhase(nextVoteSnapshot.phase);
+          setErrorMessage('');
+          return;
+        }
+
+        const nextRoundResultSnapshot = parseRoundResultSnapshot(message.body);
+
+        if (nextRoundResultSnapshot) {
+          setRoundResultSnapshot(nextRoundResultSnapshot);
+          setPhase(nextRoundResultSnapshot.phase);
           setErrorMessage('');
         }
       });
@@ -230,6 +244,7 @@ export function useRoomSocket({
     promptSubmissionSnapshot,
     roundSnapshot,
     voteSnapshot,
+    roundResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,

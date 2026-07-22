@@ -15,6 +15,7 @@ import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
+import { RoomRoundResultView } from './components/RoomRoundResultView';
 import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomSocket } from './hooks/useRoomSocket';
@@ -44,6 +45,7 @@ export function RoomPage() {
     promptSubmissionSnapshot,
     roundSnapshot,
     voteSnapshot,
+    roundResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
@@ -200,6 +202,12 @@ export function RoomPage() {
     headerRound = voteSnapshot.roundNumber;
   }
 
+  if (phase === 'RESULTS' && roundResultSnapshot) {
+    headerPlayers = roundResultSnapshot.players;
+    headerSubmittedPlayerIds = [];
+    headerRound = roundResultSnapshot.roundNumber;
+  }
+
   return (
     <S_GamePage>
       <RoomGameHeader
@@ -269,6 +277,16 @@ export function RoomPage() {
             onSubmit={sendVote}
           />
         )}
+
+        {phase === 'RESULTS' &&
+          (roundResultSnapshot ? (
+            <RoomRoundResultView
+              key={roundResultSnapshot.roundNumber}
+              snapshot={roundResultSnapshot}
+            />
+          ) : (
+            <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>
+          ))}
       </S_GameContent>
 
       {isCountdownTriggered && (
