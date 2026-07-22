@@ -105,6 +105,7 @@ export type RoundResultSnapshot = {
   totalRoundCount: number;
   questioner: RoomPlayer;
   answerText: string;
+  resultStartedAt: string;
   resultDeadline: string;
   results: RoundResult[];
   players: RoomPlayer[];

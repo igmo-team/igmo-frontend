@@ -46,6 +46,7 @@ function isRoundResultSnapshot(value: unknown): value is RoundResultSnapshot {
     typeof snapshot.totalRoundCount === 'number' &&
     isRoomPlayer(snapshot.questioner) &&
     typeof snapshot.answerText === 'string' &&
+    typeof snapshot.resultStartedAt === 'string' &&
     typeof snapshot.resultDeadline === 'string' &&
     Array.isArray(snapshot.results) &&
     snapshot.results.every(isRoundResult) &&

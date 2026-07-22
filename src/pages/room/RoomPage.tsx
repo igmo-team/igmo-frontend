@@ -71,9 +71,16 @@ export function RoomPage() {
     roundSnapshot?.guessDeadline,
   );
   const voteCountdownSeconds = useCountdownSeconds(voteSnapshot?.voteDeadline);
-  const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
+  const resultCountdownSeconds = useCountdownSeconds(
+    roundResultSnapshot?.resultDeadline,
+  );
+  const promptTimerTotalSeconds = getTimerTotalSeconds(
     promptSubmissionSnapshot?.promptStartedAt,
     promptSubmissionSnapshot?.promptDeadline,
+  );
+  const resultTimerTotalSeconds = getTimerTotalSeconds(
+    roundResultSnapshot?.resultStartedAt,
+    roundResultSnapshot?.resultDeadline,
   );
   const promptTimerSeconds = Math.min(
     promptCountdownSeconds,
@@ -95,6 +102,14 @@ export function RoomPage() {
   );
   const voteTimerProgressRatio =
     voteTimerSeconds / TEMPORARY_VOTE_TIMER_TOTAL_SECONDS;
+  const resultTimerSeconds = Math.min(
+    resultCountdownSeconds,
+    resultTimerTotalSeconds,
+  );
+  const resultTimerProgressRatio =
+    resultTimerTotalSeconds > 0
+      ? Math.min(Math.max(resultTimerSeconds / resultTimerTotalSeconds, 0), 1)
+      : 0;
 
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
@@ -178,6 +193,8 @@ export function RoomPage() {
   const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
   const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
   const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
+  const shouldShowResultTimer =
+    phase === 'RESULTS' && Boolean(roundResultSnapshot);
   let headerPlayers = snapshot.players;
   let headerSubmittedPlayerIds =
     roundSnapshot?.guessEntries
@@ -228,6 +245,10 @@ export function RoomPage() {
           (shouldShowVotingTimer && {
             seconds: voteTimerSeconds,
             progressRatio: voteTimerProgressRatio,
+          }) ||
+          (shouldShowResultTimer && {
+            seconds: resultTimerSeconds,
+            progressRatio: resultTimerProgressRatio,
           }) ||
           null
         }
@@ -303,7 +324,7 @@ function getRoundPlayers(snapshot: RoundSnapshot): RoomPlayer[] {
   ];
 }
 
-function getPromptTimerTotalSeconds(startedAt?: string, deadline?: string) {
+function getTimerTotalSeconds(startedAt?: string, deadline?: string) {
   if (!startedAt || !deadline) {
     return 0;
   }
