@@ -15,6 +15,7 @@ import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
+import { RoomRoundResultView } from './components/RoomRoundResultView';
 import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomSocket } from './hooks/useRoomSocket';
@@ -44,6 +45,7 @@ export function RoomPage() {
     promptSubmissionSnapshot,
     roundSnapshot,
     voteSnapshot,
+    roundResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
@@ -69,9 +71,16 @@ export function RoomPage() {
     roundSnapshot?.guessDeadline,
   );
   const voteCountdownSeconds = useCountdownSeconds(voteSnapshot?.voteDeadline);
-  const promptTimerTotalSeconds = getPromptTimerTotalSeconds(
+  const resultCountdownSeconds = useCountdownSeconds(
+    roundResultSnapshot?.resultDeadline,
+  );
+  const promptTimerTotalSeconds = getTimerTotalSeconds(
     promptSubmissionSnapshot?.promptStartedAt,
     promptSubmissionSnapshot?.promptDeadline,
+  );
+  const resultTimerTotalSeconds = getTimerTotalSeconds(
+    roundResultSnapshot?.resultStartedAt,
+    roundResultSnapshot?.resultDeadline,
   );
   const promptTimerSeconds = Math.min(
     promptCountdownSeconds,
@@ -93,6 +102,14 @@ export function RoomPage() {
   );
   const voteTimerProgressRatio =
     voteTimerSeconds / TEMPORARY_VOTE_TIMER_TOTAL_SECONDS;
+  const resultTimerSeconds = Math.min(
+    resultCountdownSeconds,
+    resultTimerTotalSeconds,
+  );
+  const resultTimerProgressRatio =
+    resultTimerTotalSeconds > 0
+      ? Math.min(Math.max(resultTimerSeconds / resultTimerTotalSeconds, 0), 1)
+      : 0;
 
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
@@ -176,6 +193,8 @@ export function RoomPage() {
   const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
   const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
   const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
+  const shouldShowResultTimer =
+    phase === 'RESULTS' && Boolean(roundResultSnapshot);
   let headerPlayers = snapshot.players;
   let headerSubmittedPlayerIds =
     roundSnapshot?.guessEntries
@@ -200,6 +219,12 @@ export function RoomPage() {
     headerRound = voteSnapshot.roundNumber;
   }
 
+  if (phase === 'RESULTS' && roundResultSnapshot) {
+    headerPlayers = roundResultSnapshot.players;
+    headerSubmittedPlayerIds = [];
+    headerRound = roundResultSnapshot.roundNumber;
+  }
+
   return (
     <S_GamePage>
       <RoomGameHeader
@@ -220,6 +245,10 @@ export function RoomPage() {
           (shouldShowVotingTimer && {
             seconds: voteTimerSeconds,
             progressRatio: voteTimerProgressRatio,
+          }) ||
+          (shouldShowResultTimer && {
+            seconds: resultTimerSeconds,
+            progressRatio: resultTimerProgressRatio,
           }) ||
           null
         }
@@ -269,6 +298,16 @@ export function RoomPage() {
             onSubmit={sendVote}
           />
         )}
+
+        {phase === 'RESULTS' &&
+          (roundResultSnapshot ? (
+            <RoomRoundResultView
+              key={roundResultSnapshot.roundNumber}
+              snapshot={roundResultSnapshot}
+            />
+          ) : (
+            <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>
+          ))}
       </S_GameContent>
 
       {isCountdownTriggered && (
@@ -285,7 +324,7 @@ function getRoundPlayers(snapshot: RoundSnapshot): RoomPlayer[] {
   ];
 }
 
-function getPromptTimerTotalSeconds(startedAt?: string, deadline?: string) {
+function getTimerTotalSeconds(startedAt?: string, deadline?: string) {
   if (!startedAt || !deadline) {
     return 0;
   }

@@ -18,7 +18,8 @@ export type RoomMessageType =
   | 'LOBBY_SNAPSHOT'
   | 'PROMPT_SUBMISSION_SNAPSHOT'
   | 'ROUND_SNAPSHOT'
-  | 'VOTE_SNAPSHOT';
+  | 'VOTE_SNAPSHOT'
+  | 'ROUND_RESULT_SNAPSHOT';
 
 export type RoomMessage<TPayload> = {
   type: RoomMessageType;
@@ -78,6 +79,36 @@ export type VoteSnapshot = {
   voteOptions: VoteOption[];
   voteDeadline: string;
   voteEntries: VoteEntry[];
+};
+
+export type RoundResult = {
+  player: RoomPlayer;
+  guessText: string;
+  isAnswer: boolean;
+  roundScore: number;
+  voters: RoomPlayer[];
+  scoreDetails: RoundScoreDetail[];
+};
+
+export type RoundScoreReason = 'CORRECT_ANSWER' | 'FOOLED_PLAYER' | 'QUESTIONER';
+
+export type RoundScoreDetail = {
+  reason: RoundScoreReason;
+  label: string;
+  score: number;
+};
+
+export type RoundResultSnapshot = {
+  roomCode: string;
+  phase: 'RESULTS';
+  roundNumber: number;
+  totalRoundCount: number;
+  questioner: RoomPlayer;
+  answerText: string;
+  resultStartedAt: string;
+  resultDeadline: string;
+  results: RoundResult[];
+  players: RoomPlayer[];
 };
 
 // 개인 이미지 큐(/queue/image-generation)에서 받는 내 이미지 생성 상태
