@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -15,6 +15,7 @@ export function RoomPromptingView({
   socketErrorMessage,
   onSubmit,
 }: RoomPromptingViewProps) {
+  const isComposingRef = useRef(false);
   const [promptText, setPromptText] = useState('');
   const isPromptEmpty = promptText.trim().length === 0;
 
@@ -30,7 +31,9 @@ export function RoomPromptingView({
     if (
       event.key !== 'Enter' ||
       event.shiftKey ||
-      event.nativeEvent.isComposing
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229 ||
+      isComposingRef.current
     ) {
       return;
     }
@@ -66,6 +69,12 @@ export function RoomPromptingView({
           placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
           shadow
           onChange={handlePromptChange}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
+          onCompositionEnd={() => {
+            isComposingRef.current = false;
+          }}
           onKeyDown={handlePromptKeyDown}
         />
 
@@ -73,10 +82,7 @@ export function RoomPromptingView({
           <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
         )}
 
-        <Button
-          type="submit"
-          disabled={isPromptEmpty || !isSocketConnected}
-        >
+        <Button type="submit" disabled={isPromptEmpty || !isSocketConnected}>
           그림 생성하기
         </Button>
       </S_InputGroup>

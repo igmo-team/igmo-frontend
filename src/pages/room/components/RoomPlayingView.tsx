@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -21,6 +21,7 @@ export function RoomPlayingView({
   socketErrorMessage = '',
   onSubmit,
 }: RoomPlayingViewProps) {
+  const isComposingRef = useRef(false);
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
@@ -61,7 +62,9 @@ export function RoomPlayingView({
     if (
       event.key !== 'Enter' ||
       event.shiftKey ||
-      event.nativeEvent.isComposing
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229 ||
+      isComposingRef.current
     ) {
       return;
     }
@@ -114,6 +117,12 @@ export function RoomPlayingView({
               shadow
               disabled={isSubmitted || isSubmitPending}
               onChange={handlePromptChange}
+              onCompositionStart={() => {
+                isComposingRef.current = true;
+              }}
+              onCompositionEnd={() => {
+                isComposingRef.current = false;
+              }}
               onKeyDown={handlePromptKeyDown}
             />
 
@@ -121,10 +130,7 @@ export function RoomPlayingView({
               <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
             )}
 
-            <Button
-              type="submit"
-              disabled={isSubmitDisabled}
-            >
+            <Button type="submit" disabled={isSubmitDisabled}>
               {submitButtonText}
             </Button>
           </S_InputGroup>
