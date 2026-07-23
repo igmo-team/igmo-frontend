@@ -111,7 +111,7 @@ function TiedWinnerHero({ winners }: { winners: FinalRankingEntry[] }) {
     <>
       <S_HeroEyebrow>GAME OVER · 공동 우승</S_HeroEyebrow>
       <S_CrownEmblem>
-        <S_EmblemCrown aria-hidden width={64} height={64} />
+        <S_EmblemCrown aria-hidden width={42} height={42} />
       </S_CrownEmblem>
       <S_TiedWinnerName>{getWinnerNameText(winners)}</S_TiedWinnerName>
       <S_TiedWinnerScore>최종 {topScore}점</S_TiedWinnerScore>
@@ -177,32 +177,25 @@ function getWinnerNameText(winners: FinalRankingEntry[]) {
 const S_ResultCard = styled.article`
   width: 100%;
   overflow: hidden;
-  border: ${({ theme }) => theme.BORDER.DEFAULT};
-  border-radius: 2.8rem;
-  background: ${({ theme }) => theme.COLOR.PINK50};
-  box-shadow: 0 0.8rem 0 ${({ theme }) => theme.COLOR.TEXT};
 `;
 
 const S_Hero = styled('section', {
   shouldForwardProp: (prop) => prop !== 'isTiedWinner',
 })<{ isTiedWinner: boolean }>`
   display: flex;
-  min-height: ${({ isTiedWinner }) => (isTiedWinner ? '35rem' : '26rem')};
+  width: 100%;
+  min-height: ${({ isTiedWinner }) => (isTiedWinner ? '20.4rem' : '26rem')};
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: ${({ isTiedWinner }) => (isTiedWinner ? '1.8rem' : '1rem')};
-  padding: ${({ isTiedWinner }) =>
-    isTiedWinner ? '4.8rem 2.4rem' : '3.2rem 2.4rem'};
-  border-bottom: ${({ theme }) => theme.BORDER.DEFAULT};
+  gap: ${({ isTiedWinner }) => (isTiedWinner ? '0.9rem' : '1rem')};
+  padding: 0;
   background: ${({ theme }) => theme.COLOR.PRIMARY500};
   color: ${({ theme }) => theme.COLOR.WHITE};
   text-align: center;
 
   @media (max-width: 36rem) {
-    min-height: ${({ isTiedWinner }) => (isTiedWinner ? '30rem' : '23rem')};
-    padding: ${({ isTiedWinner }) =>
-      isTiedWinner ? '3.8rem 1.8rem' : '2.8rem 1.8rem'};
+    min-height: ${({ isTiedWinner }) => (isTiedWinner ? '20.4rem' : '23rem')};
   }
 `;
 
@@ -266,8 +259,8 @@ const S_WinnerScoreBadge = styled.strong`
 
 const S_CrownEmblem = styled.div`
   display: grid;
-  width: 13rem;
-  height: 13rem;
+  width: 8rem;
+  height: 8rem;
   place-items: center;
   border: ${({ theme }) => theme.BORDER.DEFAULT};
   border-radius: 50%;
@@ -275,8 +268,8 @@ const S_CrownEmblem = styled.div`
   box-shadow: 0 0.7rem 0 ${({ theme }) => theme.COLOR.TEXT};
 
   @media (max-width: 36rem) {
-    width: 11rem;
-    height: 11rem;
+    width: 7.6rem;
+    height: 7.6rem;
   }
 `;
 
@@ -290,16 +283,12 @@ const S_TiedWinnerName = styled.h2`
   max-width: 100%;
   overflow-wrap: anywhere;
   color: ${({ theme }) => theme.COLOR.WHITE};
-  ${({ theme }) => theme.TYPOGRAPHY.DISPLAY}
-
-  @media (max-width: 36rem) {
-    ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
-  }
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
 `;
 
 const S_TiedWinnerScore = styled.strong`
   color: ${({ theme }) => theme.COLOR.WHITE};
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE3}
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
 `;
 
 const S_RankingPanel = styled.section`
