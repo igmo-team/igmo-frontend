@@ -38,7 +38,9 @@ export function RoomPromptingView({
     <S_PromptSection>
       <S_TextGroup>
         <S_Title>AI에게 어떤 그림을 그리게 할까요?</S_Title>
-        <S_Guide>친구들이 헷갈릴 만큼 생생하게 적어보세요.</S_Guide>
+        <S_Guide>
+          시간 안에 입력하지 않으면 샘플 프롬프트로 자동 제출돼요.
+        </S_Guide>
       </S_TextGroup>
 
       <S_InputGroup>
