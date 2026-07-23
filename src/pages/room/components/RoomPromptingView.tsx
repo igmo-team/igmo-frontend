@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -15,6 +15,7 @@ export function RoomPromptingView({
   socketErrorMessage,
   onSubmit,
 }: RoomPromptingViewProps) {
+  const isComposingRef = useRef(false);
   const [promptText, setPromptText] = useState('');
   const isPromptEmpty = promptText.trim().length === 0;
 
@@ -24,10 +25,29 @@ export function RoomPromptingView({
     setPromptText(event.target.value);
   };
 
-  const handleGenerateClick = () => {
+  const handlePromptKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229 ||
+      isComposingRef.current
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+
+  const handleGenerateSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     const trimmedPrompt = promptText.trim();
 
-    if (trimmedPrompt.length === 0) {
+    if (trimmedPrompt.length === 0 || !isSocketConnected) {
       return;
     }
 
@@ -41,7 +61,7 @@ export function RoomPromptingView({
         <S_Guide>친구들이 헷갈릴 만큼 생생하게 적어보세요.</S_Guide>
       </S_TextGroup>
 
-      <S_InputGroup>
+      <S_InputGroup onSubmit={handleGenerateSubmit}>
         <Textarea
           value={promptText}
           tone="white"
@@ -49,17 +69,20 @@ export function RoomPromptingView({
           placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
           shadow
           onChange={handlePromptChange}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
+          onCompositionEnd={() => {
+            isComposingRef.current = false;
+          }}
+          onKeyDown={handlePromptKeyDown}
         />
 
         {socketErrorMessage && (
           <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
         )}
 
-        <Button
-          type="button"
-          disabled={isPromptEmpty || !isSocketConnected}
-          onClick={handleGenerateClick}
-        >
+        <Button type="submit" disabled={isPromptEmpty || !isSocketConnected}>
           그림 생성하기
         </Button>
       </S_InputGroup>
@@ -90,7 +113,7 @@ const S_Guide = styled.p`
   ${({ theme }) => theme.TYPOGRAPHY.B3_B}
 `;
 
-const S_InputGroup = styled.div`
+const S_InputGroup = styled.form`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;
