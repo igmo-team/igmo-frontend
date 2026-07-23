@@ -9,6 +9,7 @@ import { areAllGuestsReady } from '../../domain/room/gameStart';
 
 import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
+import { RoomGameResultView } from './components/RoomGameResultView';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPlayingView } from './components/RoomPlayingView';
@@ -46,6 +47,7 @@ export function RoomPage() {
     roundSnapshot,
     voteSnapshot,
     roundResultSnapshot,
+    gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
@@ -55,6 +57,7 @@ export function RoomPage() {
     sendPrompt,
     sendGuess,
     sendVote,
+    sendRestart,
   } = useRoomSocket({ roomCode, entryState });
 
   const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
@@ -172,6 +175,24 @@ export function RoomPage() {
           onLeaveButtonClick={handleLeaveButtonClick}
         />
       </S_Page>
+    );
+  }
+
+  if (phase === 'ENDED') {
+    return (
+      <S_GamePage>
+        <S_GameResultContent>
+          {gameResultSnapshot ? (
+            <RoomGameResultView
+              snapshot={gameResultSnapshot}
+              onRestart={sendRestart}
+              onHomeButtonClick={handleLeaveButtonClick}
+            />
+          ) : (
+            <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
+          )}
+        </S_GameResultContent>
+      </S_GamePage>
     );
   }
 
@@ -358,6 +379,12 @@ const S_GameContent = styled.div`
   width: 100%;
   max-width: 64rem;
   margin: 4.8rem auto 0;
+`;
+
+const S_GameResultContent = styled.div`
+  width: 100%;
+  max-width: 56rem;
+  margin: 0 auto;
 `;
 
 const S_RoomCard = styled(Surface)`
