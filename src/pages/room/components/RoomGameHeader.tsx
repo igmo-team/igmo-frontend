@@ -17,7 +17,7 @@ type RoomGameHeaderProps = {
   players: RoomPlayer[];
   currentPlayerId?: string;
   submittedPlayerIds?: string[];
-  round: number;
+  round?: number;
   phaseLabel: string;
   timer?: TimerState | null;
 };
@@ -38,7 +38,7 @@ export function RoomGameHeader({
       <S_PhaseSummary>
         <LogoMark size="sm" />
         <S_PhaseTextGroup>
-          <S_RoundLabel>라운드 {round}</S_RoundLabel>
+          {round !== undefined && <S_RoundLabel>라운드 {round}</S_RoundLabel>}
           <S_PhaseLabel>{phaseLabel}</S_PhaseLabel>
         </S_PhaseTextGroup>
       </S_PhaseSummary>

@@ -27,7 +27,6 @@ import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
-const TEMPORARY_ROUND = 1;
 const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 10;
 const TEMPORARY_VOTE_TIMER_TOTAL_SECONDS = 10;
 
@@ -203,13 +202,13 @@ export function RoomPage() {
     roundSnapshot?.guessEntries
       .filter((entry) => entry.submitted)
       .map((entry) => entry.player.id) ?? [];
-  let headerRound = TEMPORARY_ROUND;
+  let headerRound: number | undefined;
 
   if (phase === 'GENERATING' || isCountdownPlaying) {
     headerSubmittedPlayerIds = submittedPlayerIds;
   }
 
-  if (isPlayingViewVisible && roundSnapshot) {
+  if (phase === 'PLAYING' && roundSnapshot) {
     headerPlayers = getRoundPlayers(roundSnapshot);
     headerRound = roundSnapshot.roundNumber;
   }
