@@ -175,8 +175,16 @@ function getWinnerNameText(winners: FinalRankingEntry[]) {
 }
 
 const S_ResultCard = styled.article`
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   width: 100%;
   overflow: hidden;
+
+  @media (min-width: 36.0625rem) {
+    border: 0.25rem solid #1b1130;
+    border-radius: 1.8rem;
+  }
 `;
 
 const S_Hero = styled('section', {
@@ -293,13 +301,10 @@ const S_TiedWinnerScore = styled.strong`
 
 const S_RankingPanel = styled.section`
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 1.8rem;
-  padding: 3.2rem 3rem 3.4rem;
-
-  @media (max-width: 36rem) {
-    padding: 2.6rem 2rem 3rem;
-  }
+  padding: 1.8rem;
 `;
 
 const S_RankingTitle = styled.h3`
@@ -440,5 +445,5 @@ const S_ActionGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.4rem;
-  margin-top: 1.2rem;
+  margin-top: auto;
 `;

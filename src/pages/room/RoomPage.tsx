@@ -11,6 +11,7 @@ import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGameResultView } from './components/RoomGameResultView';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
+import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
@@ -264,75 +265,79 @@ export function RoomPage() {
       />
 
       <S_GameMain>
-        {phase === 'ENDED' &&
-          (gameResultSnapshot ? (
-            <S_GameResultContent>
+        {phase === 'ENDED' ? (
+          <S_GameResultContent>
+            {gameResultSnapshot ? (
               <RoomGameResultView
                 snapshot={gameResultSnapshot}
                 onRestart={sendRestart}
                 onHomeButtonClick={handleLeaveButtonClick}
               />
-            </S_GameResultContent>
-          ) : (
-            <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
-          ))}
-        <S_GameContent>
-          {(phase === 'GENERATING' || isCountdownPlaying) && (
-            <>
-              {promptingView === 'INPUT' && (
-                <RoomPromptingView
+            ) : (
+              <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
+            )}
+          </S_GameResultContent>
+        ) : (
+          <S_GameContentFrame>
+            <S_GameContent>
+              {(phase === 'GENERATING' || isCountdownPlaying) && (
+                <>
+                  {promptingView === 'INPUT' && (
+                    <RoomPromptingView
+                      isSocketConnected={isConnected}
+                      socketErrorMessage={errorMessage}
+                      onSubmit={sendPrompt}
+                    />
+                  )}
+                  {promptingView === 'GENERATING' && <RoomGeneratingView />}
+                  {promptingView === 'RESULT' && (
+                    <RoomPromptResultView
+                      imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
+                      prompt={imageGenerationSnapshot?.prompt ?? ''}
+                    />
+                  )}
+                  {promptingView === 'FAILED' && <RoomPromptFailedView />}
+                </>
+              )}
+
+              {isPlayingViewVisible &&
+                (roundSnapshot ? (
+                  <RoomPlayingView
+                    snapshot={roundSnapshot}
+                    currentPlayerId={entryState?.playerId}
+                    isSocketConnected={isConnected}
+                    socketErrorMessage={errorMessage}
+                    onSubmit={sendGuess}
+                  />
+                ) : (
+                  <S_EmptyState>
+                    프롬프트 추측 정보를 불러오는 중이에요.
+                  </S_EmptyState>
+                ))}
+
+              {phase === 'VOTING' && voteSnapshot && (
+                <RoomVotingView
+                  key={voteSnapshot.roundNumber}
+                  snapshot={voteSnapshot}
+                  currentPlayerId={entryState?.playerId}
                   isSocketConnected={isConnected}
                   socketErrorMessage={errorMessage}
-                  onSubmit={sendPrompt}
+                  onSubmit={sendVote}
                 />
               )}
-              {promptingView === 'GENERATING' && <RoomGeneratingView />}
-              {promptingView === 'RESULT' && (
-                <RoomPromptResultView
-                  imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
-                  prompt={imageGenerationSnapshot?.prompt ?? ''}
-                />
-              )}
-              {promptingView === 'FAILED' && <RoomPromptFailedView />}
-            </>
-          )}
 
-          {isPlayingViewVisible &&
-            (roundSnapshot ? (
-              <RoomPlayingView
-                snapshot={roundSnapshot}
-                currentPlayerId={entryState?.playerId}
-                isSocketConnected={isConnected}
-                socketErrorMessage={errorMessage}
-                onSubmit={sendGuess}
-              />
-            ) : (
-              <S_EmptyState>
-                프롬프트 추측 정보를 불러오는 중이에요.
-              </S_EmptyState>
-            ))}
-
-          {phase === 'VOTING' && voteSnapshot && (
-            <RoomVotingView
-              key={voteSnapshot.roundNumber}
-              snapshot={voteSnapshot}
-              currentPlayerId={entryState?.playerId}
-              isSocketConnected={isConnected}
-              socketErrorMessage={errorMessage}
-              onSubmit={sendVote}
-            />
-          )}
-
-          {phase === 'RESULTS' &&
-            (roundResultSnapshot ? (
-              <RoomRoundResultView
-                key={roundResultSnapshot.roundNumber}
-                snapshot={roundResultSnapshot}
-              />
-            ) : (
-              <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>
-            ))}
-        </S_GameContent>
+              {phase === 'RESULTS' &&
+                (roundResultSnapshot ? (
+                  <RoomRoundResultView
+                    key={roundResultSnapshot.roundNumber}
+                    snapshot={roundResultSnapshot}
+                  />
+                ) : (
+                  <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>
+                ))}
+            </S_GameContent>
+          </S_GameContentFrame>
+        )}
 
         {isCountdownTriggered && (
           <RoomCountdownOverlay onCountdownEnd={handleCountdownEnd} />
@@ -378,8 +383,15 @@ const S_GameContainer = styled.div`
 `;
 
 const S_GameMain = styled.main`
+  display: flex;
+  flex-direction: column;
   min-height: calc(100dvh - 6.5rem);
-  padding: 0rem 1.8rem 4rem;
+`;
+
+const S_GameContentFrame = styled.div`
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 1.8rem 4rem;
 `;
 
 const S_GameContent = styled.div`
@@ -390,9 +402,10 @@ const S_GameContent = styled.div`
 `;
 
 const S_GameResultContent = styled.div`
+  display: flex;
+  flex: 1;
   width: 100%;
   max-width: 64rem;
-  margin: 0 -1.8rem;
   margin: 0 auto;
 `;
 
