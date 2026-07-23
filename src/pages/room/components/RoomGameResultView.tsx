@@ -17,23 +17,32 @@ type RoomGameResultViewProps = {
   onHomeButtonClick: () => void;
 };
 
+type FinalRankingDisplayItem = {
+  entry: FinalRankingEntry;
+  colorIndex: number;
+};
+
 export function RoomGameResultView({
   snapshot,
   onRestart,
   onHomeButtonClick,
 }: RoomGameResultViewProps) {
   const sortedRanking = sortFinalRanking(snapshot.finalRanking);
-  const winners = sortedRanking.filter((entry) => entry.rank === 1);
+  const rankingItems = sortedRanking.map((entry, index) => ({
+    entry,
+    colorIndex: index,
+  }));
+  const winners = rankingItems.filter(({ entry }) => entry.rank === 1);
   const isTiedWinner = winners.length > 1;
   const displayRanking = isTiedWinner
-    ? sortedRanking
-    : sortedRanking.filter((entry) => entry.rank !== 1);
+    ? rankingItems
+    : rankingItems.filter(({ entry }) => entry.rank !== 1);
 
   return (
     <S_ResultCard>
       <S_Hero isTiedWinner={isTiedWinner}>
         {isTiedWinner ? (
-          <TiedWinnerHero winners={winners} />
+          <TiedWinnerHero winners={winners.map(({ entry }) => entry)} />
         ) : (
           <SingleWinnerHero winner={winners[0]} />
         )}
@@ -44,7 +53,7 @@ export function RoomGameResultView({
 
         {displayRanking.length > 0 ? (
           <S_RankingList aria-label="최종 순위">
-            {displayRanking.map((entry, index) => (
+            {displayRanking.map(({ entry, colorIndex }) => (
               <S_RankingItem
                 key={entry.player.id}
                 isCardRow={isTiedWinner}
@@ -54,7 +63,10 @@ export function RoomGameResultView({
                   {entry.rank}
                 </S_RankText>
 
-                <PlayerAvatar player={entry.player} index={index} />
+                <PlayerAvatar
+                  player={entry.player}
+                  colorIndex={colorIndex}
+                />
 
                 <S_Nickname>{entry.player.nickname}</S_Nickname>
 
@@ -81,7 +93,7 @@ export function RoomGameResultView({
   );
 }
 
-function SingleWinnerHero({ winner }: { winner?: FinalRankingEntry }) {
+function SingleWinnerHero({ winner }: { winner?: FinalRankingDisplayItem }) {
   if (!winner) {
     return (
       <>
@@ -96,10 +108,13 @@ function SingleWinnerHero({ winner }: { winner?: FinalRankingEntry }) {
       <S_HeroEyebrow>GAME OVER · WINNER</S_HeroEyebrow>
       <S_WinnerAvatarWrap>
         <S_WinnerCrown aria-hidden width={40} height={40} />
-        <S_WinnerAvatar player={winner.player} />
+        <S_WinnerAvatar
+          player={winner.entry.player}
+          colorIndex={winner.colorIndex}
+        />
       </S_WinnerAvatarWrap>
-      <S_WinnerName>{winner.player.nickname}</S_WinnerName>
-      <S_WinnerScoreBadge>최종 {winner.totalScore}점</S_WinnerScoreBadge>
+      <S_WinnerName>{winner.entry.player.nickname}</S_WinnerName>
+      <S_WinnerScoreBadge>최종 {winner.entry.totalScore}점</S_WinnerScoreBadge>
     </>
   );
 }
@@ -121,12 +136,13 @@ function TiedWinnerHero({ winners }: { winners: FinalRankingEntry[] }) {
 
 function PlayerAvatar({
   player,
-  index,
+  colorIndex,
 }: {
   player: RoomPlayer;
-  index: number;
+  colorIndex: number;
 }) {
-  const avatarColor = ROOM_AVATAR_COLORS[index % ROOM_AVATAR_COLORS.length];
+  const avatarColor =
+    ROOM_AVATAR_COLORS[colorIndex % ROOM_AVATAR_COLORS.length];
 
   return (
     <S_Avatar
@@ -139,8 +155,15 @@ function PlayerAvatar({
   );
 }
 
-function S_WinnerAvatar({ player }: { player: RoomPlayer }) {
-  const avatarColor = ROOM_AVATAR_COLORS[0];
+function S_WinnerAvatar({
+  player,
+  colorIndex,
+}: {
+  player: RoomPlayer;
+  colorIndex: number;
+}) {
+  const avatarColor =
+    ROOM_AVATAR_COLORS[colorIndex % ROOM_AVATAR_COLORS.length];
 
   return (
     <S_HeroAvatar
