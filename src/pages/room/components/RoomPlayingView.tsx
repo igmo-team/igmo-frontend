@@ -55,7 +55,24 @@ export function RoomPlayingView({
     setPromptText(event.target.value);
   };
 
-  const handleSubmitClick = () => {
+  const handlePromptKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+
+  const handlePromptSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (isSubmitDisabled) {
       return;
     }
@@ -88,7 +105,7 @@ export function RoomPlayingView({
             </S_Guide>
           </S_TextGroup>
 
-          <S_InputGroup>
+          <S_InputGroup onSubmit={handlePromptSubmit}>
             <Textarea
               value={promptText}
               tone="white"
@@ -97,6 +114,7 @@ export function RoomPlayingView({
               shadow
               disabled={isSubmitted || isSubmitPending}
               onChange={handlePromptChange}
+              onKeyDown={handlePromptKeyDown}
             />
 
             {socketErrorMessage && (
@@ -104,9 +122,8 @@ export function RoomPlayingView({
             )}
 
             <Button
-              type="button"
+              type="submit"
               disabled={isSubmitDisabled}
-              onClick={handleSubmitClick}
             >
               {submitButtonText}
             </Button>
@@ -203,7 +220,7 @@ const S_Point = styled.strong`
   color: ${({ theme }) => theme.COLOR.PRIMARY500};
 `;
 
-const S_InputGroup = styled.div`
+const S_InputGroup = styled.form`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;
