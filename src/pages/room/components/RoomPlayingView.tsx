@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -21,6 +21,7 @@ export function RoomPlayingView({
   socketErrorMessage = '',
   onSubmit,
 }: RoomPlayingViewProps) {
+  const isComposingRef = useRef(false);
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
@@ -55,7 +56,26 @@ export function RoomPlayingView({
     setPromptText(event.target.value);
   };
 
-  const handleSubmitClick = () => {
+  const handlePromptKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229 ||
+      isComposingRef.current
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+
+  const handlePromptSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
     if (isSubmitDisabled) {
       return;
     }
@@ -88,7 +108,7 @@ export function RoomPlayingView({
             </S_Guide>
           </S_TextGroup>
 
-          <S_InputGroup>
+          <S_InputGroup onSubmit={handlePromptSubmit}>
             <Textarea
               value={promptText}
               tone="white"
@@ -97,17 +117,20 @@ export function RoomPlayingView({
               shadow
               disabled={isSubmitted || isSubmitPending}
               onChange={handlePromptChange}
+              onCompositionStart={() => {
+                isComposingRef.current = true;
+              }}
+              onCompositionEnd={() => {
+                isComposingRef.current = false;
+              }}
+              onKeyDown={handlePromptKeyDown}
             />
 
             {socketErrorMessage && (
               <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
             )}
 
-            <Button
-              type="button"
-              disabled={isSubmitDisabled}
-              onClick={handleSubmitClick}
-            >
+            <Button type="submit" disabled={isSubmitDisabled}>
               {submitButtonText}
             </Button>
           </S_InputGroup>
@@ -203,7 +226,7 @@ const S_Point = styled.strong`
   color: ${({ theme }) => theme.COLOR.PRIMARY500};
 `;
 
-const S_InputGroup = styled.div`
+const S_InputGroup = styled.form`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;

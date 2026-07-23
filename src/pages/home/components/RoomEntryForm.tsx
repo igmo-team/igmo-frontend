@@ -138,7 +138,7 @@ export function RoomEntryForm() {
   };
 
   const handleRoomCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setRoomCode(e.target.value);
+    setRoomCode(e.target.value.toUpperCase());
     setErrorMessage('');
   };
 
