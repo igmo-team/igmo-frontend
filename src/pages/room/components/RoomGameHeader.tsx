@@ -101,6 +101,7 @@ const S_Header = styled.header`
   justify-content: space-between;
   gap: 1.2rem;
   margin: 0 auto;
+  padding: 1.4rem 1.8rem;
 
   @media (max-width: 36rem) {
     align-items: flex-start;

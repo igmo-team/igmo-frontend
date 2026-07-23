@@ -19,7 +19,8 @@ export type RoomMessageType =
   | 'PROMPT_SUBMISSION_SNAPSHOT'
   | 'ROUND_SNAPSHOT'
   | 'VOTE_SNAPSHOT'
-  | 'ROUND_RESULT_SNAPSHOT';
+  | 'ROUND_RESULT_SNAPSHOT'
+  | 'GAME_RESULT_SNAPSHOT';
 
 export type RoomMessage<TPayload> = {
   type: RoomMessageType;
@@ -109,6 +110,18 @@ export type RoundResultSnapshot = {
   resultDeadline: string;
   results: RoundResult[];
   players: RoomPlayer[];
+};
+
+export type FinalRankingEntry = {
+  player: RoomPlayer;
+  rank: number;
+  totalScore: number;
+};
+
+export type GameResultSnapshot = {
+  roomCode: string;
+  phase: 'ENDED';
+  finalRanking: FinalRankingEntry[];
 };
 
 // 개인 이미지 큐(/queue/image-generation)에서 받는 내 이미지 생성 상태
