@@ -5,6 +5,7 @@ import {
   readHasPlayedCountdown,
   writeHasPlayedCountdown,
 } from '../utils/countdownPlayedStorage';
+import { parseGameResultSnapshot } from '../utils/parseGameResultSnapshot';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
@@ -14,6 +15,7 @@ import { parseSocketError } from '../utils/parseSocketError';
 import { parseVoteSnapshot } from '../utils/parseVoteSnapshot';
 
 import type {
+  GameResultSnapshot,
   ImageGenerationSnapshot,
   PromptSubmissionSnapshot,
   RoomPhase,
@@ -37,6 +39,7 @@ type UseRoomSocketResult = {
   roundSnapshot: RoundSnapshot | null;
   voteSnapshot: VoteSnapshot | null;
   roundResultSnapshot: RoundResultSnapshot | null;
+  gameResultSnapshot: GameResultSnapshot | null;
   // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
   isCountdownTriggered: boolean;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
@@ -47,6 +50,7 @@ type UseRoomSocketResult = {
   sendPrompt: (prompt: string) => void;
   sendGuess: (guess: string) => void;
   sendVote: (optionId: string) => void;
+  sendRestart: () => void;
 };
 
 export function useRoomSocket({
@@ -67,6 +71,8 @@ export function useRoomSocket({
   const [voteSnapshot, setVoteSnapshot] = useState<VoteSnapshot | null>(null);
   const [roundResultSnapshot, setRoundResultSnapshot] =
     useState<RoundResultSnapshot | null>(null);
+  const [gameResultSnapshot, setGameResultSnapshot] =
+    useState<GameResultSnapshot | null>(null);
   const [isCountdownTriggered, setIsCountdownTriggered] = useState(false);
   const hasHandledFirstRoundSnapshotRef = useRef(false);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
@@ -150,6 +156,15 @@ export function useRoomSocket({
         if (nextRoundResultSnapshot) {
           setRoundResultSnapshot(nextRoundResultSnapshot);
           setPhase(nextRoundResultSnapshot.phase);
+          setErrorMessage('');
+          return;
+        }
+
+        const nextGameResultSnapshot = parseGameResultSnapshot(message.body);
+
+        if (nextGameResultSnapshot) {
+          setGameResultSnapshot(nextGameResultSnapshot);
+          setPhase(nextGameResultSnapshot.phase);
           setErrorMessage('');
         }
       });
@@ -238,6 +253,10 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/votes`, JSON.stringify({ optionId }));
   };
 
+  const sendRestart = () => {
+    publish(`/app/rooms/${roomCode}/restart`);
+  };
+
   return {
     phase,
     receivedSnapshot,
@@ -245,6 +264,7 @@ export function useRoomSocket({
     roundSnapshot,
     voteSnapshot,
     roundResultSnapshot,
+    gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
@@ -254,5 +274,6 @@ export function useRoomSocket({
     sendPrompt,
     sendGuess,
     sendVote,
+    sendRestart,
   };
 }
