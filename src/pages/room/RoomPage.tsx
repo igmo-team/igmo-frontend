@@ -178,24 +178,6 @@ export function RoomPage() {
     );
   }
 
-  if (phase === 'ENDED') {
-    return (
-      <S_GamePage>
-        <S_GameResultContent>
-          {gameResultSnapshot ? (
-            <RoomGameResultView
-              snapshot={gameResultSnapshot}
-              onRestart={sendRestart}
-              onHomeButtonClick={handleLeaveButtonClick}
-            />
-          ) : (
-            <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
-          )}
-        </S_GameResultContent>
-      </S_GamePage>
-    );
-  }
-
   const isPromptSubmitted =
     promptSubmissionSnapshot?.promptEntries.find(
       (entry) => entry.player.id === entryState?.playerId,
@@ -246,6 +228,13 @@ export function RoomPage() {
     headerRound = roundResultSnapshot.roundNumber;
   }
 
+  if (phase === 'ENDED' && gameResultSnapshot) {
+    headerPlayers = gameResultSnapshot.finalRanking.map(
+      (entry) => entry.player,
+    );
+    headerSubmittedPlayerIds = [];
+  }
+
   return (
     <S_GamePage>
       <RoomGameHeader
@@ -275,6 +264,18 @@ export function RoomPage() {
         }
       />
 
+      {phase === 'ENDED' &&
+        (gameResultSnapshot ? (
+          <S_GameResultContent>
+            <RoomGameResultView
+              snapshot={gameResultSnapshot}
+              onRestart={sendRestart}
+              onHomeButtonClick={handleLeaveButtonClick}
+            />
+          </S_GameResultContent>
+        ) : (
+          <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
+        ))}
       <S_GameContent>
         {(phase === 'GENERATING' || isCountdownPlaying) && (
           <>
@@ -382,9 +383,8 @@ const S_GameContent = styled.div`
 `;
 
 const S_GameResultContent = styled.div`
-  width: 100%;
-  max-width: 56rem;
-  margin: 0 auto;
+  width: calc(100% + 3.6rem);
+  margin: 0 -1.8rem;
 `;
 
 const S_RoomCard = styled(Surface)`
