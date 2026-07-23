@@ -236,7 +236,7 @@ export function RoomPage() {
   }
 
   return (
-    <S_GamePage>
+    <S_GameContainer>
       <RoomGameHeader
         players={headerPlayers}
         currentPlayerId={entryState?.playerId}
@@ -264,78 +264,82 @@ export function RoomPage() {
         }
       />
 
-      {phase === 'ENDED' &&
-        (gameResultSnapshot ? (
-          <S_GameResultContent>
-            <RoomGameResultView
-              snapshot={gameResultSnapshot}
-              onRestart={sendRestart}
-              onHomeButtonClick={handleLeaveButtonClick}
-            />
-          </S_GameResultContent>
-        ) : (
-          <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
-        ))}
-      <S_GameContent>
-        {(phase === 'GENERATING' || isCountdownPlaying) && (
-          <>
-            {promptingView === 'INPUT' && (
-              <RoomPromptingView
+      <S_GameMain>
+        {phase === 'ENDED' &&
+          (gameResultSnapshot ? (
+            <S_GameResultContent>
+              <RoomGameResultView
+                snapshot={gameResultSnapshot}
+                onRestart={sendRestart}
+                onHomeButtonClick={handleLeaveButtonClick}
+              />
+            </S_GameResultContent>
+          ) : (
+            <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
+          ))}
+        <S_GameContent>
+          {(phase === 'GENERATING' || isCountdownPlaying) && (
+            <>
+              {promptingView === 'INPUT' && (
+                <RoomPromptingView
+                  isSocketConnected={isConnected}
+                  socketErrorMessage={errorMessage}
+                  onSubmit={sendPrompt}
+                />
+              )}
+              {promptingView === 'GENERATING' && <RoomGeneratingView />}
+              {promptingView === 'RESULT' && (
+                <RoomPromptResultView
+                  imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
+                  prompt={imageGenerationSnapshot?.prompt ?? ''}
+                />
+              )}
+              {promptingView === 'FAILED' && <RoomPromptFailedView />}
+            </>
+          )}
+
+          {isPlayingViewVisible &&
+            (roundSnapshot ? (
+              <RoomPlayingView
+                snapshot={roundSnapshot}
+                currentPlayerId={entryState?.playerId}
                 isSocketConnected={isConnected}
                 socketErrorMessage={errorMessage}
-                onSubmit={sendPrompt}
+                onSubmit={sendGuess}
               />
-            )}
-            {promptingView === 'GENERATING' && <RoomGeneratingView />}
-            {promptingView === 'RESULT' && (
-              <RoomPromptResultView
-                imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
-                prompt={imageGenerationSnapshot?.prompt ?? ''}
-              />
-            )}
-            {promptingView === 'FAILED' && <RoomPromptFailedView />}
-          </>
-        )}
+            ) : (
+              <S_EmptyState>
+                프롬프트 추측 정보를 불러오는 중이에요.
+              </S_EmptyState>
+            ))}
 
-        {isPlayingViewVisible &&
-          (roundSnapshot ? (
-            <RoomPlayingView
-              snapshot={roundSnapshot}
+          {phase === 'VOTING' && voteSnapshot && (
+            <RoomVotingView
+              key={voteSnapshot.roundNumber}
+              snapshot={voteSnapshot}
               currentPlayerId={entryState?.playerId}
               isSocketConnected={isConnected}
               socketErrorMessage={errorMessage}
-              onSubmit={sendGuess}
+              onSubmit={sendVote}
             />
-          ) : (
-            <S_EmptyState>프롬프트 추측 정보를 불러오는 중이에요.</S_EmptyState>
-          ))}
+          )}
 
-        {phase === 'VOTING' && voteSnapshot && (
-          <RoomVotingView
-            key={voteSnapshot.roundNumber}
-            snapshot={voteSnapshot}
-            currentPlayerId={entryState?.playerId}
-            isSocketConnected={isConnected}
-            socketErrorMessage={errorMessage}
-            onSubmit={sendVote}
-          />
+          {phase === 'RESULTS' &&
+            (roundResultSnapshot ? (
+              <RoomRoundResultView
+                key={roundResultSnapshot.roundNumber}
+                snapshot={roundResultSnapshot}
+              />
+            ) : (
+              <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>
+            ))}
+        </S_GameContent>
+
+        {isCountdownTriggered && (
+          <RoomCountdownOverlay onCountdownEnd={handleCountdownEnd} />
         )}
-
-        {phase === 'RESULTS' &&
-          (roundResultSnapshot ? (
-            <RoomRoundResultView
-              key={roundResultSnapshot.roundNumber}
-              snapshot={roundResultSnapshot}
-            />
-          ) : (
-            <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>
-          ))}
-      </S_GameContent>
-
-      {isCountdownTriggered && (
-        <RoomCountdownOverlay onCountdownEnd={handleCountdownEnd} />
-      )}
-    </S_GamePage>
+      </S_GameMain>
+    </S_GameContainer>
   );
 }
 
@@ -370,10 +374,13 @@ const S_Page = styled.main`
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
 `;
 
-const S_GamePage = styled.main`
-  min-height: 100dvh;
-  padding: 1.4rem 1.8rem 9.6rem;
+const S_GameContainer = styled.div`
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
+`;
+
+const S_GameMain = styled.main`
+  min-height: 100dvh;
+  padding: 0rem 1.8rem 9.6rem;
 `;
 
 const S_GameContent = styled.div`
