@@ -42,6 +42,7 @@ const S_ResultSection = styled.section`
   width: 100%;
   flex-direction: column;
   gap: 1.8rem;
+  align-items: center;
 `;
 
 const S_Title = styled.h2`
@@ -52,6 +53,7 @@ const S_Title = styled.h2`
 
 const S_Image = styled.img`
   width: 100%;
+  max-width: 50rem;
   aspect-ratio: 1 / 1;
   border-radius: ${({ theme }) => theme.RADIUS.MD};
   object-fit: cover;
@@ -60,6 +62,7 @@ const S_Image = styled.img`
 const S_PromptBox = styled.div`
   display: flex;
   flex-direction: column;
+  width: 100%;
   gap: 0.6rem;
   padding: 1.6rem;
   border: ${({ theme }) => theme.BORDER.DEFAULT};

@@ -11,7 +11,6 @@ import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGameResultView } from './components/RoomGameResultView';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
-import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
@@ -379,19 +378,22 @@ const S_GameContainer = styled.div`
 `;
 
 const S_GameMain = styled.main`
-  min-height: 100dvh;
-  padding: 0rem 1.8rem 9.6rem;
+  min-height: calc(100dvh - 6.5rem);
+  padding: 0rem 1.8rem 4rem;
 `;
 
 const S_GameContent = styled.div`
   width: 100%;
   max-width: 64rem;
-  margin: 4.8rem auto 0;
+  margin: 0 auto;
+  padding-top: 1.8rem;
 `;
 
 const S_GameResultContent = styled.div`
-  width: calc(100% + 3.6rem);
+  width: 100%;
+  max-width: 64rem;
   margin: 0 -1.8rem;
+  margin: 0 auto;
 `;
 
 const S_RoomCard = styled(Surface)`
