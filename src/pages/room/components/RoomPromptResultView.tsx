@@ -7,16 +7,29 @@ import { RoomPromptFailedView } from './RoomPromptFailedView';
 type RoomPromptResultViewProps = {
   prompt: string;
   imageUrl?: string;
+  isSocketConnected: boolean;
+  socketErrorMessage: string;
+  onRetry: (prompt: string) => void;
 };
 
 export function RoomPromptResultView({
   prompt,
   imageUrl,
+  isSocketConnected,
+  socketErrorMessage,
+  onRetry,
 }: RoomPromptResultViewProps) {
   const [hasImageError, setHasImageError] = useState(false);
 
   if (hasImageError) {
-    return <RoomPromptFailedView />;
+    return (
+      <RoomPromptFailedView
+        prompt={prompt}
+        isSocketConnected={isSocketConnected}
+        socketErrorMessage={socketErrorMessage}
+        onSubmit={onRetry}
+      />
+    );
   }
 
   return (
