@@ -218,7 +218,7 @@ export function useRoomSocket({
 
   const publish = (destination: string, body?: string) => {
     if (!roomCode || !stompClientRef.current?.connected) {
-      return;
+      return false;
     }
 
     setErrorMessage('');
@@ -228,6 +228,7 @@ export function useRoomSocket({
         ? {}
         : { body, headers: { 'content-type': 'application/json' } }),
     });
+    return true;
   };
 
   const sendReady = (nextReady: boolean) => {
@@ -242,7 +243,26 @@ export function useRoomSocket({
   };
 
   const sendPrompt = (prompt: string) => {
-    publish(`/app/rooms/${roomCode}/prompts`, JSON.stringify({ prompt }));
+    if (!roomCode) {
+      return;
+    }
+
+    const isPublished = publish(
+      `/app/rooms/${roomCode}/prompts`,
+      JSON.stringify({ prompt }),
+    );
+
+    if (!isPublished) {
+      return;
+    }
+
+    setImageGenerationSnapshot({
+      roomCode,
+      status: 'WAITING',
+      prompt,
+      imageUrl: null,
+      errorMessage: null,
+    });
   };
 
   const sendGuess = (guess: string) => {
