@@ -58,7 +58,10 @@ export function RoomPromptFailedView({
 
   return (
     <S_ResultSection onSubmit={handleRetrySubmit}>
-      <S_Title>그림 생성에 실패했어요</S_Title>
+      <S_TextGroup>
+        <S_Title>😭 그림 생성에 실패했어요</S_Title>
+        <S_Guide>프롬프트를 다듬어 다시 시도해 보세요.</S_Guide>
+      </S_TextGroup>
 
       <Textarea
         value={promptText}
@@ -91,13 +94,23 @@ const S_ResultSection = styled.form`
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 1.8rem;
+  gap: 2.4rem;
+`;
+
+const S_TextGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
 `;
 
 const S_Title = styled.h2`
   color: ${({ theme }) => theme.COLOR.TEXT};
-  text-align: center;
   ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
+`;
+
+const S_Guide = styled.p`
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  ${({ theme }) => theme.TYPOGRAPHY.B3_B}
 `;
 
 const S_ErrorMessage = styled.p`
