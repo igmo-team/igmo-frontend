@@ -295,9 +295,6 @@ export function RoomPage() {
                     <RoomPromptResultView
                       imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
                       prompt={imageGenerationSnapshot?.prompt ?? ''}
-                      isSocketConnected={isConnected}
-                      socketErrorMessage={errorMessage}
-                      onRetry={sendPrompt}
                     />
                   )}
                   {promptingView === 'FAILED' && (
