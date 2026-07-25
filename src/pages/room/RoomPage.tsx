@@ -192,7 +192,9 @@ export function RoomPage() {
     imageGenerationSnapshot?.status,
   );
 
-  const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
+  const shouldShowTimer =
+    phase === 'GENERATING' &&
+    (promptingView === 'INPUT' || promptingView === 'FAILED');
   const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
   const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
   const shouldShowResultTimer =
@@ -293,9 +295,19 @@ export function RoomPage() {
                     <RoomPromptResultView
                       imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
                       prompt={imageGenerationSnapshot?.prompt ?? ''}
+                      isSocketConnected={isConnected}
+                      socketErrorMessage={errorMessage}
+                      onRetry={sendPrompt}
                     />
                   )}
-                  {promptingView === 'FAILED' && <RoomPromptFailedView />}
+                  {promptingView === 'FAILED' && (
+                    <RoomPromptFailedView
+                      prompt={imageGenerationSnapshot?.prompt ?? ''}
+                      isSocketConnected={isConnected}
+                      socketErrorMessage={errorMessage}
+                      onSubmit={sendPrompt}
+                    />
+                  )}
                 </>
               )}
 

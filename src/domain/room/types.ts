@@ -124,7 +124,7 @@ export type GameResultSnapshot = {
   finalRanking: FinalRankingEntry[];
 };
 
-// 개인 이미지 큐(/queue/image-generation)에서 받는 내 이미지 생성 상태
+// 개인 이미지 큐(/user/queue/image-generation)에서 받는 내 이미지 생성 상태
 export type ImageGenerationStatus =
   | 'WAITING'
   | 'GENERATING'
@@ -135,5 +135,6 @@ export type ImageGenerationSnapshot = {
   roomCode: string;
   status: ImageGenerationStatus;
   prompt: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
+  errorMessage: string | null;
 };

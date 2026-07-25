@@ -1,10 +1,17 @@
 import type { ImageGenerationSnapshot } from '../../../domain/room/types';
 
+const IMAGE_GENERATION_STATUSES = [
+  'WAITING',
+  'GENERATING',
+  'READY',
+  'FAILED',
+] as const;
+
 export function parseImageGenerationSnapshot(
   body: string,
 ): ImageGenerationSnapshot | null {
   try {
-    const data = JSON.parse(body) as ImageGenerationSnapshot;
+    const data = JSON.parse(body) as unknown;
 
     if (isImageGenerationSnapshot(data)) {
       return data;
@@ -28,6 +35,14 @@ function isImageGenerationSnapshot(
   return (
     typeof snapshot.roomCode === 'string' &&
     typeof snapshot.status === 'string' &&
-    typeof snapshot.prompt === 'string'
+    (IMAGE_GENERATION_STATUSES as readonly string[]).includes(
+      snapshot.status,
+    ) &&
+    typeof snapshot.prompt === 'string' &&
+    (snapshot.imageUrl === undefined ||
+      snapshot.imageUrl === null ||
+      typeof snapshot.imageUrl === 'string') &&
+    (snapshot.errorMessage === null ||
+      typeof snapshot.errorMessage === 'string')
   );
 }
