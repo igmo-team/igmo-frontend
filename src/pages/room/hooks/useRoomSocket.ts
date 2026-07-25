@@ -255,14 +255,6 @@ export function useRoomSocket({
     if (!isPublished) {
       return;
     }
-
-    setImageGenerationSnapshot({
-      roomCode,
-      status: 'WAITING',
-      prompt,
-      imageUrl: null,
-      errorMessage: null,
-    });
   };
 
   const sendGuess = (guess: string) => {
