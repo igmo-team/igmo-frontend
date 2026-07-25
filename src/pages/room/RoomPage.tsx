@@ -192,7 +192,9 @@ export function RoomPage() {
     imageGenerationSnapshot?.status,
   );
 
-  const shouldShowTimer = phase === 'GENERATING' && promptingView === 'INPUT';
+  const shouldShowTimer =
+    phase === 'GENERATING' &&
+    (promptingView === 'INPUT' || promptingView === 'FAILED');
   const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
   const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
   const shouldShowResultTimer =
