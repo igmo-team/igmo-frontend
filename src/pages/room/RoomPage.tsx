@@ -305,6 +305,7 @@ export function RoomPage() {
             {gameResultSnapshot ? (
               <RoomGameResultView
                 snapshot={gameResultSnapshot}
+                currentPlayerId={currentPlayerId}
                 onRestart={sendRestart}
                 onHomeButtonClick={handleLeaveButtonClick}
               />

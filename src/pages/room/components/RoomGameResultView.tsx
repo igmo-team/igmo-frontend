@@ -13,6 +13,7 @@ import type {
 
 type RoomGameResultViewProps = {
   snapshot: GameResultSnapshot;
+  currentPlayerId?: string;
   onRestart: () => void;
   onHomeButtonClick: () => void;
 };
