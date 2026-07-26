@@ -134,11 +134,7 @@ export type GameResultSnapshot = {
 };
 
 // 개인 이미지 큐(/user/queue/image-generation)에서 받는 내 이미지 생성 상태
-export type ImageGenerationStatus =
-  | 'WAITING'
-  | 'GENERATING'
-  | 'READY'
-  | 'FAILED';
+export type ImageGenerationStatus = Exclude<PromptEntryStatus, 'WAITING'>;
 
 export type ImageGenerationSnapshot = {
   roomCode: string;

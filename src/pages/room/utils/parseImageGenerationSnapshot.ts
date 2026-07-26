@@ -1,7 +1,6 @@
 import type { ImageGenerationSnapshot } from '../../../domain/room/types';
 
 const IMAGE_GENERATION_STATUSES = [
-  'WAITING',
   'GENERATING',
   'READY',
   'FAILED',
