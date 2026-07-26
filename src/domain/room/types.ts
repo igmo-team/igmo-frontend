@@ -34,9 +34,11 @@ export type RoomSnapshot = {
   players: RoomPlayer[];
 };
 
+export type PromptEntryStatus = 'WAITING' | 'GENERATING' | 'READY' | 'FAILED';
+
 export type PromptEntry = {
   player: RoomPlayer;
-  submitted: boolean;
+  status: PromptEntryStatus;
 };
 
 export type PromptSubmissionSnapshot = {
