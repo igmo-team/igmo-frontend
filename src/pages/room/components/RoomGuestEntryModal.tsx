@@ -91,13 +91,11 @@ export function RoomGuestEntryModal({
             value={nickname}
             disabled={isPending}
             aria-invalid={isNicknameInvalid}
-            aria-describedby={
-              isNicknameInvalid ? entryErrorMessageId : undefined
-            }
+            aria-describedby={entryErrorMessageId}
             onChange={handleNicknameChange}
           />
           {errorMessage && (
-            <S_ErrorMessage id="guest-entry-error">
+            <S_ErrorMessage id="guest-entry-error" role="alert">
               {errorMessage}
             </S_ErrorMessage>
           )}
