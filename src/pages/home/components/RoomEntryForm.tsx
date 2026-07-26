@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { Button, Input, Surface } from '../../../common/components';
 import { PAGE_URL } from '../../../common/constants/pageUrl';
+import { writeRoomSession } from '../../room/utils/roomSessionStorage';
 import postGamePlayer from '../apis/postGamePlayer';
 import postGames from '../apis/postGames';
 import {
@@ -46,6 +47,8 @@ export function RoomEntryForm() {
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
     onSuccess: ({ roomCode, playerId, secret, snapshot }) => {
+      writeRoomSession({ roomCode, playerId, secret });
+
       navigate(`${PAGE_URL.ROOM}/${roomCode}`, {
         state: {
           playerId,
@@ -70,6 +73,8 @@ export function RoomEntryForm() {
   const { mutate: joinGame, isPending: isJoinGamePending } = useMutation({
     mutationFn: postGamePlayer,
     onSuccess: ({ playerId, secret, snapshot }) => {
+      writeRoomSession({ roomCode: snapshot.roomCode, playerId, secret });
+
       navigate(`${PAGE_URL.ROOM}/${snapshot.roomCode}`, {
         state: {
           playerId,

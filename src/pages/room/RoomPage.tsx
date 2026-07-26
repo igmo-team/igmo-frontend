@@ -25,6 +25,11 @@ import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
+import {
+  deleteRoomSession,
+  readRoomSession,
+  writeRoomSession,
+} from './utils/roomSessionStorage';
 
 import type { RoomEntryState } from './utils/getRoomEntryState';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
@@ -37,6 +42,23 @@ export function RoomPage() {
     () => getRoomEntryState(location.state),
     [location.state],
   );
+  const roomSession = useMemo(() => {
+    if (!roomCode) {
+      return null;
+    }
+
+    if (entryState) {
+      return {
+        roomCode,
+        playerId: entryState.playerId,
+        secret: entryState.secret,
+      };
+    }
+
+    return readRoomSession(roomCode);
+  }, [entryState, roomCode]);
+  const initialSnapshot = entryState?.snapshot ?? null;
+  const currentPlayerId = roomSession?.playerId;
 
   const {
     phase,
@@ -57,9 +79,9 @@ export function RoomPage() {
     sendGuess,
     sendVote,
     sendRestart,
-  } = useRoomSocket({ roomCode, entryState });
+  } = useRoomSocket({ roomCode, roomSession, initialSnapshot });
 
-  const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
+  const snapshot = receivedSnapshot ?? initialSnapshot;
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
   const activeImageGenerationSnapshot =
     imageGenerationSnapshot?.roomCode === displayRoomCode
@@ -144,12 +166,18 @@ export function RoomPage() {
   const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
 
   useEffect(() => {
-    if (roomCode && !entryState && !hasValidRoomCode) {
+    if (roomCode && !roomSession && !hasValidRoomCode) {
       navigate(PAGE_URL.HOME, { replace: true });
     }
-  }, [entryState, hasValidRoomCode, navigate, roomCode]);
+  }, [hasValidRoomCode, navigate, roomCode, roomSession]);
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
+    writeRoomSession({
+      roomCode: nextEntryState.snapshot.roomCode,
+      playerId: nextEntryState.playerId,
+      secret: nextEntryState.secret,
+    });
+
     navigate(`${PAGE_URL.ROOM}/${nextEntryState.snapshot.roomCode}`, {
       replace: true,
       state: nextEntryState,
@@ -157,6 +185,10 @@ export function RoomPage() {
   };
 
   const handleLeaveButtonClick = () => {
+    if (roomCode) {
+      deleteRoomSession(roomCode);
+    }
+
     navigate(PAGE_URL.HOME);
   };
 
@@ -167,7 +199,7 @@ export function RoomPage() {
 
     if (
       snapshot.phase !== 'LOBBY' ||
-      entryState?.playerId !== snapshot.hostId
+      currentPlayerId !== snapshot.hostId
     ) {
       return;
     }
@@ -179,7 +211,7 @@ export function RoomPage() {
     sendStart();
   };
 
-  if (!entryState && roomCode && hasValidRoomCode) {
+  if (!roomSession && roomCode && hasValidRoomCode) {
     return (
       <RoomGuestEntryModal
         roomCode={roomCode}
@@ -203,7 +235,7 @@ export function RoomPage() {
       <S_Page>
         <RoomLobbyView
           snapshot={snapshot}
-          currentPlayerId={entryState?.playerId}
+          currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
           isCopied={isCopied}
@@ -272,7 +304,7 @@ export function RoomPage() {
     <S_GameContainer>
       <RoomGameHeader
         players={headerPlayers}
-        currentPlayerId={entryState?.playerId}
+        currentPlayerId={currentPlayerId}
         completedPlayerIds={headerCompletedPlayerIds}
         round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
@@ -303,6 +335,7 @@ export function RoomPage() {
             {gameResultSnapshot ? (
               <RoomGameResultView
                 snapshot={gameResultSnapshot}
+                currentPlayerId={currentPlayerId}
                 onRestart={sendRestart}
                 onHomeButtonClick={handleLeaveButtonClick}
               />
@@ -350,7 +383,7 @@ export function RoomPage() {
                 (roundSnapshot ? (
                   <RoomPlayingView
                     snapshot={roundSnapshot}
-                    currentPlayerId={entryState?.playerId}
+                    currentPlayerId={currentPlayerId}
                     isSocketConnected={isConnected}
                     socketErrorMessage={errorMessage}
                     onSubmit={sendGuess}
@@ -365,7 +398,7 @@ export function RoomPage() {
                 <RoomVotingView
                   key={voteSnapshot.roundNumber}
                   snapshot={voteSnapshot}
-                  currentPlayerId={entryState?.playerId}
+                  currentPlayerId={currentPlayerId}
                   ownVoteOptionNotice={currentOwnVoteOptionNotice}
                   isOwnVoteOptionNoticePending={
                     isOwnVoteOptionNoticePending

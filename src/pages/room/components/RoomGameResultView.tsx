@@ -1,4 +1,7 @@
+import { useEffect, useRef } from 'react';
+
 import styled from '@emotion/styled';
+import confetti from 'canvas-confetti';
 
 import { Button } from '../../../common/components';
 import { ROOM_AVATAR_COLORS } from '../constants/avatarColors';
@@ -13,6 +16,7 @@ import type {
 
 type RoomGameResultViewProps = {
   snapshot: GameResultSnapshot;
+  currentPlayerId?: string;
   onRestart: () => void;
   onHomeButtonClick: () => void;
 };
@@ -24,6 +28,7 @@ type FinalRankingDisplayItem = {
 
 export function RoomGameResultView({
   snapshot,
+  currentPlayerId,
   onRestart,
   onHomeButtonClick,
 }: RoomGameResultViewProps) {
@@ -37,9 +42,14 @@ export function RoomGameResultView({
   const displayRanking = isTiedWinner
     ? rankingItems
     : rankingItems.filter(({ entry }) => entry.rank !== 1);
+  const isCurrentPlayerWinner = rankingItems.some(
+    ({ entry }) => entry.rank === 1 && entry.player.id === currentPlayerId,
+  );
 
   return (
     <S_ResultCard>
+      <WinnerConfetti enabled={isCurrentPlayerWinner} />
+
       <S_Hero isTiedWinner={isTiedWinner}>
         {isTiedWinner ? (
           <TiedWinnerHero winners={winners.map(({ entry }) => entry)} />
@@ -91,6 +101,65 @@ export function RoomGameResultView({
       </S_RankingPanel>
     </S_ResultCard>
   );
+}
+
+function WinnerConfetti({ enabled }: { enabled: boolean }) {
+  const hasFiredRef = useRef(false);
+
+  useEffect(() => {
+    if (!enabled || hasFiredRef.current) {
+      return;
+    }
+
+    hasFiredRef.current = true;
+
+    const baseOptions = {
+      spread: 52,
+      startVelocity: 58,
+      gravity: 0.9,
+      ticks: 220,
+      scalar: 1.05,
+      zIndex: 1000,
+      disableForReducedMotion: true,
+      colors: ['#FFC83D', '#FF5EA8', '#63E6BE', '#5C7CFA', '#FFFFFF'],
+    };
+
+    confetti({
+      ...baseOptions,
+      particleCount: 70,
+      angle: 60,
+      origin: { x: 0.06, y: 0.98 },
+    });
+
+    confetti({
+      ...baseOptions,
+      particleCount: 70,
+      angle: 120,
+      origin: { x: 0.94, y: 0.98 },
+    });
+
+    const timeoutId = window.setTimeout(() => {
+      confetti({
+        ...baseOptions,
+        particleCount: 38,
+        angle: 75,
+        spread: 46,
+        origin: { x: 0.2, y: 1 },
+      });
+
+      confetti({
+        ...baseOptions,
+        particleCount: 38,
+        angle: 105,
+        spread: 46,
+        origin: { x: 0.8, y: 1 },
+      });
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [enabled]);
+
+  return null;
 }
 
 function SingleWinnerHero({ winner }: { winner?: FinalRankingDisplayItem }) {

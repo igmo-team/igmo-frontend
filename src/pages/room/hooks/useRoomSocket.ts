@@ -26,12 +26,13 @@ import type {
   RoundSnapshot,
   VoteSnapshot,
 } from '../../../domain/room/types';
-import type { RoomEntryState } from '../utils/getRoomEntryState';
+import type { RoomSession } from '../utils/roomSessionStorage';
 import type { Client } from '@stomp/stompjs';
 
 type UseRoomSocketParams = {
   roomCode?: string;
-  entryState: RoomEntryState | null;
+  roomSession: RoomSession | null;
+  initialSnapshot: RoomSnapshot | null;
 };
 
 type OwnVoteOptionNoticeByRoundState = {
@@ -63,10 +64,11 @@ type UseRoomSocketResult = {
 
 export function useRoomSocket({
   roomCode,
-  entryState,
+  roomSession,
+  initialSnapshot,
 }: UseRoomSocketParams): UseRoomSocketResult {
   const [phase, setPhase] = useState<RoomPhase>(
-    () => entryState?.snapshot.phase ?? 'LOBBY',
+    () => initialSnapshot?.phase ?? 'LOBBY',
   );
   const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
     null,
@@ -92,18 +94,19 @@ export function useRoomSocket({
   const stompClientRef = useRef<Client | null>(null);
 
   useEffect(() => {
-    if (!roomCode || !entryState) {
+    if (!roomCode || !roomSession) {
       return;
     }
 
     let isActive = true;
+    const currentPlayerId = roomSession.playerId;
     const client = createStompClient();
     stompClientRef.current = client;
 
     client.connectHeaders = {
       roomCode,
-      playerId: entryState.playerId,
-      secret: entryState.secret,
+      playerId: currentPlayerId,
+      secret: roomSession.secret,
     };
 
     client.onConnect = () => {
@@ -153,7 +156,7 @@ export function useRoomSocket({
           setPhase(nextPromptSnapshot.phase);
           if (
             nextPromptSnapshot.promptEntries.find(
-              (entry) => entry.player.id === entryState.playerId,
+              (entry) => entry.player.id === currentPlayerId,
             )?.status === 'WAITING'
           ) {
             setImageGenerationSnapshot(null);
@@ -252,7 +255,7 @@ export function useRoomSocket({
       setIsConnected(false);
       client.deactivate();
     };
-  }, [entryState, roomCode]);
+  }, [roomSession, roomCode]);
 
   const publish = (destination: string, body?: string) => {
     if (!roomCode || !stompClientRef.current?.connected) {
