@@ -23,7 +23,6 @@ import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
-import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
@@ -65,6 +64,10 @@ export function RoomPage() {
 
   const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
+  const activeImageGenerationSnapshot =
+    imageGenerationSnapshot?.roomCode === displayRoomCode
+      ? imageGenerationSnapshot
+      : null;
   const inviteLink = displayRoomCode
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
@@ -206,37 +209,28 @@ export function RoomPage() {
     );
   }
 
-  const isPromptSubmitted =
-    promptSubmissionSnapshot?.promptEntries.find(
-      (entry) => entry.player.id === entryState?.playerId,
-    )?.submitted ?? false;
-
-  const submittedPlayerIds =
+  const promptReadyPlayerIds =
     promptSubmissionSnapshot?.promptEntries
-      .filter((entry) => entry.submitted)
+      .filter((entry) => entry.status === 'READY')
       .map((entry) => entry.player.id) ?? [];
-
-  const promptingView = getMyPromptingView(
-    isPromptSubmitted,
-    imageGenerationSnapshot?.status,
-  );
 
   const shouldShowTimer =
     phase === 'GENERATING' &&
-    (promptingView === 'INPUT' || promptingView === 'FAILED');
+    activeImageGenerationSnapshot?.status !== 'GENERATING' &&
+    activeImageGenerationSnapshot?.status !== 'READY';
   const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
   const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
   const shouldShowResultTimer =
     phase === 'RESULTS' && Boolean(roundResultSnapshot);
   let headerPlayers = snapshot.players;
-  let headerSubmittedPlayerIds =
+  let headerCompletedPlayerIds =
     roundSnapshot?.guessEntries
       .filter((entry) => entry.submitted)
       .map((entry) => entry.player.id) ?? [];
   let headerRound: number | undefined;
 
   if (phase === 'GENERATING' || isCountdownPlaying) {
-    headerSubmittedPlayerIds = submittedPlayerIds;
+    headerCompletedPlayerIds = promptReadyPlayerIds;
   }
 
   if (phase === 'PLAYING' && roundSnapshot) {
@@ -246,7 +240,7 @@ export function RoomPage() {
 
   if (phase === 'VOTING' && voteSnapshot) {
     headerPlayers = voteSnapshot.voteEntries.map((entry) => entry.player);
-    headerSubmittedPlayerIds = voteSnapshot.voteEntries
+    headerCompletedPlayerIds = voteSnapshot.voteEntries
       .filter((entry) => entry.voted)
       .map((entry) => entry.player.id);
     headerRound = voteSnapshot.roundNumber;
@@ -254,7 +248,7 @@ export function RoomPage() {
 
   if (phase === 'RESULTS' && roundResultSnapshot) {
     headerPlayers = roundResultSnapshot.players;
-    headerSubmittedPlayerIds = [];
+    headerCompletedPlayerIds = [];
     headerRound = roundResultSnapshot.roundNumber;
   }
 
@@ -262,7 +256,7 @@ export function RoomPage() {
     headerPlayers = gameResultSnapshot.finalRanking.map(
       (entry) => entry.player,
     );
-    headerSubmittedPlayerIds = [];
+    headerCompletedPlayerIds = [];
   }
 
   return (
@@ -270,7 +264,7 @@ export function RoomPage() {
       <RoomGameHeader
         players={headerPlayers}
         currentPlayerId={entryState?.playerId}
-        submittedPlayerIds={headerSubmittedPlayerIds}
+        completedPlayerIds={headerCompletedPlayerIds}
         round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
         timer={
@@ -312,25 +306,31 @@ export function RoomPage() {
             <S_GameContent>
               {(phase === 'GENERATING' || isCountdownPlaying) && (
                 <>
-                  {promptingView === 'INPUT' && (
+                  {!activeImageGenerationSnapshot && (
                     <RoomPromptingView
                       isSocketConnected={isConnected}
                       socketErrorMessage={errorMessage}
                       onSubmit={sendPrompt}
                     />
                   )}
-                  {promptingView === 'GENERATING' && <RoomGeneratingView />}
-                  {promptingView === 'RESULT' && (
+                  {activeImageGenerationSnapshot?.status === 'GENERATING' && (
+                    <RoomGeneratingView />
+                  )}
+                  {activeImageGenerationSnapshot?.status === 'READY' && (
                     <RoomPromptResultView
-                      imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
-                      prompt={imageGenerationSnapshot?.prompt ?? ''}
+                      imageUrl={activeImageGenerationSnapshot?.imageUrl ?? ''}
+                      prompt={activeImageGenerationSnapshot?.prompt ?? ''}
                     />
                   )}
-                  {promptingView === 'FAILED' && (
+                  {activeImageGenerationSnapshot?.status === 'FAILED' && (
                     <RoomPromptFailedView
-                      prompt={imageGenerationSnapshot?.prompt ?? ''}
+                      prompt={activeImageGenerationSnapshot?.prompt ?? ''}
                       isSocketConnected={isConnected}
-                      socketErrorMessage={errorMessage}
+                      socketErrorMessage={
+                        errorMessage ||
+                        activeImageGenerationSnapshot?.errorMessage ||
+                        ''
+                      }
                       onSubmit={sendPrompt}
                     />
                   )}
