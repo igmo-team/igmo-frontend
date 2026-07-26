@@ -6,11 +6,13 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
+import { isRoomCodeValid } from '../../domain/room/roomCode';
 
 import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGameResultView } from './components/RoomGameResultView';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
+import { RoomGuestEntryModal } from './components/RoomGuestEntryModal';
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
@@ -25,6 +27,7 @@ import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 
+import type { RoomEntryState } from './utils/getRoomEntryState';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
 const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 10;
@@ -126,12 +129,20 @@ export function RoomPage() {
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
   const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
+  const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
 
   useEffect(() => {
-    if (roomCode && !entryState) {
+    if (roomCode && !entryState && !hasValidRoomCode) {
       navigate(PAGE_URL.HOME, { replace: true });
     }
-  }, [entryState, navigate, roomCode]);
+  }, [entryState, hasValidRoomCode, navigate, roomCode]);
+
+  const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
+    navigate(`${PAGE_URL.ROOM}/${nextEntryState.snapshot.roomCode}`, {
+      replace: true,
+      state: nextEntryState,
+    });
+  };
 
   const handleLeaveButtonClick = () => {
     navigate(PAGE_URL.HOME);
@@ -155,6 +166,15 @@ export function RoomPage() {
 
     sendStart();
   };
+
+  if (!entryState && roomCode && hasValidRoomCode) {
+    return (
+      <RoomGuestEntryModal
+        roomCode={roomCode}
+        onSuccess={handleGuestEntrySuccess}
+      />
+    );
+  }
 
   if (!snapshot) {
     return (
