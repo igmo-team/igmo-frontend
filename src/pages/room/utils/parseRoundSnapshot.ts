@@ -33,6 +33,7 @@ function isRoundSnapshot(value: unknown): value is RoundSnapshot {
     typeof snapshot.totalRoundCount === 'number' &&
     isRoomPlayer(snapshot.questioner) &&
     typeof snapshot.imageUrl === 'string' &&
+    typeof snapshot.guessStartedAt === 'string' &&
     typeof snapshot.guessDeadline === 'string' &&
     Array.isArray(snapshot.guessEntries) &&
     snapshot.guessEntries.every(isRoundGuessEntry)

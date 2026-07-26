@@ -29,9 +29,6 @@ import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 import type { RoomEntryState } from './utils/getRoomEntryState';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
-const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 10;
-const TEMPORARY_VOTE_TIMER_TOTAL_SECONDS = 10;
-
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
@@ -87,6 +84,14 @@ export function RoomPage() {
     promptSubmissionSnapshot?.promptStartedAt,
     promptSubmissionSnapshot?.promptDeadline,
   );
+  const guessTimerTotalSeconds = getTimerTotalSeconds(
+    roundSnapshot?.guessStartedAt,
+    roundSnapshot?.guessDeadline,
+  );
+  const voteTimerTotalSeconds = getTimerTotalSeconds(
+    voteSnapshot?.voteStartedAt,
+    voteSnapshot?.voteDeadline,
+  );
   const resultTimerTotalSeconds = getTimerTotalSeconds(
     roundResultSnapshot?.resultStartedAt,
     roundResultSnapshot?.resultDeadline,
@@ -101,16 +106,20 @@ export function RoomPage() {
       : 0;
   const guessTimerSeconds = Math.min(
     guessCountdownSeconds,
-    TEMPORARY_GUESS_TIMER_TOTAL_SECONDS,
+    guessTimerTotalSeconds,
   );
   const guessTimerProgressRatio =
-    guessTimerSeconds / TEMPORARY_GUESS_TIMER_TOTAL_SECONDS;
+    guessTimerTotalSeconds > 0
+      ? Math.min(Math.max(guessTimerSeconds / guessTimerTotalSeconds, 0), 1)
+      : 0;
   const voteTimerSeconds = Math.min(
     voteCountdownSeconds,
-    TEMPORARY_VOTE_TIMER_TOTAL_SECONDS,
+    voteTimerTotalSeconds,
   );
   const voteTimerProgressRatio =
-    voteTimerSeconds / TEMPORARY_VOTE_TIMER_TOTAL_SECONDS;
+    voteTimerTotalSeconds > 0
+      ? Math.min(Math.max(voteTimerSeconds / voteTimerTotalSeconds, 0), 1)
+      : 0;
   const currentOwnVoteOptionNotice =
     voteSnapshot === null
       ? undefined

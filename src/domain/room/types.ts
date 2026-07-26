@@ -61,6 +61,7 @@ export type RoundSnapshot = {
   totalRoundCount: number;
   questioner: RoomPlayer;
   imageUrl: string;
+  guessStartedAt: string;
   guessDeadline: string;
   guessEntries: RoundGuessEntry[];
 };
@@ -80,6 +81,7 @@ export type VoteSnapshot = {
   phase: RoomPhase;
   roundNumber: number;
   voteOptions: VoteOption[];
+  voteStartedAt: string;
   voteDeadline: string;
   voteEntries: VoteEntry[];
 };
