@@ -6,11 +6,13 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
+import { isRoomCodeValid } from '../../domain/room/roomCode';
 
 import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGameResultView } from './components/RoomGameResultView';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
+import { RoomGuestEntryModal } from './components/RoomGuestEntryModal';
 import { RoomLobbyView } from './components/RoomLobbyView';
 import { RoomPlayingView } from './components/RoomPlayingView';
 import { RoomPromptFailedView } from './components/RoomPromptFailedView';
@@ -21,18 +23,16 @@ import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
-import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 import {
   deleteRoomSession,
   readRoomSession,
+  writeRoomSession,
 } from './utils/roomSessionStorage';
 
+import type { RoomEntryState } from './utils/getRoomEntryState';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
-
-const TEMPORARY_GUESS_TIMER_TOTAL_SECONDS = 10;
-const TEMPORARY_VOTE_TIMER_TOTAL_SECONDS = 10;
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -83,6 +83,10 @@ export function RoomPage() {
 
   const snapshot = receivedSnapshot ?? initialSnapshot;
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
+  const activeImageGenerationSnapshot =
+    imageGenerationSnapshot?.roomCode === displayRoomCode
+      ? imageGenerationSnapshot
+      : null;
   const inviteLink = displayRoomCode
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
@@ -102,6 +106,14 @@ export function RoomPage() {
     promptSubmissionSnapshot?.promptStartedAt,
     promptSubmissionSnapshot?.promptDeadline,
   );
+  const guessTimerTotalSeconds = getTimerTotalSeconds(
+    roundSnapshot?.guessStartedAt,
+    roundSnapshot?.guessDeadline,
+  );
+  const voteTimerTotalSeconds = getTimerTotalSeconds(
+    voteSnapshot?.voteStartedAt,
+    voteSnapshot?.voteDeadline,
+  );
   const resultTimerTotalSeconds = getTimerTotalSeconds(
     roundResultSnapshot?.resultStartedAt,
     roundResultSnapshot?.resultDeadline,
@@ -116,16 +128,20 @@ export function RoomPage() {
       : 0;
   const guessTimerSeconds = Math.min(
     guessCountdownSeconds,
-    TEMPORARY_GUESS_TIMER_TOTAL_SECONDS,
+    guessTimerTotalSeconds,
   );
   const guessTimerProgressRatio =
-    guessTimerSeconds / TEMPORARY_GUESS_TIMER_TOTAL_SECONDS;
+    guessTimerTotalSeconds > 0
+      ? Math.min(Math.max(guessTimerSeconds / guessTimerTotalSeconds, 0), 1)
+      : 0;
   const voteTimerSeconds = Math.min(
     voteCountdownSeconds,
-    TEMPORARY_VOTE_TIMER_TOTAL_SECONDS,
+    voteTimerTotalSeconds,
   );
   const voteTimerProgressRatio =
-    voteTimerSeconds / TEMPORARY_VOTE_TIMER_TOTAL_SECONDS;
+    voteTimerTotalSeconds > 0
+      ? Math.min(Math.max(voteTimerSeconds / voteTimerTotalSeconds, 0), 1)
+      : 0;
   const currentOwnVoteOptionNotice =
     voteSnapshot === null
       ? undefined
@@ -147,12 +163,26 @@ export function RoomPage() {
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
   const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
+  const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
 
   useEffect(() => {
-    if (roomCode && !roomSession) {
+    if (roomCode && !roomSession && !hasValidRoomCode) {
       navigate(PAGE_URL.HOME, { replace: true });
     }
-  }, [navigate, roomCode, roomSession]);
+  }, [hasValidRoomCode, navigate, roomCode, roomSession]);
+
+  const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
+    writeRoomSession({
+      roomCode: nextEntryState.snapshot.roomCode,
+      playerId: nextEntryState.playerId,
+      secret: nextEntryState.secret,
+    });
+
+    navigate(`${PAGE_URL.ROOM}/${nextEntryState.snapshot.roomCode}`, {
+      replace: true,
+      state: nextEntryState,
+    });
+  };
 
   const handleLeaveButtonClick = () => {
     if (roomCode) {
@@ -180,6 +210,15 @@ export function RoomPage() {
 
     sendStart();
   };
+
+  if (!roomSession && roomCode && hasValidRoomCode) {
+    return (
+      <RoomGuestEntryModal
+        roomCode={roomCode}
+        onSuccess={handleGuestEntrySuccess}
+      />
+    );
+  }
 
   if (!snapshot) {
     return (
@@ -211,37 +250,28 @@ export function RoomPage() {
     );
   }
 
-  const isPromptSubmitted =
-    promptSubmissionSnapshot?.promptEntries.find(
-      (entry) => entry.player.id === currentPlayerId,
-    )?.submitted ?? false;
-
-  const submittedPlayerIds =
+  const promptReadyPlayerIds =
     promptSubmissionSnapshot?.promptEntries
-      .filter((entry) => entry.submitted)
+      .filter((entry) => entry.status === 'READY')
       .map((entry) => entry.player.id) ?? [];
-
-  const promptingView = getMyPromptingView(
-    isPromptSubmitted,
-    imageGenerationSnapshot?.status,
-  );
 
   const shouldShowTimer =
     phase === 'GENERATING' &&
-    (promptingView === 'INPUT' || promptingView === 'FAILED');
+    activeImageGenerationSnapshot?.status !== 'GENERATING' &&
+    activeImageGenerationSnapshot?.status !== 'READY';
   const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
   const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
   const shouldShowResultTimer =
     phase === 'RESULTS' && Boolean(roundResultSnapshot);
   let headerPlayers = snapshot.players;
-  let headerSubmittedPlayerIds =
+  let headerCompletedPlayerIds =
     roundSnapshot?.guessEntries
       .filter((entry) => entry.submitted)
       .map((entry) => entry.player.id) ?? [];
   let headerRound: number | undefined;
 
   if (phase === 'GENERATING' || isCountdownPlaying) {
-    headerSubmittedPlayerIds = submittedPlayerIds;
+    headerCompletedPlayerIds = promptReadyPlayerIds;
   }
 
   if (phase === 'PLAYING' && roundSnapshot) {
@@ -251,7 +281,7 @@ export function RoomPage() {
 
   if (phase === 'VOTING' && voteSnapshot) {
     headerPlayers = voteSnapshot.voteEntries.map((entry) => entry.player);
-    headerSubmittedPlayerIds = voteSnapshot.voteEntries
+    headerCompletedPlayerIds = voteSnapshot.voteEntries
       .filter((entry) => entry.voted)
       .map((entry) => entry.player.id);
     headerRound = voteSnapshot.roundNumber;
@@ -259,7 +289,7 @@ export function RoomPage() {
 
   if (phase === 'RESULTS' && roundResultSnapshot) {
     headerPlayers = roundResultSnapshot.players;
-    headerSubmittedPlayerIds = [];
+    headerCompletedPlayerIds = [];
     headerRound = roundResultSnapshot.roundNumber;
   }
 
@@ -267,7 +297,7 @@ export function RoomPage() {
     headerPlayers = gameResultSnapshot.finalRanking.map(
       (entry) => entry.player,
     );
-    headerSubmittedPlayerIds = [];
+    headerCompletedPlayerIds = [];
   }
 
   return (
@@ -275,7 +305,7 @@ export function RoomPage() {
       <RoomGameHeader
         players={headerPlayers}
         currentPlayerId={currentPlayerId}
-        submittedPlayerIds={headerSubmittedPlayerIds}
+        completedPlayerIds={headerCompletedPlayerIds}
         round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
         timer={
@@ -318,25 +348,31 @@ export function RoomPage() {
             <S_GameContent>
               {(phase === 'GENERATING' || isCountdownPlaying) && (
                 <>
-                  {promptingView === 'INPUT' && (
+                  {!activeImageGenerationSnapshot && (
                     <RoomPromptingView
                       isSocketConnected={isConnected}
                       socketErrorMessage={errorMessage}
                       onSubmit={sendPrompt}
                     />
                   )}
-                  {promptingView === 'GENERATING' && <RoomGeneratingView />}
-                  {promptingView === 'RESULT' && (
+                  {activeImageGenerationSnapshot?.status === 'GENERATING' && (
+                    <RoomGeneratingView />
+                  )}
+                  {activeImageGenerationSnapshot?.status === 'READY' && (
                     <RoomPromptResultView
-                      imageUrl={imageGenerationSnapshot?.imageUrl ?? ''}
-                      prompt={imageGenerationSnapshot?.prompt ?? ''}
+                      imageUrl={activeImageGenerationSnapshot?.imageUrl ?? ''}
+                      prompt={activeImageGenerationSnapshot?.prompt ?? ''}
                     />
                   )}
-                  {promptingView === 'FAILED' && (
+                  {activeImageGenerationSnapshot?.status === 'FAILED' && (
                     <RoomPromptFailedView
-                      prompt={imageGenerationSnapshot?.prompt ?? ''}
+                      prompt={activeImageGenerationSnapshot?.prompt ?? ''}
                       isSocketConnected={isConnected}
-                      socketErrorMessage={errorMessage}
+                      socketErrorMessage={
+                        errorMessage ||
+                        activeImageGenerationSnapshot?.errorMessage ||
+                        ''
+                      }
                       onSubmit={sendPrompt}
                     />
                   )}

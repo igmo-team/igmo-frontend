@@ -16,7 +16,7 @@ type TimerState = {
 type RoomGameHeaderProps = {
   players: RoomPlayer[];
   currentPlayerId?: string;
-  submittedPlayerIds?: string[];
+  completedPlayerIds?: string[];
   round?: number;
   phaseLabel: string;
   timer?: TimerState | null;
@@ -25,7 +25,7 @@ type RoomGameHeaderProps = {
 export function RoomGameHeader({
   players,
   currentPlayerId,
-  submittedPlayerIds = [],
+  completedPlayerIds = [],
   round,
   phaseLabel,
   timer = null,
@@ -49,19 +49,19 @@ export function RoomGameHeader({
             const avatarColor =
               ROOM_AVATAR_COLORS[index % ROOM_AVATAR_COLORS.length];
             const isCurrentPlayer = player.id === currentPlayerId;
-            const isSubmitted = submittedPlayerIds.includes(player.id);
+            const isCompleted = completedPlayerIds.includes(player.id);
 
             return (
-              <S_AvatarItem key={player.id} submitted={isSubmitted}>
+              <S_AvatarItem key={player.id} completed={isCompleted}>
                 <S_Avatar
-                  aria-label={`${player.nickname}${isCurrentPlayer ? ' 나' : ''}${isSubmitted ? ' 제출 완료' : ''}`}
+                  aria-label={`${player.nickname}${isCurrentPlayer ? ' 나' : ''}${isCompleted ? ' 준비 완료' : ''}`}
                   backgroundColor={avatarColor.background}
                   textColor={avatarColor.color}
                 >
                   {getInitial(player.nickname)}
                 </S_Avatar>
-                {isSubmitted && (
-                  <S_SubmittedBadge aria-hidden="true">✓</S_SubmittedBadge>
+                {isCompleted && (
+                  <S_CompletedBadge aria-hidden="true">✓</S_CompletedBadge>
                 )}
               </S_AvatarItem>
             );
@@ -147,10 +147,10 @@ const S_AvatarStack = styled.ul`
 `;
 
 const S_AvatarItem = styled('li', {
-  shouldForwardProp: (prop) => prop !== 'submitted',
-})<{ submitted: boolean }>`
+  shouldForwardProp: (prop) => prop !== 'completed',
+})<{ completed: boolean }>`
   position: relative;
-  z-index: ${({ submitted }) => (submitted ? 2 : 1)};
+  z-index: ${({ completed }) => (completed ? 2 : 1)};
   margin-left: -0.7rem;
 `;
 
@@ -172,7 +172,7 @@ const S_Avatar = styled('div', {
   ${({ theme }) => theme.TYPOGRAPHY.B4_B}
 `;
 
-const S_SubmittedBadge = styled.span`
+const S_CompletedBadge = styled.span`
   position: absolute;
   right: -0.2rem;
   bottom: -0.1rem;

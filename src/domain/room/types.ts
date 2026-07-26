@@ -34,9 +34,11 @@ export type RoomSnapshot = {
   players: RoomPlayer[];
 };
 
+export type PromptEntryStatus = 'WAITING' | 'GENERATING' | 'READY' | 'FAILED';
+
 export type PromptEntry = {
   player: RoomPlayer;
-  submitted: boolean;
+  status: PromptEntryStatus;
 };
 
 export type PromptSubmissionSnapshot = {
@@ -59,6 +61,7 @@ export type RoundSnapshot = {
   totalRoundCount: number;
   questioner: RoomPlayer;
   imageUrl: string;
+  guessStartedAt: string;
   guessDeadline: string;
   guessEntries: RoundGuessEntry[];
 };
@@ -78,6 +81,7 @@ export type VoteSnapshot = {
   phase: RoomPhase;
   roundNumber: number;
   voteOptions: VoteOption[];
+  voteStartedAt: string;
   voteDeadline: string;
   voteEntries: VoteEntry[];
 };
@@ -132,11 +136,7 @@ export type GameResultSnapshot = {
 };
 
 // 개인 이미지 큐(/user/queue/image-generation)에서 받는 내 이미지 생성 상태
-export type ImageGenerationStatus =
-  | 'WAITING'
-  | 'GENERATING'
-  | 'READY'
-  | 'FAILED';
+export type ImageGenerationStatus = Exclude<PromptEntryStatus, 'WAITING'>;
 
 export type ImageGenerationSnapshot = {
   roomCode: string;

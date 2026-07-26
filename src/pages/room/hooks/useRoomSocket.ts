@@ -99,12 +99,13 @@ export function useRoomSocket({
     }
 
     let isActive = true;
+    const currentPlayerId = roomSession.playerId;
     const client = createStompClient();
     stompClientRef.current = client;
 
     client.connectHeaders = {
       roomCode,
-      playerId: roomSession.playerId,
+      playerId: currentPlayerId,
       secret: roomSession.secret,
     };
 
@@ -126,6 +127,9 @@ export function useRoomSocket({
         if (nextSnapshot) {
           setReceivedSnapshot(nextSnapshot);
           setPhase(nextSnapshot.phase);
+          if (nextSnapshot.phase === 'LOBBY') {
+            setImageGenerationSnapshot(null);
+          }
           setErrorMessage('');
           return;
         }
@@ -150,6 +154,13 @@ export function useRoomSocket({
         if (nextPromptSnapshot) {
           setPromptSubmissionSnapshot(nextPromptSnapshot);
           setPhase(nextPromptSnapshot.phase);
+          if (
+            nextPromptSnapshot.promptEntries.find(
+              (entry) => entry.player.id === currentPlayerId,
+            )?.status === 'WAITING'
+          ) {
+            setImageGenerationSnapshot(null);
+          }
           setErrorMessage('');
           return;
         }
@@ -190,7 +201,7 @@ export function useRoomSocket({
           message.body,
         );
 
-        if (nextImageGenerationSnapshot) {
+        if (nextImageGenerationSnapshot?.roomCode === roomCode) {
           setImageGenerationSnapshot(nextImageGenerationSnapshot);
         }
       });
