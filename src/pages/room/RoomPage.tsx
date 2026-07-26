@@ -24,6 +24,10 @@ import { useUrlCopy } from './hooks/useUrlCopy';
 import { getMyPromptingView } from './utils/getMyPromptingView';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
+import {
+  deleteRoomSession,
+  readRoomSession,
+} from './utils/roomSessionStorage';
 
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
@@ -38,6 +42,23 @@ export function RoomPage() {
     () => getRoomEntryState(location.state),
     [location.state],
   );
+  const roomSession = useMemo(() => {
+    if (!roomCode) {
+      return null;
+    }
+
+    if (entryState) {
+      return {
+        roomCode,
+        playerId: entryState.playerId,
+        secret: entryState.secret,
+      };
+    }
+
+    return readRoomSession(roomCode);
+  }, [entryState, roomCode]);
+  const initialSnapshot = entryState?.snapshot ?? null;
+  const currentPlayerId = roomSession?.playerId;
 
   const {
     phase,
@@ -58,9 +79,9 @@ export function RoomPage() {
     sendGuess,
     sendVote,
     sendRestart,
-  } = useRoomSocket({ roomCode, entryState });
+  } = useRoomSocket({ roomCode, roomSession, initialSnapshot });
 
-  const snapshot = receivedSnapshot ?? entryState?.snapshot ?? null;
+  const snapshot = receivedSnapshot ?? initialSnapshot;
   const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
   const inviteLink = displayRoomCode
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
@@ -128,12 +149,16 @@ export function RoomPage() {
   const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
 
   useEffect(() => {
-    if (roomCode && !entryState) {
+    if (roomCode && !roomSession) {
       navigate(PAGE_URL.HOME, { replace: true });
     }
-  }, [entryState, navigate, roomCode]);
+  }, [navigate, roomCode, roomSession]);
 
   const handleLeaveButtonClick = () => {
+    if (roomCode) {
+      deleteRoomSession(roomCode);
+    }
+
     navigate(PAGE_URL.HOME);
   };
 
@@ -144,7 +169,7 @@ export function RoomPage() {
 
     if (
       snapshot.phase !== 'LOBBY' ||
-      entryState?.playerId !== snapshot.hostId
+      currentPlayerId !== snapshot.hostId
     ) {
       return;
     }
@@ -171,7 +196,7 @@ export function RoomPage() {
       <S_Page>
         <RoomLobbyView
           snapshot={snapshot}
-          currentPlayerId={entryState?.playerId}
+          currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
           isCopied={isCopied}
@@ -188,7 +213,7 @@ export function RoomPage() {
 
   const isPromptSubmitted =
     promptSubmissionSnapshot?.promptEntries.find(
-      (entry) => entry.player.id === entryState?.playerId,
+      (entry) => entry.player.id === currentPlayerId,
     )?.submitted ?? false;
 
   const submittedPlayerIds =
@@ -249,7 +274,7 @@ export function RoomPage() {
     <S_GameContainer>
       <RoomGameHeader
         players={headerPlayers}
-        currentPlayerId={entryState?.playerId}
+        currentPlayerId={currentPlayerId}
         submittedPlayerIds={headerSubmittedPlayerIds}
         round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
@@ -321,7 +346,7 @@ export function RoomPage() {
                 (roundSnapshot ? (
                   <RoomPlayingView
                     snapshot={roundSnapshot}
-                    currentPlayerId={entryState?.playerId}
+                    currentPlayerId={currentPlayerId}
                     isSocketConnected={isConnected}
                     socketErrorMessage={errorMessage}
                     onSubmit={sendGuess}
@@ -336,7 +361,7 @@ export function RoomPage() {
                 <RoomVotingView
                   key={voteSnapshot.roundNumber}
                   snapshot={voteSnapshot}
-                  currentPlayerId={entryState?.playerId}
+                  currentPlayerId={currentPlayerId}
                   ownVoteOptionNotice={currentOwnVoteOptionNotice}
                   isOwnVoteOptionNoticePending={
                     isOwnVoteOptionNoticePending

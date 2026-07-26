@@ -26,12 +26,13 @@ import type {
   RoundSnapshot,
   VoteSnapshot,
 } from '../../../domain/room/types';
-import type { RoomEntryState } from '../utils/getRoomEntryState';
+import type { RoomSession } from '../utils/roomSessionStorage';
 import type { Client } from '@stomp/stompjs';
 
 type UseRoomSocketParams = {
   roomCode?: string;
-  entryState: RoomEntryState | null;
+  roomSession: RoomSession | null;
+  initialSnapshot: RoomSnapshot | null;
 };
 
 type OwnVoteOptionNoticeByRoundState = {
@@ -63,10 +64,11 @@ type UseRoomSocketResult = {
 
 export function useRoomSocket({
   roomCode,
-  entryState,
+  roomSession,
+  initialSnapshot,
 }: UseRoomSocketParams): UseRoomSocketResult {
   const [phase, setPhase] = useState<RoomPhase>(
-    () => entryState?.snapshot.phase ?? 'LOBBY',
+    () => initialSnapshot?.phase ?? 'LOBBY',
   );
   const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
     null,
@@ -92,7 +94,7 @@ export function useRoomSocket({
   const stompClientRef = useRef<Client | null>(null);
 
   useEffect(() => {
-    if (!roomCode || !entryState) {
+    if (!roomCode || !roomSession) {
       return;
     }
 
@@ -102,8 +104,8 @@ export function useRoomSocket({
 
     client.connectHeaders = {
       roomCode,
-      playerId: entryState.playerId,
-      secret: entryState.secret,
+      playerId: roomSession.playerId,
+      secret: roomSession.secret,
     };
 
     client.onConnect = () => {
@@ -242,7 +244,7 @@ export function useRoomSocket({
       setIsConnected(false);
       client.deactivate();
     };
-  }, [entryState, roomCode]);
+  }, [roomSession, roomCode]);
 
   const publish = (destination: string, body?: string) => {
     if (!roomCode || !stompClientRef.current?.connected) {

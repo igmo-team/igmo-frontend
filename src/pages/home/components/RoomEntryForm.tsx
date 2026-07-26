@@ -13,6 +13,7 @@ import {
   getNicknameErrorMessage,
   getRoomCodeErrorMessage,
 } from '../utils/roomEntryValidation';
+import { writeRoomSession } from '../../room/utils/roomSessionStorage';
 
 type ErrorResponse = {
   message?: string;
@@ -46,6 +47,8 @@ export function RoomEntryForm() {
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
     onSuccess: ({ roomCode, playerId, secret, snapshot }) => {
+      writeRoomSession({ roomCode, playerId, secret });
+
       navigate(`${PAGE_URL.ROOM}/${roomCode}`, {
         state: {
           playerId,
@@ -70,6 +73,8 @@ export function RoomEntryForm() {
   const { mutate: joinGame, isPending: isJoinGamePending } = useMutation({
     mutationFn: postGamePlayer,
     onSuccess: ({ playerId, secret, snapshot }) => {
+      writeRoomSession({ roomCode: snapshot.roomCode, playerId, secret });
+
       navigate(`${PAGE_URL.ROOM}/${snapshot.roomCode}`, {
         state: {
           playerId,
