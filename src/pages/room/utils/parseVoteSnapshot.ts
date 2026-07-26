@@ -33,6 +33,7 @@ function isVoteSnapshot(value: unknown): value is VoteSnapshot {
     typeof snapshot.roundNumber === 'number' &&
     Array.isArray(snapshot.voteOptions) &&
     snapshot.voteOptions.every(isVoteOption) &&
+    typeof snapshot.voteStartedAt === 'string' &&
     typeof snapshot.voteDeadline === 'string' &&
     Array.isArray(snapshot.voteEntries) &&
     snapshot.voteEntries.every(isVoteEntry)

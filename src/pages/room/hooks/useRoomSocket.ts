@@ -124,6 +124,9 @@ export function useRoomSocket({
         if (nextSnapshot) {
           setReceivedSnapshot(nextSnapshot);
           setPhase(nextSnapshot.phase);
+          if (nextSnapshot.phase === 'LOBBY') {
+            setImageGenerationSnapshot(null);
+          }
           setErrorMessage('');
           return;
         }
@@ -148,6 +151,13 @@ export function useRoomSocket({
         if (nextPromptSnapshot) {
           setPromptSubmissionSnapshot(nextPromptSnapshot);
           setPhase(nextPromptSnapshot.phase);
+          if (
+            nextPromptSnapshot.promptEntries.find(
+              (entry) => entry.player.id === entryState.playerId,
+            )?.status === 'WAITING'
+          ) {
+            setImageGenerationSnapshot(null);
+          }
           setErrorMessage('');
           return;
         }
@@ -188,7 +198,7 @@ export function useRoomSocket({
           message.body,
         );
 
-        if (nextImageGenerationSnapshot) {
+        if (nextImageGenerationSnapshot?.roomCode === roomCode) {
           setImageGenerationSnapshot(nextImageGenerationSnapshot);
         }
       });
