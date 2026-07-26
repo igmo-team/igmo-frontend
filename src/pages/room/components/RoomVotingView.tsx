@@ -4,11 +4,16 @@ import styled from '@emotion/styled';
 
 import { Button } from '../../../common/components';
 
-import type { VoteSnapshot } from '../../../domain/room/types';
+import type {
+  OwnVoteOptionNotice,
+  VoteSnapshot,
+} from '../../../domain/room/types';
 
 type RoomVotingViewProps = {
   snapshot: VoteSnapshot;
   currentPlayerId?: string;
+  ownVoteOptionNotice?: OwnVoteOptionNotice;
+  isOwnVoteOptionNoticePending: boolean;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
   onSubmit: (optionId: string) => void;
@@ -17,6 +22,8 @@ type RoomVotingViewProps = {
 export function RoomVotingView({
   snapshot,
   currentPlayerId,
+  ownVoteOptionNotice,
+  isOwnVoteOptionNoticePending,
   isSocketConnected,
   socketErrorMessage = '',
   onSubmit,
@@ -26,19 +33,49 @@ export function RoomVotingView({
   const isVoted =
     snapshot.voteEntries.find((entry) => entry.player.id === currentPlayerId)
       ?.voted ?? false;
+  const isOwnImage = ownVoteOptionNotice?.ownImage === true;
+  const ownOptionId =
+    ownVoteOptionNotice?.ownImage === false
+      ? ownVoteOptionNotice.optionId
+      : null;
+  const isVoteBlocked =
+    isOwnVoteOptionNoticePending || isOwnImage || isVoted || isVotePending;
   const isConfirmDisabled =
-    !selectedOptionId || isVoted || isVotePending || !isSocketConnected;
+    !selectedOptionId || isVoteBlocked || !isSocketConnected;
   const confirmButtonText = getConfirmButtonText(isVoted, isVotePending);
 
   useEffect(() => {
-    if (isVoted || socketErrorMessage || !isSocketConnected) {
+    if (
+      isOwnVoteOptionNoticePending ||
+      isOwnImage ||
+      isVoted ||
+      socketErrorMessage ||
+      !isSocketConnected
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVotePending(false);
     }
-  }, [isSocketConnected, isVoted, socketErrorMessage]);
+  }, [
+    isOwnImage,
+    isOwnVoteOptionNoticePending,
+    isSocketConnected,
+    isVoted,
+    socketErrorMessage,
+  ]);
+
+  useEffect(() => {
+    if (
+      isOwnVoteOptionNoticePending ||
+      isOwnImage ||
+      (ownOptionId && selectedOptionId === ownOptionId)
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedOptionId('');
+    }
+  }, [isOwnImage, isOwnVoteOptionNoticePending, ownOptionId, selectedOptionId]);
 
   const handleOptionClick = (optionId: string) => {
-    if (isVoted || isVotePending) {
+    if (isVoteBlocked || optionId === ownOptionId) {
       return;
     }
 
@@ -63,36 +100,61 @@ export function RoomVotingView({
 
       <S_OptionList aria-label="투표 선택지">
         {snapshot.voteOptions.map((option, index) => {
+          const isOwnOption = option.optionId === ownOptionId;
           const isSelected = option.optionId === selectedOptionId;
 
           return (
             <S_OptionItem key={option.optionId}>
-              <S_OptionButton
-                type="button"
-                disabled={isVoted || isVotePending}
-                selected={isSelected}
-                onClick={() => handleOptionClick(option.optionId)}
-              >
-                <S_OptionLabel>{getOptionLabel(index)}</S_OptionLabel>
-                <S_OptionText>{option.text}</S_OptionText>
-              </S_OptionButton>
+              {isOwnOption ? (
+                <S_OwnOptionBox aria-disabled="true">
+                  <S_OptionLabel>{getOptionLabel(index)}</S_OptionLabel>
+                  <S_OptionText>{option.text}</S_OptionText>
+                  <S_OwnOptionBadge>내 답</S_OwnOptionBadge>
+                </S_OwnOptionBox>
+              ) : (
+                <S_OptionButton
+                  type="button"
+                  disabled={isVoteBlocked}
+                  selected={isSelected}
+                  onClick={() => handleOptionClick(option.optionId)}
+                >
+                  <S_OptionLabel>{getOptionLabel(index)}</S_OptionLabel>
+                  <S_OptionText>{option.text}</S_OptionText>
+                </S_OptionButton>
+              )}
             </S_OptionItem>
           );
         })}
       </S_OptionList>
 
       <S_ActionArea>
-        <S_Notice>한번 투표하면 선택을 바꿀 수 없어요.</S_Notice>
-        {socketErrorMessage && (
-          <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+        {isOwnVoteOptionNoticePending && (
+          <S_ActionStatus role="status">
+            투표 정보를 불러오는 중이에요.
+          </S_ActionStatus>
         )}
-        <Button
-          type="button"
-          disabled={isConfirmDisabled}
-          onClick={handleConfirmClick}
-        >
-          {confirmButtonText}
-        </Button>
+
+        {!isOwnVoteOptionNoticePending && isOwnImage && (
+          <S_ActionStatus role="status">
+            다른 참가자들이 내 그림의 진짜 프롬프트를 고르고 있어요.
+          </S_ActionStatus>
+        )}
+
+        {!isOwnVoteOptionNoticePending && !isOwnImage && (
+          <>
+            <S_Notice>한번 투표하면 선택을 바꿀 수 없어요.</S_Notice>
+            {socketErrorMessage && (
+              <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+            )}
+            <Button
+              type="button"
+              disabled={isConfirmDisabled}
+              onClick={handleConfirmClick}
+            >
+              {confirmButtonText}
+            </Button>
+          </>
+        )}
       </S_ActionArea>
     </S_VotingSection>
   );
@@ -182,6 +244,23 @@ const S_OptionButton = styled('button', {
   }
 `;
 
+const S_OwnOptionBox = styled.div`
+  display: grid;
+  width: 100%;
+  min-height: 7.2rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.6rem;
+  padding: 1.6rem 2rem;
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-color: ${({ theme }) => theme.COLOR.LINE};
+  border-radius: ${({ theme }) => theme.RADIUS.LG};
+  background: ${({ theme }) => theme.COLOR.WHITE};
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  cursor: not-allowed;
+  opacity: 0.45;
+`;
+
 const S_OptionLabel = styled.span`
   display: grid;
   width: 3.2rem;
@@ -200,6 +279,15 @@ const S_OptionText = styled.span`
   ${({ theme }) => theme.TYPOGRAPHY.B2_B}
 `;
 
+const S_OwnOptionBadge = styled.span`
+  padding: 0.4rem 0.8rem;
+  border-radius: ${({ theme }) => theme.RADIUS.PILL};
+  background: ${({ theme }) => theme.COLOR.PINK50};
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  white-space: nowrap;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
 const S_ActionArea = styled.div`
   display: flex;
   flex-direction: column;
@@ -216,4 +304,16 @@ const S_ErrorMessage = styled.p`
   color: ${({ theme }) => theme.COLOR.DANGER};
   text-align: center;
   ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
+const S_ActionStatus = styled.p`
+  width: 100%;
+  padding: 2.4rem;
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-radius: ${({ theme }) => theme.RADIUS.MD};
+  background: ${({ theme }) => theme.COLOR.WHITE};
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  text-align: center;
+  box-shadow: ${({ theme }) => theme.SHADOW.SURFACE};
+  ${({ theme }) => theme.TYPOGRAPHY.B2_B}
 `;

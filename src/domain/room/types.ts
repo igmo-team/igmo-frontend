@@ -82,6 +82,13 @@ export type VoteSnapshot = {
   voteEntries: VoteEntry[];
 };
 
+export type OwnVoteOptionNotice = {
+  roomCode: string;
+  roundNumber: number;
+  ownImage: boolean;
+  optionId: string | null;
+};
+
 export type RoundResult = {
   player: RoomPlayer;
   guessText: string;

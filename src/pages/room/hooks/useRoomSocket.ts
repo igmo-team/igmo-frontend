@@ -7,6 +7,7 @@ import {
 } from '../utils/countdownPlayedStorage';
 import { parseGameResultSnapshot } from '../utils/parseGameResultSnapshot';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
+import { parseOwnVoteOptionNotice } from '../utils/parseOwnVoteOptionNotice';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
 import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
 import { parseRoundResultSnapshot } from '../utils/parseRoundResultSnapshot';
@@ -17,6 +18,7 @@ import { parseVoteSnapshot } from '../utils/parseVoteSnapshot';
 import type {
   GameResultSnapshot,
   ImageGenerationSnapshot,
+  OwnVoteOptionNotice,
   PromptSubmissionSnapshot,
   RoomPhase,
   RoomSnapshot,
@@ -32,6 +34,11 @@ type UseRoomSocketParams = {
   entryState: RoomEntryState | null;
 };
 
+type OwnVoteOptionNoticeByRoundState = {
+  roomCode: string;
+  noticeByRound: Partial<Record<number, OwnVoteOptionNotice>>;
+};
+
 type UseRoomSocketResult = {
   phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
@@ -43,6 +50,7 @@ type UseRoomSocketResult = {
   // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
   isCountdownTriggered: boolean;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
+  ownVoteOptionNoticeByRound: Partial<Record<number, OwnVoteOptionNotice>>;
   isConnected: boolean;
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
@@ -77,6 +85,8 @@ export function useRoomSocket({
   const hasHandledFirstRoundSnapshotRef = useRef(false);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
     useState<ImageGenerationSnapshot | null>(null);
+  const [ownVoteOptionNoticeByRoundState, setOwnVoteOptionNoticeByRoundState] =
+    useState<OwnVoteOptionNoticeByRoundState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const stompClientRef = useRef<Client | null>(null);
@@ -183,6 +193,24 @@ export function useRoomSocket({
         }
       });
 
+      client.subscribe('/user/queue/vote-own-option', (message) => {
+        if (!isActive) {
+          return;
+        }
+
+        const nextOwnVoteOptionNotice = parseOwnVoteOptionNotice(message.body);
+
+        if (nextOwnVoteOptionNotice?.roomCode === roomCode) {
+          setOwnVoteOptionNoticeByRoundState((prev) => ({
+            roomCode,
+            noticeByRound: {
+              ...(prev?.roomCode === roomCode ? prev.noticeByRound : {}),
+              [nextOwnVoteOptionNotice.roundNumber]: nextOwnVoteOptionNotice,
+            },
+          }));
+        }
+      });
+
       client.subscribe('/user/queue/errors', (message) => {
         if (!isActive) {
           return;
@@ -266,8 +294,18 @@ export function useRoomSocket({
   };
 
   const sendRestart = () => {
-    publish(`/app/rooms/${roomCode}/restart`);
+    const isPublished = publish(`/app/rooms/${roomCode}/restart`);
+
+    if (isPublished) {
+      setOwnVoteOptionNoticeByRoundState(null);
+    }
   };
+
+  const activeOwnVoteOptionNoticeByRound =
+    ownVoteOptionNoticeByRoundState &&
+    ownVoteOptionNoticeByRoundState.roomCode === roomCode
+      ? ownVoteOptionNoticeByRoundState.noticeByRound
+      : {};
 
   return {
     phase,
@@ -279,6 +317,7 @@ export function useRoomSocket({
     gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
+    ownVoteOptionNoticeByRound: activeOwnVoteOptionNoticeByRound,
     isConnected,
     errorMessage,
     sendReady,

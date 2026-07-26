@@ -49,6 +49,7 @@ export function RoomPage() {
     gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
+    ownVoteOptionNoticeByRound,
     isConnected,
     errorMessage,
     sendReady,
@@ -104,6 +105,14 @@ export function RoomPage() {
   );
   const voteTimerProgressRatio =
     voteTimerSeconds / TEMPORARY_VOTE_TIMER_TOTAL_SECONDS;
+  const currentOwnVoteOptionNotice =
+    voteSnapshot === null
+      ? undefined
+      : ownVoteOptionNoticeByRound[voteSnapshot.roundNumber];
+  const isOwnVoteOptionNoticePending =
+    phase === 'VOTING' &&
+    voteSnapshot !== null &&
+    currentOwnVoteOptionNotice === undefined;
   const resultTimerSeconds = Math.min(
     resultCountdownSeconds,
     resultTimerTotalSeconds,
@@ -328,6 +337,10 @@ export function RoomPage() {
                   key={voteSnapshot.roundNumber}
                   snapshot={voteSnapshot}
                   currentPlayerId={entryState?.playerId}
+                  ownVoteOptionNotice={currentOwnVoteOptionNotice}
+                  isOwnVoteOptionNoticePending={
+                    isOwnVoteOptionNoticePending
+                  }
                   isSocketConnected={isConnected}
                   socketErrorMessage={errorMessage}
                   onSubmit={sendVote}
