@@ -7,13 +7,13 @@ import { useNavigate } from 'react-router-dom';
 
 import { Button, Input, Surface } from '../../../common/components';
 import { PAGE_URL } from '../../../common/constants/pageUrl';
+import { writeRoomSession } from '../../room/utils/roomSessionStorage';
 import postGamePlayer from '../apis/postGamePlayer';
 import postGames from '../apis/postGames';
 import {
   getNicknameErrorMessage,
   getRoomCodeErrorMessage,
 } from '../utils/roomEntryValidation';
-import { writeRoomSession } from '../../room/utils/roomSessionStorage';
 
 type ErrorResponse = {
   message?: string;
