@@ -72,12 +72,7 @@ export function RoomVotingView({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedOptionId('');
     }
-  }, [
-    isOwnImage,
-    isOwnVoteOptionNoticePending,
-    ownOptionId,
-    selectedOptionId,
-  ]);
+  }, [isOwnImage, isOwnVoteOptionNoticePending, ownOptionId, selectedOptionId]);
 
   const handleOptionClick = (optionId: string) => {
     if (isVoteBlocked || optionId === ownOptionId) {
@@ -141,7 +136,7 @@ export function RoomVotingView({
 
         {!isOwnVoteOptionNoticePending && isOwnImage && (
           <S_ActionStatus role="status">
-            내 그림 라운드라 투표할 수 없어요.
+            다른 참가자들이 내 그림의 진짜 프롬프트를 고르고 있어요.
           </S_ActionStatus>
         )}
 
