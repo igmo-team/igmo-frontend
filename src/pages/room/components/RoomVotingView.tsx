@@ -13,6 +13,7 @@ type RoomVotingViewProps = {
   snapshot: VoteSnapshot;
   currentPlayerId?: string;
   ownVoteOptionNotice?: OwnVoteOptionNotice;
+  isOwnVoteOptionNoticePending: boolean;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
   onSubmit: (optionId: string) => void;
@@ -22,6 +23,7 @@ export function RoomVotingView({
   snapshot,
   currentPlayerId,
   ownVoteOptionNotice,
+  isOwnVoteOptionNoticePending,
   isSocketConnected,
   socketErrorMessage = '',
   onSubmit,
@@ -36,30 +38,49 @@ export function RoomVotingView({
     ownVoteOptionNotice?.ownImage === false
       ? ownVoteOptionNotice.optionId
       : null;
+  const isVoteBlocked =
+    isOwnVoteOptionNoticePending || isOwnImage || isVoted || isVotePending;
   const isConfirmDisabled =
-    !selectedOptionId ||
-    isOwnImage ||
-    isVoted ||
-    isVotePending ||
-    !isSocketConnected;
+    !selectedOptionId || isVoteBlocked || !isSocketConnected;
   const confirmButtonText = getConfirmButtonText(isVoted, isVotePending);
 
   useEffect(() => {
-    if (isOwnImage || isVoted || socketErrorMessage || !isSocketConnected) {
+    if (
+      isOwnVoteOptionNoticePending ||
+      isOwnImage ||
+      isVoted ||
+      socketErrorMessage ||
+      !isSocketConnected
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsVotePending(false);
     }
-  }, [isOwnImage, isSocketConnected, isVoted, socketErrorMessage]);
+  }, [
+    isOwnImage,
+    isOwnVoteOptionNoticePending,
+    isSocketConnected,
+    isVoted,
+    socketErrorMessage,
+  ]);
 
   useEffect(() => {
-    if (isOwnImage || (ownOptionId && selectedOptionId === ownOptionId)) {
+    if (
+      isOwnVoteOptionNoticePending ||
+      isOwnImage ||
+      (ownOptionId && selectedOptionId === ownOptionId)
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedOptionId('');
     }
-  }, [isOwnImage, ownOptionId, selectedOptionId]);
+  }, [
+    isOwnImage,
+    isOwnVoteOptionNoticePending,
+    ownOptionId,
+    selectedOptionId,
+  ]);
 
   const handleOptionClick = (optionId: string) => {
-    if (isOwnImage || isVoted || isVotePending || optionId === ownOptionId) {
+    if (isVoteBlocked || optionId === ownOptionId) {
       return;
     }
 
@@ -98,7 +119,7 @@ export function RoomVotingView({
               ) : (
                 <S_OptionButton
                   type="button"
-                  disabled={isOwnImage || isVoted || isVotePending}
+                  disabled={isVoteBlocked}
                   selected={isSelected}
                   onClick={() => handleOptionClick(option.optionId)}
                 >
@@ -112,11 +133,19 @@ export function RoomVotingView({
       </S_OptionList>
 
       <S_ActionArea>
-        {isOwnImage ? (
-          <S_OwnerWaiting role="status">
+        {isOwnVoteOptionNoticePending && (
+          <S_ActionStatus role="status">
+            투표 정보를 불러오는 중이에요.
+          </S_ActionStatus>
+        )}
+
+        {!isOwnVoteOptionNoticePending && isOwnImage && (
+          <S_ActionStatus role="status">
             내 그림 라운드라 투표할 수 없어요.
-          </S_OwnerWaiting>
-        ) : (
+          </S_ActionStatus>
+        )}
+
+        {!isOwnVoteOptionNoticePending && !isOwnImage && (
           <>
             <S_Notice>한번 투표하면 선택을 바꿀 수 없어요.</S_Notice>
             {socketErrorMessage && (
@@ -282,7 +311,7 @@ const S_ErrorMessage = styled.p`
   ${({ theme }) => theme.TYPOGRAPHY.B5_B}
 `;
 
-const S_OwnerWaiting = styled.p`
+const S_ActionStatus = styled.p`
   width: 100%;
   padding: 2.4rem;
   border: ${({ theme }) => theme.BORDER.DEFAULT};

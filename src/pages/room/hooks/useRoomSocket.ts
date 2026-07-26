@@ -34,6 +34,11 @@ type UseRoomSocketParams = {
   entryState: RoomEntryState | null;
 };
 
+type OwnVoteOptionNoticeByRoundState = {
+  roomCode: string;
+  noticeByRound: Partial<Record<number, OwnVoteOptionNotice>>;
+};
+
 type UseRoomSocketResult = {
   phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
@@ -45,7 +50,7 @@ type UseRoomSocketResult = {
   // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
   isCountdownTriggered: boolean;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
-  ownVoteOptionNotice: OwnVoteOptionNotice | null;
+  ownVoteOptionNoticeByRound: Partial<Record<number, OwnVoteOptionNotice>>;
   isConnected: boolean;
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
@@ -80,8 +85,8 @@ export function useRoomSocket({
   const hasHandledFirstRoundSnapshotRef = useRef(false);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
     useState<ImageGenerationSnapshot | null>(null);
-  const [ownVoteOptionNotice, setOwnVoteOptionNotice] =
-    useState<OwnVoteOptionNotice | null>(null);
+  const [ownVoteOptionNoticeByRoundState, setOwnVoteOptionNoticeByRoundState] =
+    useState<OwnVoteOptionNoticeByRoundState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const stompClientRef = useRef<Client | null>(null);
@@ -196,7 +201,13 @@ export function useRoomSocket({
         const nextOwnVoteOptionNotice = parseOwnVoteOptionNotice(message.body);
 
         if (nextOwnVoteOptionNotice?.roomCode === roomCode) {
-          setOwnVoteOptionNotice(nextOwnVoteOptionNotice);
+          setOwnVoteOptionNoticeByRoundState((prev) => ({
+            roomCode,
+            noticeByRound: {
+              ...(prev?.roomCode === roomCode ? prev.noticeByRound : {}),
+              [nextOwnVoteOptionNotice.roundNumber]: nextOwnVoteOptionNotice,
+            },
+          }));
         }
       });
 
@@ -286,8 +297,11 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/restart`);
   };
 
-  const activeOwnVoteOptionNotice =
-    ownVoteOptionNotice?.roomCode === roomCode ? ownVoteOptionNotice : null;
+  const activeOwnVoteOptionNoticeByRound =
+    ownVoteOptionNoticeByRoundState &&
+    ownVoteOptionNoticeByRoundState.roomCode === roomCode
+      ? ownVoteOptionNoticeByRoundState.noticeByRound
+      : {};
 
   return {
     phase,
@@ -299,7 +313,7 @@ export function useRoomSocket({
     gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
-    ownVoteOptionNotice: activeOwnVoteOptionNotice,
+    ownVoteOptionNoticeByRound: activeOwnVoteOptionNoticeByRound,
     isConnected,
     errorMessage,
     sendReady,
