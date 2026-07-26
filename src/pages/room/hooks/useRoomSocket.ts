@@ -294,7 +294,11 @@ export function useRoomSocket({
   };
 
   const sendRestart = () => {
-    publish(`/app/rooms/${roomCode}/restart`);
+    const isPublished = publish(`/app/rooms/${roomCode}/restart`);
+
+    if (isPublished) {
+      setOwnVoteOptionNoticeByRoundState(null);
+    }
   };
 
   const activeOwnVoteOptionNoticeByRound =
