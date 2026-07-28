@@ -29,7 +29,8 @@ export function RoomPlayingView({
     promptInputRef,
     handlePromptInputBlur,
     handlePromptInputFocus,
-    handlePromptInputPointerDown,
+    handlePromptInputTouchEnd,
+    handlePromptInputTouchStart,
   } = useMobilePromptInputKeyboard();
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
@@ -139,7 +140,8 @@ export function RoomPlayingView({
               onBlur={handlePromptInputBlur}
               onFocus={handlePromptInputFocus}
               onKeyDown={handlePromptKeyDown}
-              onPointerDown={handlePromptInputPointerDown}
+              onTouchEnd={handlePromptInputTouchEnd}
+              onTouchStart={handlePromptInputTouchStart}
             />
 
             {socketErrorMessage && (

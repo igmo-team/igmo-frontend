@@ -1,10 +1,22 @@
-import { type PointerEvent, useEffect, useRef, useState } from 'react';
+import { type TouchEvent, useEffect, useRef, useState } from 'react';
 
 const MOBILE_PROMPT_INPUT_BOTTOM_PROPERTY = '--mobile-composer-bottom';
 const KEYBOARD_DISMISS_DRAG_THRESHOLD = 10;
+const TOUCH_FOCUS_MOVE_THRESHOLD = 8;
+
+function getVisualViewportBottomOffset() {
+  const visualViewport = window.visualViewport;
+
+  if (!visualViewport) {
+    return 0;
+  }
+
+  return Math.max(0, window.innerHeight - visualViewport.height);
+}
 
 export function useMobilePromptInputKeyboard() {
   const promptInputRef = useRef<HTMLFormElement>(null);
+  const touchFocusStartPointRef = useRef<{ x: number; y: number } | null>(null);
   const [isPromptInputFocused, setIsPromptInputFocused] = useState(false);
 
   useEffect(() => {
@@ -23,9 +35,7 @@ export function useMobilePromptInputKeyboard() {
 
     const visualViewport = window.visualViewport;
     const updatePromptInputBottom = () => {
-      const bottomOffset = visualViewport
-        ? Math.max(0, window.innerHeight - visualViewport.height)
-        : 0;
+      const bottomOffset = getVisualViewportBottomOffset();
 
       promptInputElement.style.setProperty(
         MOBILE_PROMPT_INPUT_BOTTOM_PROPERTY,
@@ -59,7 +69,7 @@ export function useMobilePromptInputKeyboard() {
     let touchStartY = 0;
     let shouldDismissKeyboardOnDrag = false;
 
-    const handleDocumentTouchStart = (event: TouchEvent) => {
+    const handleDocumentTouchStart = (event: globalThis.TouchEvent) => {
       const touch = event.touches[0];
       const eventTarget = event.target;
 
@@ -73,7 +83,7 @@ export function useMobilePromptInputKeyboard() {
       shouldDismissKeyboardOnDrag = !promptInputElement.contains(eventTarget);
     };
 
-    const handleDocumentTouchMove = (event: TouchEvent) => {
+    const handleDocumentTouchMove = (event: globalThis.TouchEvent) => {
       if (!shouldDismissKeyboardOnDrag) {
         return;
       }
@@ -117,23 +127,51 @@ export function useMobilePromptInputKeyboard() {
   return {
     promptInputRef,
     handlePromptInputBlur: () => {
+      touchFocusStartPointRef.current = null;
       setIsPromptInputFocused(false);
     },
     handlePromptInputFocus: () => {
       setIsPromptInputFocused(true);
     },
-    handlePromptInputPointerDown: (
-      event: PointerEvent<HTMLTextAreaElement>,
-    ) => {
+    handlePromptInputTouchEnd: (event: TouchEvent<HTMLTextAreaElement>) => {
+      const touchStartPoint = touchFocusStartPointRef.current;
+      const changedTouch = event.changedTouches[0];
+
+      touchFocusStartPointRef.current = null;
+
+      if (!touchStartPoint || !changedTouch) {
+        return;
+      }
+
+      const touchMoveDistanceX = Math.abs(
+        changedTouch.clientX - touchStartPoint.x,
+      );
+      const touchMoveDistanceY = Math.abs(
+        changedTouch.clientY - touchStartPoint.y,
+      );
+
       if (
-        event.pointerType === 'mouse' ||
-        document.activeElement === event.currentTarget
+        touchMoveDistanceX > TOUCH_FOCUS_MOVE_THRESHOLD ||
+        touchMoveDistanceY > TOUCH_FOCUS_MOVE_THRESHOLD
       ) {
         return;
       }
 
-      event.preventDefault();
       event.currentTarget.focus({ preventScroll: true });
+    },
+    handlePromptInputTouchStart: (event: TouchEvent<HTMLTextAreaElement>) => {
+      const touch = event.touches[0];
+
+      if (!touch || document.activeElement === event.currentTarget) {
+        touchFocusStartPointRef.current = null;
+        return;
+      }
+
+      event.preventDefault();
+      touchFocusStartPointRef.current = {
+        x: touch.clientX,
+        y: touch.clientY,
+      };
     },
   };
 }
