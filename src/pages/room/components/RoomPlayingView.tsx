@@ -3,8 +3,11 @@ import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
+import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
 import type { RoundSnapshot } from '../../../domain/room/types';
+
+const MOBILE_BREAKPOINT = '600px';
 
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
@@ -22,6 +25,12 @@ export function RoomPlayingView({
   onSubmit,
 }: RoomPlayingViewProps) {
   const isComposingRef = useRef(false);
+  const {
+    promptInputRef,
+    handlePromptInputBlur,
+    handlePromptInputFocus,
+    handlePromptInputPointerDown,
+  } = useMobilePromptInputKeyboard();
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
@@ -36,6 +45,10 @@ export function RoomPlayingView({
     isSubmitPending ||
     !isSocketConnected;
   const submitButtonText = getSubmitButtonText(isSubmitted, isSubmitPending);
+  const mobileSubmitButtonText = getMobileSubmitButtonText(
+    isSubmitted,
+    isSubmitPending,
+  );
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -108,7 +121,7 @@ export function RoomPlayingView({
             </S_Guide>
           </S_TextGroup>
 
-          <S_InputGroup onSubmit={handlePromptSubmit}>
+          <S_InputGroup ref={promptInputRef} onSubmit={handlePromptSubmit}>
             <Textarea
               value={promptText}
               tone="white"
@@ -123,7 +136,10 @@ export function RoomPlayingView({
               onCompositionEnd={() => {
                 isComposingRef.current = false;
               }}
+              onBlur={handlePromptInputBlur}
+              onFocus={handlePromptInputFocus}
               onKeyDown={handlePromptKeyDown}
+              onPointerDown={handlePromptInputPointerDown}
             />
 
             {socketErrorMessage && (
@@ -131,7 +147,10 @@ export function RoomPlayingView({
             )}
 
             <Button type="submit" disabled={isSubmitDisabled}>
-              {submitButtonText}
+              <S_DesktopSubmitLabel>{submitButtonText}</S_DesktopSubmitLabel>
+              <S_MobileSubmitLabel>
+                {mobileSubmitButtonText}
+              </S_MobileSubmitLabel>
             </Button>
           </S_InputGroup>
         </S_FormArea>
@@ -152,11 +171,30 @@ function getSubmitButtonText(isSubmitted: boolean, isSubmitPending: boolean) {
   return '제출하기';
 }
 
+function getMobileSubmitButtonText(
+  isSubmitted: boolean,
+  isSubmitPending: boolean,
+) {
+  if (isSubmitted) {
+    return '완료';
+  }
+
+  if (isSubmitPending) {
+    return '중...';
+  }
+
+  return '제출';
+}
+
 const S_PlayingSection = styled.section`
   display: flex;
   width: 100%;
   flex-direction: column;
   gap: 2.4rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    gap: 1.4rem;
+  }
 `;
 
 const S_ImageFrame = styled.div`
@@ -230,12 +268,62 @@ const S_InputGroup = styled.form`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    position: fixed;
+    z-index: 30;
+    right: 0;
+    bottom: var(--mobile-composer-bottom, 0);
+    left: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 1rem;
+    padding: 1rem 1.8rem calc(1rem + env(safe-area-inset-bottom));
+    border-top: ${({ theme }) => theme.BORDER.THIN};
+    background: ${({ theme }) => theme.COLOR.WHITE};
+
+    > textarea {
+      height: 5rem;
+      padding: 1rem 1.3rem;
+      border-radius: ${({ theme }) => theme.RADIUS.LG};
+      box-shadow: none;
+      line-height: 1.4;
+    }
+
+    > button {
+      width: 6rem;
+      height: 5rem;
+      padding: 0;
+      border-radius: ${({ theme }) => theme.RADIUS.MD};
+      box-shadow: none;
+    }
+  }
 `;
 
 const S_ErrorMessage = styled.p`
   color: ${({ theme }) => theme.COLOR.DANGER};
   text-align: center;
   ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+`;
+
+const S_DesktopSubmitLabel = styled.span`
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: none;
+  }
+`;
+
+const S_MobileSubmitLabel = styled.span`
+  display: none;
+
+  @media (max-width: ${MOBILE_BREAKPOINT}) {
+    display: inline;
+  }
 `;
 
 const S_OwnerWaiting = styled.p`
