@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL: string;
+  readonly VITE_MIN_PLAYERS_TO_START: string;
 }
 
 interface ImportMeta {
