@@ -53,6 +53,12 @@ export const resetCss = css`
     font-size: 62.5%;
   }
 
+  @media (max-width: 600px) {
+    html {
+      font-size: 56.25%; /* 1rem = 9px */
+    }
+  }
+
   article,
   aside,
   details,
