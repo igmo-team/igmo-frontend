@@ -13,19 +13,28 @@ type TimerState = {
   progressRatio: number;
 };
 
+export type RoomGameHeaderStatus =
+  | {
+      type: 'avatars';
+      players: RoomPlayer[];
+      currentPlayerId?: string;
+      completedPlayerIds?: string[];
+    }
+  | {
+      type: 'voteProgress';
+      completedCount: number;
+      totalCount: number;
+    };
+
 type RoomGameHeaderProps = {
-  players: RoomPlayer[];
-  currentPlayerId?: string;
-  completedPlayerIds?: string[];
+  headerStatus: RoomGameHeaderStatus;
   round?: number;
   phaseLabel: string;
   timer?: TimerState | null;
 };
 
 export function RoomGameHeader({
-  players,
-  currentPlayerId,
-  completedPlayerIds = [],
+  headerStatus,
   round,
   phaseLabel,
   timer = null,
@@ -44,29 +53,50 @@ export function RoomGameHeader({
       </S_PhaseSummary>
 
       <S_StatusGroup>
-        <S_AvatarStack aria-label="게임 참가자 목록">
-          {players.map((player, index) => {
-            const avatarColor =
-              ROOM_AVATAR_COLORS[index % ROOM_AVATAR_COLORS.length];
-            const isCurrentPlayer = player.id === currentPlayerId;
-            const isCompleted = completedPlayerIds.includes(player.id);
+        {headerStatus.type === 'avatars' ? (
+          <S_AvatarStack aria-label="게임 참가자 목록">
+            {headerStatus.players.map((player, index) => {
+              const avatarColor =
+                ROOM_AVATAR_COLORS[index % ROOM_AVATAR_COLORS.length];
+              const isCurrentPlayer =
+                player.id === headerStatus.currentPlayerId;
+              const isCompleted =
+                headerStatus.completedPlayerIds?.includes(player.id) ?? false;
 
-            return (
-              <S_AvatarItem key={player.id} completed={isCompleted}>
-                <S_Avatar
-                  aria-label={`${player.nickname}${isCurrentPlayer ? ' 나' : ''}${isCompleted ? ' 준비 완료' : ''}`}
-                  backgroundColor={avatarColor.background}
-                  textColor={avatarColor.color}
-                >
-                  {getInitial(player.nickname)}
-                </S_Avatar>
-                {isCompleted && (
-                  <S_CompletedBadge aria-hidden="true">✓</S_CompletedBadge>
-                )}
-              </S_AvatarItem>
-            );
-          })}
-        </S_AvatarStack>
+              return (
+                <S_AvatarItem key={player.id} completed={isCompleted}>
+                  <S_Avatar
+                    aria-label={`${player.nickname}${isCurrentPlayer ? ' 나' : ''}${isCompleted ? ' 준비 완료' : ''}`}
+                    backgroundColor={avatarColor.background}
+                    textColor={avatarColor.color}
+                  >
+                    {getInitial(player.nickname)}
+                  </S_Avatar>
+                  {isCompleted && (
+                    <S_CompletedBadge aria-hidden="true">✓</S_CompletedBadge>
+                  )}
+                </S_AvatarItem>
+              );
+            })}
+          </S_AvatarStack>
+        ) : (
+          <S_VoteProgress
+            aria-label={`투표 현황 ${headerStatus.totalCount}명 중 ${headerStatus.completedCount}명 완료`}
+          >
+            <S_VoteProgressLabel aria-hidden="true">
+              투표 현황
+            </S_VoteProgressLabel>
+            <S_VoteProgressCount aria-hidden="true">
+              <S_VoteProgressCompleted>
+                {headerStatus.completedCount}
+              </S_VoteProgressCompleted>
+              <S_VoteProgressTotal>
+                {' '}
+                / {headerStatus.totalCount}
+              </S_VoteProgressTotal>
+            </S_VoteProgressCount>
+          </S_VoteProgress>
+        )}
 
         {timer && (
           <S_Timer aria-label={`남은 시간 ${timer.seconds}초`}>
@@ -138,6 +168,10 @@ const S_StatusGroup = styled.div`
   flex: none;
   align-items: center;
   gap: 1.6rem;
+
+  @media (max-width: 36rem) {
+    gap: 1rem;
+  }
 `;
 
 const S_AvatarStack = styled.ul`
@@ -187,6 +221,36 @@ const S_CompletedBadge = styled.span`
   font-size: 1rem;
   font-weight: 900;
   line-height: 1;
+`;
+
+const S_VoteProgress = styled.div`
+  display: flex;
+  min-width: 6.8rem;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+`;
+
+const S_VoteProgressLabel = styled.span`
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  ${({ theme }) => theme.TYPOGRAPHY.B6_B}
+`;
+
+const S_VoteProgressCount = styled.span`
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE2}
+`;
+
+const S_VoteProgressCompleted = styled.span`
+  color: ${({ theme }) => theme.COLOR.TEXT};
+`;
+
+const S_VoteProgressTotal = styled.span`
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
 `;
 
 const S_Timer = styled.div`

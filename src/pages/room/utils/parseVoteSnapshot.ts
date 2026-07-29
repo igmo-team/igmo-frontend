@@ -1,7 +1,5 @@
 import type {
   RoomMessage,
-  RoomPlayer,
-  VoteEntry,
   VoteOption,
   VoteSnapshot,
 } from '../../../domain/room/types';
@@ -35,8 +33,9 @@ function isVoteSnapshot(value: unknown): value is VoteSnapshot {
     snapshot.voteOptions.every(isVoteOption) &&
     typeof snapshot.voteStartedAt === 'string' &&
     typeof snapshot.voteDeadline === 'string' &&
-    Array.isArray(snapshot.voteEntries) &&
-    snapshot.voteEntries.every(isVoteEntry)
+    typeof snapshot.completedVoteCount === 'number' &&
+    typeof snapshot.totalVoteCount === 'number' &&
+    typeof snapshot.perfectGuessExists === 'boolean'
   );
 }
 
@@ -47,33 +46,5 @@ function isVoteOption(value: unknown): value is VoteOption {
 
   const option = value as Partial<VoteOption>;
 
-  return (
-    typeof option.optionId === 'string' &&
-    typeof option.text === 'string'
-  );
-}
-
-function isVoteEntry(value: unknown): value is VoteEntry {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const entry = value as Partial<VoteEntry>;
-
-  return isRoomPlayer(entry.player) && typeof entry.voted === 'boolean';
-}
-
-function isRoomPlayer(value: unknown): value is RoomPlayer {
-  if (!value || typeof value !== 'object') {
-    return false;
-  }
-
-  const player = value as Partial<RoomPlayer>;
-
-  return (
-    typeof player.id === 'string' &&
-    typeof player.nickname === 'string' &&
-    typeof player.score === 'number' &&
-    typeof player.ready === 'boolean'
-  );
+  return typeof option.optionId === 'string' && typeof option.text === 'string';
 }

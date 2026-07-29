@@ -71,11 +71,6 @@ export type VoteOption = {
   text: string;
 };
 
-export type VoteEntry = {
-  player: RoomPlayer;
-  voted: boolean;
-};
-
 export type VoteSnapshot = {
   roomCode: string;
   phase: RoomPhase;
@@ -83,7 +78,9 @@ export type VoteSnapshot = {
   voteOptions: VoteOption[];
   voteStartedAt: string;
   voteDeadline: string;
-  voteEntries: VoteEntry[];
+  completedVoteCount: number;
+  totalVoteCount: number;
+  perfectGuessExists: boolean;
 };
 
 export type OwnVoteOptionNotice = {
@@ -102,7 +99,10 @@ export type RoundResult = {
   scoreDetails: RoundScoreDetail[];
 };
 
-export type RoundScoreReason = 'CORRECT_ANSWER' | 'FOOLED_PLAYER' | 'QUESTIONER';
+export type RoundScoreReason =
+  | 'CORRECT_ANSWER'
+  | 'FOOLED_PLAYER'
+  | 'QUESTIONER';
 
 export type RoundScoreDetail = {
   reason: RoundScoreReason;
