@@ -122,7 +122,11 @@ export function RoomPlayingView({
             </S_Guide>
           </S_TextGroup>
 
-          <S_InputGroup ref={promptInputRef} onSubmit={handlePromptSubmit}>
+          <S_InputGroup
+            ref={promptInputRef}
+            hasError={Boolean(socketErrorMessage)}
+            onSubmit={handlePromptSubmit}
+          >
             <Textarea
               value={promptText}
               tone="white"
@@ -266,7 +270,9 @@ const S_Point = styled.strong`
   color: ${({ theme }) => theme.COLOR.PRIMARY500};
 `;
 
-const S_InputGroup = styled.form`
+const S_InputGroup = styled('form', {
+  shouldForwardProp: (prop) => prop !== 'hasError',
+})<{ hasError: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;
@@ -279,6 +285,7 @@ const S_InputGroup = styled.form`
     left: 0;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: ${({ hasError }) => (hasError ? 'auto auto' : 'auto')};
     align-items: end;
     gap: 1rem;
     padding: 1rem 1.8rem calc(1rem + env(safe-area-inset-bottom));
@@ -286,6 +293,8 @@ const S_InputGroup = styled.form`
     background: ${({ theme }) => theme.COLOR.WHITE};
 
     > textarea {
+      grid-column: 1;
+      grid-row: ${({ hasError }) => (hasError ? 2 : 1)};
       height: 5rem;
       padding: 1rem 1.3rem;
       border-radius: ${({ theme }) => theme.RADIUS.LG};
@@ -294,6 +303,8 @@ const S_InputGroup = styled.form`
     }
 
     > button {
+      grid-column: 2;
+      grid-row: ${({ hasError }) => (hasError ? 2 : 1)};
       width: 6rem;
       height: 5rem;
       padding: 0;
@@ -310,6 +321,7 @@ const S_ErrorMessage = styled.p`
 
   @media (max-width: ${MOBILE_BREAKPOINT}) {
     grid-column: 1 / -1;
+    grid-row: 1;
     text-align: left;
   }
 `;
