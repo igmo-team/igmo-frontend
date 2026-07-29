@@ -6,11 +6,15 @@ import { Button, Textarea } from '../../../common/components';
 import { MOBILE_MEDIA_QUERY } from '../../../common/styles/breakpoints';
 import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
-import type { RoundSnapshot } from '../../../domain/room/types';
+import type {
+  GuessSubmissionSnapshot,
+  RoundSnapshot,
+} from '../../../domain/room/types';
 
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
   currentPlayerId?: string;
+  guessSubmissionSnapshot?: GuessSubmissionSnapshot | null;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
   onSubmit: (prompt: string) => void;
@@ -19,6 +23,7 @@ type RoomPlayingViewProps = {
 export function RoomPlayingView({
   snapshot,
   currentPlayerId,
+  guessSubmissionSnapshot,
   isSocketConnected,
   socketErrorMessage = '',
   onSubmit,
@@ -36,9 +41,17 @@ export function RoomPlayingView({
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
-  const isSubmitted =
+  const currentGuessSubmissionSnapshot =
+    guessSubmissionSnapshot?.roomCode === snapshot.roomCode &&
+    guessSubmissionSnapshot.roundNumber === snapshot.roundNumber
+      ? guessSubmissionSnapshot
+      : null;
+  const isServerSubmitted =
+    currentGuessSubmissionSnapshot?.status === 'SUBMITTED';
+  const isRoundSubmitted =
     snapshot.guessEntries.find((entry) => entry.player.id === currentPlayerId)
       ?.submitted ?? false;
+  const isSubmitted = isServerSubmitted || isRoundSubmitted;
   const isPromptEmpty = promptText.trim().length === 0;
   const isSubmitDisabled =
     isPromptEmpty ||
@@ -64,6 +77,28 @@ export function RoomPlayingView({
       setIsSubmitPending(false);
     }
   }, [isSubmitted, isSocketConnected, socketErrorMessage]);
+
+  useEffect(() => {
+    if (!currentGuessSubmissionSnapshot) {
+      return;
+    }
+
+    if (currentGuessSubmissionSnapshot.status === 'PERFECT_RETRY_REQUIRED') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPromptText('');
+      setIsSubmitPending(false);
+      return;
+    }
+
+    if (currentGuessSubmissionSnapshot.status === 'SUBMITTED') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPromptText(currentGuessSubmissionSnapshot.guess);
+      setIsSubmitPending(false);
+      return;
+    }
+
+    setIsSubmitPending(false);
+  }, [currentGuessSubmissionSnapshot]);
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
