@@ -3,11 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
+import { MOBILE_MEDIA_QUERY } from '../../../common/styles/breakpoints';
 import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
 import type { RoundSnapshot } from '../../../domain/room/types';
-
-const MOBILE_BREAKPOINT = '600px';
 
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
@@ -198,7 +197,7 @@ const S_PlayingSection = styled.section`
   flex-direction: column;
   gap: 2.4rem;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media ${MOBILE_MEDIA_QUERY} {
     gap: 1.4rem;
   }
 `;
@@ -277,7 +276,7 @@ const S_InputGroup = styled('form', {
   flex-direction: column;
   gap: 2.4rem;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media ${MOBILE_MEDIA_QUERY} {
     position: fixed;
     z-index: 30;
     right: 0;
@@ -319,7 +318,7 @@ const S_ErrorMessage = styled.p`
   text-align: center;
   ${({ theme }) => theme.TYPOGRAPHY.B5_B}
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media ${MOBILE_MEDIA_QUERY} {
     grid-column: 1 / -1;
     grid-row: 1;
     text-align: left;
@@ -327,7 +326,7 @@ const S_ErrorMessage = styled.p`
 `;
 
 const S_DesktopSubmitLabel = styled.span`
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media ${MOBILE_MEDIA_QUERY} {
     display: none;
   }
 `;
@@ -335,7 +334,7 @@ const S_DesktopSubmitLabel = styled.span`
 const S_MobileSubmitLabel = styled.span`
   display: none;
 
-  @media (max-width: ${MOBILE_BREAKPOINT}) {
+  @media ${MOBILE_MEDIA_QUERY} {
     display: inline;
   }
 `;

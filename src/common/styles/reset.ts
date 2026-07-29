@@ -1,5 +1,7 @@
 import { css } from '@emotion/react';
 
+import { MOBILE_MEDIA_QUERY } from './breakpoints';
+
 export const resetCss = css`
   html,
   body,
@@ -53,7 +55,7 @@ export const resetCss = css`
     font-size: 62.5%;
   }
 
-  @media (max-width: 600px) {
+  @media ${MOBILE_MEDIA_QUERY} {
     html {
       font-size: 56.25%; /* 1rem = 9px */
     }
