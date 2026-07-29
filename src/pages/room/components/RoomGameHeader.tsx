@@ -81,7 +81,7 @@ export function RoomGameHeader({
           </S_AvatarStack>
         ) : (
           <S_VoteProgress
-            aria-label={`투표 현황 ${headerStatus.completedCount}명 중 ${headerStatus.totalCount}명 완료`}
+            aria-label={`투표 현황 ${headerStatus.totalCount}명 중 ${headerStatus.completedCount}명 완료`}
           >
             <S_VoteProgressLabel aria-hidden="true">
               투표 현황
