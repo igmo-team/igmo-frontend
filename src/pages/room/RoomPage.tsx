@@ -280,10 +280,7 @@ export function RoomPage() {
   }
 
   if (phase === 'VOTING' && voteSnapshot) {
-    headerPlayers = voteSnapshot.voteEntries.map((entry) => entry.player);
-    headerCompletedPlayerIds = voteSnapshot.voteEntries
-      .filter((entry) => entry.voted)
-      .map((entry) => entry.player.id);
+    headerCompletedPlayerIds = [];
     headerRound = voteSnapshot.roundNumber;
   }
 
@@ -398,7 +395,6 @@ export function RoomPage() {
                 <RoomVotingView
                   key={voteSnapshot.roundNumber}
                   snapshot={voteSnapshot}
-                  currentPlayerId={currentPlayerId}
                   ownVoteOptionNotice={currentOwnVoteOptionNotice}
                   isOwnVoteOptionNoticePending={
                     isOwnVoteOptionNoticePending

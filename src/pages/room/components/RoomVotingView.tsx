@@ -11,7 +11,6 @@ import type {
 
 type RoomVotingViewProps = {
   snapshot: VoteSnapshot;
-  currentPlayerId?: string;
   ownVoteOptionNotice?: OwnVoteOptionNotice;
   isOwnVoteOptionNoticePending: boolean;
   isSocketConnected: boolean;
@@ -21,7 +20,6 @@ type RoomVotingViewProps = {
 
 export function RoomVotingView({
   snapshot,
-  currentPlayerId,
   ownVoteOptionNotice,
   isOwnVoteOptionNoticePending,
   isSocketConnected,
@@ -29,39 +27,24 @@ export function RoomVotingView({
   onSubmit,
 }: RoomVotingViewProps) {
   const [selectedOptionId, setSelectedOptionId] = useState('');
-  const [isVotePending, setIsVotePending] = useState(false);
-  const isVoted =
-    snapshot.voteEntries.find((entry) => entry.player.id === currentPlayerId)
-      ?.voted ?? false;
+  const [hasSubmittedVote, setHasSubmittedVote] = useState(false);
   const isOwnImage = ownVoteOptionNotice?.ownImage === true;
   const ownOptionId =
     ownVoteOptionNotice?.ownImage === false
       ? ownVoteOptionNotice.optionId
       : null;
   const isVoteBlocked =
-    isOwnVoteOptionNoticePending || isOwnImage || isVoted || isVotePending;
+    isOwnVoteOptionNoticePending || isOwnImage || hasSubmittedVote;
   const isConfirmDisabled =
     !selectedOptionId || isVoteBlocked || !isSocketConnected;
-  const confirmButtonText = getConfirmButtonText(isVoted, isVotePending);
+  const confirmButtonText = getConfirmButtonText(hasSubmittedVote);
 
   useEffect(() => {
-    if (
-      isOwnVoteOptionNoticePending ||
-      isOwnImage ||
-      isVoted ||
-      socketErrorMessage ||
-      !isSocketConnected
-    ) {
+    if (socketErrorMessage || !isSocketConnected) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setIsVotePending(false);
+      setHasSubmittedVote(false);
     }
-  }, [
-    isOwnImage,
-    isOwnVoteOptionNoticePending,
-    isSocketConnected,
-    isVoted,
-    socketErrorMessage,
-  ]);
+  }, [isSocketConnected, socketErrorMessage]);
 
   useEffect(() => {
     if (
@@ -87,8 +70,8 @@ export function RoomVotingView({
       return;
     }
 
-    setIsVotePending(true);
     onSubmit(selectedOptionId);
+    setHasSubmittedVote(true);
   };
 
   return (
@@ -160,13 +143,9 @@ export function RoomVotingView({
   );
 }
 
-function getConfirmButtonText(isVoted: boolean, isVotePending: boolean) {
-  if (isVoted) {
+function getConfirmButtonText(hasSubmittedVote: boolean) {
+  if (hasSubmittedVote) {
     return '투표 완료';
-  }
-
-  if (isVotePending) {
-    return '투표 중...';
   }
 
   return '투표 확정';

@@ -71,11 +71,6 @@ export type VoteOption = {
   text: string;
 };
 
-export type VoteEntry = {
-  player: RoomPlayer;
-  voted: boolean;
-};
-
 export type VoteSnapshot = {
   roomCode: string;
   phase: RoomPhase;
@@ -83,7 +78,9 @@ export type VoteSnapshot = {
   voteOptions: VoteOption[];
   voteStartedAt: string;
   voteDeadline: string;
-  voteEntries: VoteEntry[];
+  completedVoteCount: number;
+  totalVoteCount: number;
+  perfectGuessExists: boolean;
 };
 
 export type OwnVoteOptionNotice = {
