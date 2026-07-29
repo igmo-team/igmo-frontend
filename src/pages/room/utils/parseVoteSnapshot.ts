@@ -46,8 +46,5 @@ function isVoteOption(value: unknown): value is VoteOption {
 
   const option = value as Partial<VoteOption>;
 
-  return (
-    typeof option.optionId === 'string' &&
-    typeof option.text === 'string'
-  );
+  return typeof option.optionId === 'string' && typeof option.text === 'string';
 }

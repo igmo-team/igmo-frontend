@@ -9,7 +9,10 @@ import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { isRoomCodeValid } from '../../domain/room/roomCode';
 
 import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
-import { RoomGameHeader } from './components/RoomGameHeader';
+import {
+  RoomGameHeader,
+  type RoomGameHeaderStatus,
+} from './components/RoomGameHeader';
 import { RoomGameResultView } from './components/RoomGameResultView';
 import { RoomGeneratingView } from './components/RoomGeneratingView';
 import { RoomGuestEntryModal } from './components/RoomGuestEntryModal';
@@ -197,10 +200,7 @@ export function RoomPage() {
       return;
     }
 
-    if (
-      snapshot.phase !== 'LOBBY' ||
-      currentPlayerId !== snapshot.hostId
-    ) {
+    if (snapshot.phase !== 'LOBBY' || currentPlayerId !== snapshot.hostId) {
       return;
     }
 
@@ -280,7 +280,6 @@ export function RoomPage() {
   }
 
   if (phase === 'VOTING' && voteSnapshot) {
-    headerCompletedPlayerIds = [];
     headerRound = voteSnapshot.roundNumber;
   }
 
@@ -297,12 +296,24 @@ export function RoomPage() {
     headerCompletedPlayerIds = [];
   }
 
+  const headerStatus: RoomGameHeaderStatus =
+    phase === 'VOTING' && voteSnapshot
+      ? {
+          type: 'voteProgress',
+          completedCount: voteSnapshot.completedVoteCount,
+          totalCount: voteSnapshot.totalVoteCount,
+        }
+      : {
+          type: 'avatars',
+          players: headerPlayers,
+          currentPlayerId,
+          completedPlayerIds: headerCompletedPlayerIds,
+        };
+
   return (
     <S_GameContainer>
       <RoomGameHeader
-        players={headerPlayers}
-        currentPlayerId={currentPlayerId}
-        completedPlayerIds={headerCompletedPlayerIds}
+        headerStatus={headerStatus}
         round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
         timer={
@@ -396,9 +407,7 @@ export function RoomPage() {
                   key={voteSnapshot.roundNumber}
                   snapshot={voteSnapshot}
                   ownVoteOptionNotice={currentOwnVoteOptionNotice}
-                  isOwnVoteOptionNoticePending={
-                    isOwnVoteOptionNoticePending
-                  }
+                  isOwnVoteOptionNoticePending={isOwnVoteOptionNoticePending}
                   isSocketConnected={isConnected}
                   socketErrorMessage={errorMessage}
                   onSubmit={sendVote}
