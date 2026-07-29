@@ -8,8 +8,6 @@ import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeybo
 
 import type { RoundSnapshot } from '../../../domain/room/types';
 
-const SUBMIT_TOUCH_MOVE_THRESHOLD = 8;
-
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
   currentPlayerId?: string;
@@ -26,16 +24,15 @@ export function RoomPlayingView({
   onSubmit,
 }: RoomPlayingViewProps) {
   const isComposingRef = useRef(false);
-  const submitTouchStartPointRef = useRef<{ x: number; y: number } | null>(
-    null,
-  );
   const {
-    promptInputRef,
+    promptInputGroupRef,
+    promptTextareaRef,
     handlePromptInputBlur,
     handlePromptInputFocus,
     handlePromptInputTouchEnd,
     handlePromptInputTouchStart,
   } = useMobilePromptInputKeyboard();
+
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
@@ -146,11 +143,12 @@ export function RoomPlayingView({
           </S_TextGroup>
 
           <S_InputGroup
-            ref={promptInputRef}
+            ref={promptInputGroupRef}
             hasError={Boolean(socketErrorMessage)}
             onSubmit={handlePromptSubmit}
           >
             <Textarea
+              ref={promptTextareaRef}
               value={promptText}
               tone="white"
               rows={3}

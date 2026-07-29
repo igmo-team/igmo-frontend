@@ -15,19 +15,20 @@ function getVisualViewportBottomOffset() {
 }
 
 export function useMobilePromptInputKeyboard() {
-  const promptInputRef = useRef<HTMLFormElement>(null);
+  const promptInputGroupRef = useRef<HTMLFormElement>(null);
+  const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
   const touchFocusStartPointRef = useRef<{ x: number; y: number } | null>(null);
   const [isPromptInputFocused, setIsPromptInputFocused] = useState(false);
 
   useEffect(() => {
-    const promptInputElement = promptInputRef.current;
+    const promptInputGroupElement = promptInputGroupRef.current;
 
-    if (!promptInputElement) {
+    if (!promptInputGroupElement) {
       return;
     }
 
     if (!isPromptInputFocused) {
-      promptInputElement.style.removeProperty(
+      promptInputGroupElement.style.removeProperty(
         MOBILE_PROMPT_INPUT_BOTTOM_PROPERTY,
       );
       return;
@@ -37,7 +38,7 @@ export function useMobilePromptInputKeyboard() {
     const updatePromptInputBottom = () => {
       const bottomOffset = getVisualViewportBottomOffset();
 
-      promptInputElement.style.setProperty(
+      promptInputGroupElement.style.setProperty(
         MOBILE_PROMPT_INPUT_BOTTOM_PROPERTY,
         `${Math.ceil(bottomOffset)}px`,
       );
@@ -52,16 +53,16 @@ export function useMobilePromptInputKeyboard() {
       visualViewport?.removeEventListener('resize', updatePromptInputBottom);
       visualViewport?.removeEventListener('scroll', updatePromptInputBottom);
       window.removeEventListener('resize', updatePromptInputBottom);
-      promptInputElement.style.removeProperty(
+      promptInputGroupElement.style.removeProperty(
         MOBILE_PROMPT_INPUT_BOTTOM_PROPERTY,
       );
     };
   }, [isPromptInputFocused]);
 
   useEffect(() => {
-    const promptInputElement = promptInputRef.current;
+    const promptInputGroupElement = promptInputGroupRef.current;
 
-    if (!promptInputElement || !isPromptInputFocused) {
+    if (!promptInputGroupElement || !isPromptInputFocused) {
       return;
     }
 
@@ -80,7 +81,8 @@ export function useMobilePromptInputKeyboard() {
 
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
-      shouldDismissKeyboardOnDrag = !promptInputElement.contains(eventTarget);
+      shouldDismissKeyboardOnDrag =
+        !promptInputGroupElement.contains(eventTarget);
     };
 
     const handleDocumentTouchMove = (event: globalThis.TouchEvent) => {
@@ -125,7 +127,8 @@ export function useMobilePromptInputKeyboard() {
   }, [isPromptInputFocused]);
 
   return {
-    promptInputRef,
+    promptInputGroupRef,
+    promptTextareaRef,
     handlePromptInputBlur: () => {
       touchFocusStartPointRef.current = null;
       setIsPromptInputFocused(false);
@@ -157,12 +160,17 @@ export function useMobilePromptInputKeyboard() {
         return;
       }
 
-      event.currentTarget.focus({ preventScroll: true });
+      promptTextareaRef.current?.focus({ preventScroll: true });
     },
     handlePromptInputTouchStart: (event: TouchEvent<HTMLTextAreaElement>) => {
+      const promptTextareaElement = promptTextareaRef.current;
       const touch = event.touches[0];
 
-      if (!touch || document.activeElement === event.currentTarget) {
+      if (
+        !touch ||
+        !promptTextareaElement ||
+        document.activeElement === promptTextareaElement
+      ) {
         touchFocusStartPointRef.current = null;
         return;
       }
