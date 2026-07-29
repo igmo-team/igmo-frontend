@@ -91,7 +91,6 @@ export function RoomPlayingView({
     }
 
     if (currentGuessSubmissionSnapshot.status === 'SUBMITTED') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPromptText(currentGuessSubmissionSnapshot.guess);
       setIsSubmitPending(false);
       return;
