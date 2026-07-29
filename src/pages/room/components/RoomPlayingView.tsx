@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
+import { MOBILE_MEDIA_QUERY } from '../../../common/styles/breakpoints';
+import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
 import type { RoundSnapshot } from '../../../domain/room/types';
 
@@ -22,6 +24,15 @@ export function RoomPlayingView({
   onSubmit,
 }: RoomPlayingViewProps) {
   const isComposingRef = useRef(false);
+  const {
+    promptInputGroupRef,
+    promptTextareaRef,
+    handlePromptInputBlur,
+    handlePromptInputFocus,
+    handlePromptInputTouchEnd,
+    handlePromptInputTouchStart,
+  } = useMobilePromptInputKeyboard();
+
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
@@ -36,6 +47,10 @@ export function RoomPlayingView({
     isSubmitPending ||
     !isSocketConnected;
   const submitButtonText = getSubmitButtonText(isSubmitted, isSubmitPending);
+  const mobileSubmitButtonText = getMobileSubmitButtonText(
+    isSubmitted,
+    isSubmitPending,
+  );
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -84,6 +99,25 @@ export function RoomPlayingView({
     onSubmit(promptText);
   };
 
+  const handleSubmitButtonTouchStart = (
+    event: React.TouchEvent<HTMLButtonElement>,
+  ) => {
+    if (isSubmitDisabled) {
+      return;
+    }
+
+    event.preventDefault();
+  };
+
+  const handleSubmitButtonTouchEnd = (
+    event: React.TouchEvent<HTMLButtonElement>,
+  ) => {
+    if (isSubmitDisabled) {
+      return;
+    }
+    event.currentTarget.form?.requestSubmit();
+  };
+
   return (
     <S_PlayingSection>
       <S_ImageFrame>
@@ -108,8 +142,13 @@ export function RoomPlayingView({
             </S_Guide>
           </S_TextGroup>
 
-          <S_InputGroup onSubmit={handlePromptSubmit}>
+          <S_InputGroup
+            ref={promptInputGroupRef}
+            hasError={Boolean(socketErrorMessage)}
+            onSubmit={handlePromptSubmit}
+          >
             <Textarea
+              ref={promptTextareaRef}
               value={promptText}
               tone="white"
               rows={3}
@@ -123,15 +162,27 @@ export function RoomPlayingView({
               onCompositionEnd={() => {
                 isComposingRef.current = false;
               }}
+              onBlur={handlePromptInputBlur}
+              onFocus={handlePromptInputFocus}
               onKeyDown={handlePromptKeyDown}
+              onTouchEnd={handlePromptInputTouchEnd}
+              onTouchStart={handlePromptInputTouchStart}
             />
 
             {socketErrorMessage && (
               <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
             )}
 
-            <Button type="submit" disabled={isSubmitDisabled}>
-              {submitButtonText}
+            <Button
+              type="submit"
+              disabled={isSubmitDisabled}
+              onTouchEnd={handleSubmitButtonTouchEnd}
+              onTouchStart={handleSubmitButtonTouchStart}
+            >
+              <S_DesktopSubmitLabel>{submitButtonText}</S_DesktopSubmitLabel>
+              <S_MobileSubmitLabel>
+                {mobileSubmitButtonText}
+              </S_MobileSubmitLabel>
             </Button>
           </S_InputGroup>
         </S_FormArea>
@@ -152,11 +203,30 @@ function getSubmitButtonText(isSubmitted: boolean, isSubmitPending: boolean) {
   return '제출하기';
 }
 
+function getMobileSubmitButtonText(
+  isSubmitted: boolean,
+  isSubmitPending: boolean,
+) {
+  if (isSubmitted) {
+    return '완료';
+  }
+
+  if (isSubmitPending) {
+    return '중...';
+  }
+
+  return '제출';
+}
+
 const S_PlayingSection = styled.section`
   display: flex;
   width: 100%;
   flex-direction: column;
   gap: 2.4rem;
+
+  @media ${MOBILE_MEDIA_QUERY} {
+    gap: 1.4rem;
+  }
 `;
 
 const S_ImageFrame = styled.div`
@@ -226,16 +296,74 @@ const S_Point = styled.strong`
   color: ${({ theme }) => theme.COLOR.PRIMARY500};
 `;
 
-const S_InputGroup = styled.form`
+const S_InputGroup = styled('form', {
+  shouldForwardProp: (prop) => prop !== 'hasError',
+})<{ hasError: boolean }>`
   display: flex;
   flex-direction: column;
   gap: 2.4rem;
+
+  @media ${MOBILE_MEDIA_QUERY} {
+    position: fixed;
+    z-index: 30;
+    right: 0;
+    bottom: var(--mobile-composer-bottom, 0);
+    left: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: ${({ hasError }) => (hasError ? 'auto auto' : 'auto')};
+    align-items: end;
+    gap: 1rem;
+    padding: 1rem 1.8rem calc(1rem + env(safe-area-inset-bottom));
+    border-top: ${({ theme }) => theme.BORDER.THIN};
+    background: ${({ theme }) => theme.COLOR.WHITE};
+
+    > textarea {
+      grid-column: 1;
+      grid-row: ${({ hasError }) => (hasError ? 2 : 1)};
+      height: 5rem;
+      padding: 1rem 1.3rem;
+      border-radius: ${({ theme }) => theme.RADIUS.LG};
+      box-shadow: none;
+      line-height: 1.4;
+    }
+
+    > button {
+      grid-column: 2;
+      grid-row: ${({ hasError }) => (hasError ? 2 : 1)};
+      width: 6rem;
+      height: 5rem;
+      padding: 0;
+      border-radius: ${({ theme }) => theme.RADIUS.MD};
+      box-shadow: none;
+    }
+  }
 `;
 
 const S_ErrorMessage = styled.p`
   color: ${({ theme }) => theme.COLOR.DANGER};
   text-align: center;
   ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+
+  @media ${MOBILE_MEDIA_QUERY} {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    text-align: left;
+  }
+`;
+
+const S_DesktopSubmitLabel = styled.span`
+  @media ${MOBILE_MEDIA_QUERY} {
+    display: none;
+  }
+`;
+
+const S_MobileSubmitLabel = styled.span`
+  display: none;
+
+  @media ${MOBILE_MEDIA_QUERY} {
+    display: inline;
+  }
 `;
 
 const S_OwnerWaiting = styled.p`
