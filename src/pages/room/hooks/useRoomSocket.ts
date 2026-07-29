@@ -58,7 +58,7 @@ type UseRoomSocketResult = {
   sendStart: () => void;
   sendPrompt: (prompt: string) => void;
   sendGuess: (guess: string) => void;
-  sendVote: (optionId: string) => void;
+  sendVote: (optionId: string) => boolean;
   sendRestart: () => void;
 };
 
@@ -303,7 +303,10 @@ export function useRoomSocket({
   };
 
   const sendVote = (optionId: string) => {
-    publish(`/app/rooms/${roomCode}/votes`, JSON.stringify({ optionId }));
+    return publish(
+      `/app/rooms/${roomCode}/votes`,
+      JSON.stringify({ optionId }),
+    );
   };
 
   const sendRestart = () => {

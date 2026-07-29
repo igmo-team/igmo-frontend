@@ -15,7 +15,7 @@ type RoomVotingViewProps = {
   isOwnVoteOptionNoticePending: boolean;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
-  onSubmit: (optionId: string) => void;
+  onSubmit: (optionId: string) => boolean;
 };
 
 export function RoomVotingView({
@@ -70,7 +70,12 @@ export function RoomVotingView({
       return;
     }
 
-    onSubmit(selectedOptionId);
+    const isSubmitted = onSubmit(selectedOptionId);
+
+    if (!isSubmitted) {
+      return;
+    }
+
     setHasSubmittedVote(true);
   };
 
