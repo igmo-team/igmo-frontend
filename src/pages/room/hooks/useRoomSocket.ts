@@ -6,6 +6,7 @@ import {
   writeHasPlayedCountdown,
 } from '../utils/countdownPlayedStorage';
 import { parseGameResultSnapshot } from '../utils/parseGameResultSnapshot';
+import { parseGuessSubmissionSnapshot } from '../utils/parseGuessSubmissionSnapshot';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
 import { parseOwnVoteOptionNotice } from '../utils/parseOwnVoteOptionNotice';
 import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
@@ -17,6 +18,7 @@ import { parseVoteSnapshot } from '../utils/parseVoteSnapshot';
 
 import type {
   GameResultSnapshot,
+  GuessSubmissionSnapshot,
   ImageGenerationSnapshot,
   OwnVoteOptionNotice,
   PromptSubmissionSnapshot,
@@ -44,6 +46,7 @@ type UseRoomSocketResult = {
   phase: RoomPhase;
   receivedSnapshot: RoomSnapshot | null;
   promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
+  guessSubmissionSnapshot: GuessSubmissionSnapshot | null;
   roundSnapshot: RoundSnapshot | null;
   voteSnapshot: VoteSnapshot | null;
   roundResultSnapshot: RoundResultSnapshot | null;
@@ -75,6 +78,8 @@ export function useRoomSocket({
   );
   const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
     useState<PromptSubmissionSnapshot | null>(null);
+  const [guessSubmissionSnapshot, setGuessSubmissionSnapshot] =
+    useState<GuessSubmissionSnapshot | null>(null);
   const [roundSnapshot, setRoundSnapshot] = useState<RoundSnapshot | null>(
     null,
   );
@@ -206,6 +211,32 @@ export function useRoomSocket({
         }
       });
 
+      client.subscribe('/user/queue/guess-submission', (message) => {
+        if (!isActive) {
+          return;
+        }
+
+        const nextGuessSubmissionSnapshot = parseGuessSubmissionSnapshot(
+          message.body,
+        );
+
+        if (nextGuessSubmissionSnapshot?.roomCode !== roomCode) {
+          return;
+        }
+
+        setGuessSubmissionSnapshot(nextGuessSubmissionSnapshot);
+
+        if (nextGuessSubmissionSnapshot.status === 'REJECTED') {
+          setErrorMessage(
+            nextGuessSubmissionSnapshot.message ||
+              '추측 프롬프트를 다시 확인해주세요.',
+          );
+          return;
+        }
+
+        setErrorMessage('');
+      });
+
       client.subscribe('/user/queue/vote-own-option', (message) => {
         if (!isActive) {
           return;
@@ -322,11 +353,16 @@ export function useRoomSocket({
     ownVoteOptionNoticeByRoundState.roomCode === roomCode
       ? ownVoteOptionNoticeByRoundState.noticeByRound
       : {};
+  const activeGuessSubmissionSnapshot =
+    guessSubmissionSnapshot?.roomCode === roomCode
+      ? guessSubmissionSnapshot
+      : null;
 
   return {
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
+    guessSubmissionSnapshot: activeGuessSubmissionSnapshot,
     roundSnapshot,
     voteSnapshot,
     roundResultSnapshot,

@@ -66,6 +66,21 @@ export type RoundSnapshot = {
   guessEntries: RoundGuessEntry[];
 };
 
+export type GuessSubmissionStatus =
+  | 'SUBMITTED'
+  | 'REJECTED'
+  | 'PERFECT_RETRY_REQUIRED';
+
+export type GuessSubmissionSnapshot = {
+  roomCode: string;
+  roundNumber: number;
+  totalRoundCount: number;
+  status: GuessSubmissionStatus;
+  guess: string;
+  confirmedScore: number | null;
+  message: string | null;
+};
+
 export type VoteOption = {
   optionId: string;
   text: string;
