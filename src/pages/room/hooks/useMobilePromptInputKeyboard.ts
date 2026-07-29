@@ -126,60 +126,72 @@ export function useMobilePromptInputKeyboard() {
     };
   }, [isPromptInputFocused]);
 
+  const handlePromptInputBlur = () => {
+    touchFocusStartPointRef.current = null;
+    setIsPromptInputFocused(false);
+  };
+
+  const handlePromptInputFocus = () => {
+    setIsPromptInputFocused(true);
+  };
+
+  const handlePromptInputTouchEnd = (
+    event: TouchEvent<HTMLTextAreaElement>,
+  ) => {
+    const touchStartPoint = touchFocusStartPointRef.current;
+    const changedTouch = event.changedTouches[0];
+
+    touchFocusStartPointRef.current = null;
+
+    if (!touchStartPoint || !changedTouch) {
+      return;
+    }
+
+    const touchMoveDistanceX = Math.abs(
+      changedTouch.clientX - touchStartPoint.x,
+    );
+    const touchMoveDistanceY = Math.abs(
+      changedTouch.clientY - touchStartPoint.y,
+    );
+
+    if (
+      touchMoveDistanceX > TOUCH_FOCUS_MOVE_THRESHOLD ||
+      touchMoveDistanceY > TOUCH_FOCUS_MOVE_THRESHOLD
+    ) {
+      return;
+    }
+
+    promptTextareaRef.current?.focus({ preventScroll: true });
+  };
+
+  const handlePromptInputTouchStart = (
+    event: TouchEvent<HTMLTextAreaElement>,
+  ) => {
+    const promptTextareaElement = promptTextareaRef.current;
+    const touch = event.touches[0];
+
+    if (
+      !touch ||
+      !promptTextareaElement ||
+      document.activeElement === promptTextareaElement
+    ) {
+      touchFocusStartPointRef.current = null;
+      return;
+    }
+
+    event.preventDefault();
+    touchFocusStartPointRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  };
+
   return {
     promptInputGroupRef,
     promptTextareaRef,
-    handlePromptInputBlur: () => {
-      touchFocusStartPointRef.current = null;
-      setIsPromptInputFocused(false);
-    },
-    handlePromptInputFocus: () => {
-      setIsPromptInputFocused(true);
-    },
-    handlePromptInputTouchEnd: (event: TouchEvent<HTMLTextAreaElement>) => {
-      const touchStartPoint = touchFocusStartPointRef.current;
-      const changedTouch = event.changedTouches[0];
-
-      touchFocusStartPointRef.current = null;
-
-      if (!touchStartPoint || !changedTouch) {
-        return;
-      }
-
-      const touchMoveDistanceX = Math.abs(
-        changedTouch.clientX - touchStartPoint.x,
-      );
-      const touchMoveDistanceY = Math.abs(
-        changedTouch.clientY - touchStartPoint.y,
-      );
-
-      if (
-        touchMoveDistanceX > TOUCH_FOCUS_MOVE_THRESHOLD ||
-        touchMoveDistanceY > TOUCH_FOCUS_MOVE_THRESHOLD
-      ) {
-        return;
-      }
-
-      promptTextareaRef.current?.focus({ preventScroll: true });
-    },
-    handlePromptInputTouchStart: (event: TouchEvent<HTMLTextAreaElement>) => {
-      const promptTextareaElement = promptTextareaRef.current;
-      const touch = event.touches[0];
-
-      if (
-        !touch ||
-        !promptTextareaElement ||
-        document.activeElement === promptTextareaElement
-      ) {
-        touchFocusStartPointRef.current = null;
-        return;
-      }
-
-      event.preventDefault();
-      touchFocusStartPointRef.current = {
-        x: touch.clientX,
-        y: touch.clientY,
-      };
-    },
+    handlePromptInputBlur,
+    handlePromptInputFocus,
+    handlePromptInputTouchEnd,
+    handlePromptInputTouchStart,
   };
 }
