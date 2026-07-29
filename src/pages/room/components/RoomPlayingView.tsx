@@ -8,6 +8,8 @@ import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeybo
 
 import type { RoundSnapshot } from '../../../domain/room/types';
 
+const SUBMIT_TOUCH_MOVE_THRESHOLD = 8;
+
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
   currentPlayerId?: string;
@@ -24,6 +26,9 @@ export function RoomPlayingView({
   onSubmit,
 }: RoomPlayingViewProps) {
   const isComposingRef = useRef(false);
+  const submitTouchStartPointRef = useRef<{ x: number; y: number } | null>(
+    null,
+  );
   const {
     promptInputRef,
     handlePromptInputBlur,
@@ -97,6 +102,25 @@ export function RoomPlayingView({
     onSubmit(promptText);
   };
 
+  const handleSubmitButtonTouchStart = (
+    event: React.TouchEvent<HTMLButtonElement>,
+  ) => {
+    if (isSubmitDisabled) {
+      return;
+    }
+
+    event.preventDefault();
+  };
+
+  const handleSubmitButtonTouchEnd = (
+    event: React.TouchEvent<HTMLButtonElement>,
+  ) => {
+    if (isSubmitDisabled) {
+      return;
+    }
+    event.currentTarget.form?.requestSubmit();
+  };
+
   return (
     <S_PlayingSection>
       <S_ImageFrame>
@@ -151,7 +175,12 @@ export function RoomPlayingView({
               <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
             )}
 
-            <Button type="submit" disabled={isSubmitDisabled}>
+            <Button
+              type="submit"
+              disabled={isSubmitDisabled}
+              onTouchEnd={handleSubmitButtonTouchEnd}
+              onTouchStart={handleSubmitButtonTouchStart}
+            >
               <S_DesktopSubmitLabel>{submitButtonText}</S_DesktopSubmitLabel>
               <S_MobileSubmitLabel>
                 {mobileSubmitButtonText}
