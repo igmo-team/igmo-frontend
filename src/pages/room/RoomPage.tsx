@@ -176,6 +176,7 @@ export function RoomPage() {
   const [toast, setToast] = useState<RoomToastState | null>(null);
   const toastIdRef = useRef(0);
   const handledPerfectGuessKeyRef = useRef('');
+  const handledPerfectVoteToastKeysRef = useRef<Set<string>>(new Set());
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const showToast = useCallback((nextToast: Omit<RoomToastState, 'id'>) => {
     toastIdRef.current += 1;
@@ -231,6 +232,36 @@ export function RoomPage() {
       body: '이제 진짜 같은 가짜 프롬프트를 입력하세요',
     });
   }, [guessSubmissionSnapshot, roundSnapshot?.roundNumber, showToast]);
+
+  useEffect(() => {
+    if (phase === 'LOBBY' || phase === 'GENERATING') {
+      handledPerfectVoteToastKeysRef.current.clear();
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== 'VOTING' || voteSnapshot?.perfectGuessExists !== true) {
+      return;
+    }
+
+    const toastKey = `${voteSnapshot.roomCode}:${voteSnapshot.roundNumber}`;
+
+    if (handledPerfectVoteToastKeysRef.current.has(toastKey)) {
+      return;
+    }
+
+    handledPerfectVoteToastKeysRef.current.add(toastKey);
+    showToast({
+      icon: '🎯',
+      title: '누군가 완벽 정답을 맞혔습니다!',
+    });
+  }, [
+    phase,
+    showToast,
+    voteSnapshot?.perfectGuessExists,
+    voteSnapshot?.roomCode,
+    voteSnapshot?.roundNumber,
+  ]);
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
     writeRoomSession({
