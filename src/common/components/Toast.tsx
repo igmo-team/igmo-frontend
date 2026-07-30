@@ -1,4 +1,8 @@
-import { type ComponentPropsWithoutRef } from 'react';
+import {
+  type ComponentPropsWithoutRef,
+  useEffect,
+  useState,
+} from 'react';
 
 import { css, keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,20 +11,45 @@ import { MOBILE_MEDIA_QUERY } from '../styles/breakpoints';
 
 export type ToastVariant = 'success' | 'info' | 'error';
 
+const DEFAULT_VISIBLE_MS = 2400;
+const TOAST_ANIMATION_MS = 180;
+
 type ToastProps = ComponentPropsWithoutRef<'div'> & {
   title: string;
   body?: string;
   icon?: string;
   variant?: ToastVariant;
+  visibleMs?: number;
 };
 
-function Toast({ title, body, icon, variant = 'info', ...rest }: ToastProps) {
+function Toast({
+  title,
+  body,
+  icon,
+  variant = 'info',
+  visibleMs = DEFAULT_VISIBLE_MS,
+  ...rest
+}: ToastProps) {
+  const [isExiting, setIsExiting] = useState(false);
+
+  useEffect(() => {
+    const exitStartMs = Math.max(0, visibleMs - TOAST_ANIMATION_MS);
+    const timeoutId = setTimeout(() => {
+      setIsExiting(true);
+    }, exitStartMs);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [visibleMs]);
+
   return (
     <S_Toast
       role="status"
       aria-live="polite"
       aria-atomic="true"
       hasBody={Boolean(body)}
+      isExiting={isExiting}
       variant={variant}
       {...rest}
     >
@@ -44,6 +73,18 @@ const toastEnter = keyframes`
   to {
     opacity: 1;
     transform: translate(-50%, 0);
+  }
+`;
+
+const toastExit = keyframes`
+  from {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, 0.8rem);
   }
 `;
 
@@ -77,8 +118,9 @@ const TOAST_VARIANT_COLORS: Record<
 };
 
 const S_Toast = styled('div', {
-  shouldForwardProp: (prop) => prop !== 'hasBody' && prop !== 'variant',
-})<{ hasBody: boolean; variant: ToastVariant }>`
+  shouldForwardProp: (prop) =>
+    prop !== 'hasBody' && prop !== 'isExiting' && prop !== 'variant',
+})<{ hasBody: boolean; isExiting: boolean; variant: ToastVariant }>`
   position: fixed;
   z-index: 20;
   bottom: calc(9.6rem + env(safe-area-inset-bottom));
@@ -96,7 +138,8 @@ const S_Toast = styled('div', {
   background: ${({ variant }) => TOAST_VARIANT_COLORS[variant].background};
   color: ${({ variant }) => TOAST_VARIANT_COLORS[variant].title};
   pointer-events: none;
-  animation: ${toastEnter} 0.18s ease-out both;
+  animation: ${({ isExiting }) => (isExiting ? toastExit : toastEnter)}
+    ${TOAST_ANIMATION_MS}ms ease-out both;
 
   @media ${MOBILE_MEDIA_QUERY} {
     bottom: calc(10.4rem + env(safe-area-inset-bottom));
