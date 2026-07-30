@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
 import { MOBILE_MEDIA_QUERY } from '../../../common/styles/breakpoints';
+import { showGameToast } from '../../../common/toast';
 import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
 import type {
@@ -29,6 +30,7 @@ export function RoomPlayingView({
   onSubmit,
 }: RoomPlayingViewProps) {
   const isComposingRef = useRef(false);
+  const shownPerfectGuessToastKeyRef = useRef('');
   const {
     promptInputGroupRef,
     promptTextareaRef,
@@ -84,6 +86,23 @@ export function RoomPlayingView({
     }
 
     if (currentGuessSubmissionSnapshot.status === 'PERFECT_RETRY_REQUIRED') {
+      const toastKey = [
+        currentGuessSubmissionSnapshot.roomCode,
+        currentGuessSubmissionSnapshot.roundNumber,
+        currentGuessSubmissionSnapshot.guess,
+        currentGuessSubmissionSnapshot.confirmedScore ?? '',
+      ].join(':');
+
+      if (shownPerfectGuessToastKeyRef.current !== toastKey) {
+        shownPerfectGuessToastKeyRef.current = toastKey;
+        showGameToast({
+          variant: 'success',
+          icon: '🎯',
+          title: `정답 적중! +${currentGuessSubmissionSnapshot.confirmedScore ?? 3}점`,
+          body: '이제 진짜 같은 가짜 프롬프트를 입력하세요',
+        });
+      }
+
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPromptText('');
       setIsSubmitPending(false);

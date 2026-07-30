@@ -177,7 +177,6 @@ export function RoomPage() {
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const [toast, setToast] = useState<RoomToastState | null>(null);
   const toastIdRef = useRef(0);
-  const handledPerfectGuessKeyRef = useRef('');
   const handledPerfectVoteToastKeysRef = useRef<Set<string>>(new Set());
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const showToast = useCallback((nextToast: Omit<RoomToastState, 'id'>) => {
@@ -207,34 +206,6 @@ export function RoomPage() {
       clearTimeout(timeoutId);
     };
   }, [toast]);
-
-  useEffect(() => {
-    if (
-      guessSubmissionSnapshot?.status !== 'PERFECT_RETRY_REQUIRED' ||
-      roundSnapshot?.roundNumber !== guessSubmissionSnapshot.roundNumber
-    ) {
-      return;
-    }
-
-    const toastKey = [
-      guessSubmissionSnapshot.roomCode,
-      guessSubmissionSnapshot.roundNumber,
-      guessSubmissionSnapshot.guess,
-      guessSubmissionSnapshot.confirmedScore ?? '',
-    ].join(':');
-
-    if (handledPerfectGuessKeyRef.current === toastKey) {
-      return;
-    }
-
-    handledPerfectGuessKeyRef.current = toastKey;
-    showToast({
-      variant: 'success',
-      icon: '🎯',
-      title: `정답 적중! +${guessSubmissionSnapshot.confirmedScore ?? 3}점`,
-      body: '이제 진짜 같은 가짜 프롬프트를 입력하세요',
-    });
-  }, [guessSubmissionSnapshot, roundSnapshot?.roundNumber, showToast]);
 
   useEffect(() => {
     if (phase === 'LOBBY' || phase === 'GENERATING') {
