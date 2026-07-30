@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
+import { showGameToast } from '../../../common/lib/toast';
 import { MOBILE_MEDIA_QUERY } from '../../../common/styles/breakpoints';
-import { showGameToast } from '../../../common/toast';
 import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
 import type {

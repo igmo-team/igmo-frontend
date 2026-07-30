@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button } from '../../../common/components';
-import { showGameToast } from '../../../common/toast';
+import { showGameToast } from '../../../common/lib/toast';
 
 import type {
   OwnVoteOptionNotice,

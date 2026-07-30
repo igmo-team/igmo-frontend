@@ -1,8 +1,8 @@
 import { toast } from 'sonner';
 
-import { GameToast } from '../components';
+import { GameToast } from '../../components';
 
-import type { GameToastProps } from '../components/GameToast';
+import type { GameToastProps } from '../../components/GameToast';
 
 const GAME_TOAST_DURATION_MS = 2400;
 
