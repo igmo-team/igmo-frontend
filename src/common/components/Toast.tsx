@@ -5,25 +5,29 @@ import styled from '@emotion/styled';
 
 import { MOBILE_MEDIA_QUERY } from '../styles/breakpoints';
 
+export type ToastVariant = 'success' | 'info' | 'error';
+
 type ToastProps = ComponentPropsWithoutRef<'div'> & {
   title: string;
   body?: string;
   icon?: string;
+  variant?: ToastVariant;
 };
 
-function Toast({ title, body, icon, ...rest }: ToastProps) {
+function Toast({ title, body, icon, variant = 'info', ...rest }: ToastProps) {
   return (
     <S_Toast
       role="status"
       aria-live="polite"
       aria-atomic="true"
       hasBody={Boolean(body)}
+      variant={variant}
       {...rest}
     >
       {icon && <S_Icon aria-hidden="true">{icon}</S_Icon>}
       <S_TextGroup hasBody={Boolean(body)}>
-        <S_Title>{title}</S_Title>
-        {body && <S_Body>{body}</S_Body>}
+        <S_Title variant={variant}>{title}</S_Title>
+        {body && <S_Body variant={variant}>{body}</S_Body>}
       </S_TextGroup>
     </S_Toast>
   );
@@ -43,9 +47,38 @@ const toastEnter = keyframes`
   }
 `;
 
+const TOAST_VARIANT_COLORS: Record<
+  ToastVariant,
+  {
+    background: string;
+    border: string;
+    title: string;
+    body: string;
+  }
+> = {
+  success: {
+    background: '#E3EEE8',
+    border: '#A6DDBE',
+    title: '#147A3D',
+    body: '#2F8354',
+  },
+  info: {
+    background: '#FFF7D7',
+    border: '#EAD27A',
+    title: '#3C2A12',
+    body: '#7A5B18',
+  },
+  error: {
+    background: '#FFE8EE',
+    border: '#FF9AAE',
+    title: '#9F1239',
+    body: '#BE3455',
+  },
+};
+
 const S_Toast = styled('div', {
-  shouldForwardProp: (prop) => prop !== 'hasBody',
-})<{ hasBody: boolean }>`
+  shouldForwardProp: (prop) => prop !== 'hasBody' && prop !== 'variant',
+})<{ hasBody: boolean; variant: ToastVariant }>`
   position: fixed;
   z-index: 20;
   bottom: calc(9.6rem + env(safe-area-inset-bottom));
@@ -57,10 +90,11 @@ const S_Toast = styled('div', {
   align-items: center;
   gap: 2rem;
   padding: ${({ hasBody }) => (hasBody ? '2rem 3.2rem' : '1.8rem 3.2rem')};
-  border: 0.25rem solid #ead27a;
+  border: 0.25rem solid
+    ${({ variant }) => TOAST_VARIANT_COLORS[variant].border};
   border-radius: ${({ theme }) => theme.RADIUS.IMAGE};
-  background: #fff7d7;
-  color: #3c2a12;
+  background: ${({ variant }) => TOAST_VARIANT_COLORS[variant].background};
+  color: ${({ variant }) => TOAST_VARIANT_COLORS[variant].title};
   pointer-events: none;
   animation: ${toastEnter} 0.18s ease-out both;
 
@@ -110,8 +144,10 @@ const S_TextGroup = styled('div', {
     `}
 `;
 
-const S_Title = styled.strong`
-  color: #3c2a12;
+const S_Title = styled('strong', {
+  shouldForwardProp: (prop) => prop !== 'variant',
+})<{ variant: ToastVariant }>`
+  color: ${({ variant }) => TOAST_VARIANT_COLORS[variant].title};
   overflow-wrap: anywhere;
   ${({ theme }) => theme.TYPOGRAPHY.TITLE3}
 
@@ -120,8 +156,10 @@ const S_Title = styled.strong`
   }
 `;
 
-const S_Body = styled.p`
-  color: #7a5b18;
+const S_Body = styled('p', {
+  shouldForwardProp: (prop) => prop !== 'variant',
+})<{ variant: ToastVariant }>`
+  color: ${({ variant }) => TOAST_VARIANT_COLORS[variant].body};
   overflow-wrap: anywhere;
   ${({ theme }) => theme.TYPOGRAPHY.B2_B}
 
