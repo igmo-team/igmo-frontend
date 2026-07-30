@@ -35,6 +35,7 @@ import {
 } from './utils/roomSessionStorage';
 
 import type { RoomEntryState } from './utils/getRoomEntryState';
+import type { ToastVariant } from '../../common/components/Toast';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
 
 const TOAST_VISIBLE_MS = 2400;
@@ -44,6 +45,7 @@ type RoomToastState = {
   title: string;
   body?: string;
   icon?: string;
+  variant?: ToastVariant;
 };
 
 export function RoomPage() {
@@ -227,6 +229,7 @@ export function RoomPage() {
 
     handledPerfectGuessKeyRef.current = toastKey;
     showToast({
+      variant: 'success',
       icon: '🎯',
       title: `정답 적중! +${guessSubmissionSnapshot.confirmedScore ?? 3}점`,
       body: '이제 진짜 같은 가짜 프롬프트를 입력하세요',
@@ -252,6 +255,7 @@ export function RoomPage() {
 
     handledPerfectVoteToastKeysRef.current.add(toastKey);
     showToast({
+      variant: 'info',
       icon: '🎯',
       title: '완벽 정답자가 나왔어요!',
       body: '이전 추측에서 원본 프롬프트를 정확히 맞혔습니다.',
@@ -429,6 +433,7 @@ export function RoomPage() {
       {toast && (
         <Toast
           key={toast.id}
+          variant={toast.variant}
           icon={toast.icon}
           title={toast.title}
           body={toast.body}
