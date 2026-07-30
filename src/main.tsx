@@ -16,12 +16,12 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider theme={THEME}>
       <QueryClientProvider client={queryClient}>
         <Global styles={[resetCss]} />
-        <App />
         <Toaster
           duration={2400}
           offset={{ bottom: 'var(--toast-bottom-offset, 9.6rem)' }}
           position="bottom-center"
         />
+        <App />
       </QueryClientProvider>
     </ThemeProvider>
   </StrictMode>,
