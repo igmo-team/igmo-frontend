@@ -253,7 +253,8 @@ export function RoomPage() {
     handledPerfectVoteToastKeysRef.current.add(toastKey);
     showToast({
       icon: '🎯',
-      title: '누군가 완벽 정답을 맞혔습니다!',
+      title: '완벽 정답자가 나왔어요!',
+      body: '이전 추측에서 원본 프롬프트를 정확히 맞혔습니다.',
     });
   }, [
     phase,

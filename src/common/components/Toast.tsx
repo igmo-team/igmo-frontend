@@ -34,7 +34,7 @@ export default Toast;
 const toastEnter = keyframes`
   from {
     opacity: 0;
-    transform: translate(-50%, -0.8rem);
+    transform: translate(-50%, 0.8rem);
   }
 
   to {
@@ -48,7 +48,7 @@ const S_Toast = styled('div', {
 })<{ hasBody: boolean }>`
   position: fixed;
   z-index: 20;
-  top: 7.8rem;
+  bottom: calc(9.6rem + env(safe-area-inset-bottom));
   left: 50%;
   display: grid;
   width: min(calc(100vw - 3.2rem), 77.6rem);
@@ -57,15 +57,15 @@ const S_Toast = styled('div', {
   align-items: center;
   gap: 2rem;
   padding: ${({ hasBody }) => (hasBody ? '2rem 3.2rem' : '1.8rem 3.2rem')};
-  border: 0.25rem solid #a6ddbe;
+  border: 0.25rem solid #ead27a;
   border-radius: ${({ theme }) => theme.RADIUS.IMAGE};
-  background: #e3eee8;
-  color: #147a3d;
+  background: #fff7d7;
+  color: #3c2a12;
   pointer-events: none;
   animation: ${toastEnter} 0.18s ease-out both;
 
   @media ${MOBILE_MEDIA_QUERY} {
-    top: 7.2rem;
+    bottom: calc(10.4rem + env(safe-area-inset-bottom));
     width: min(calc(100vw - 2.4rem), 77.6rem);
     min-height: ${({ hasBody }) => (hasBody ? '8.8rem' : '7.2rem')};
     gap: 1.4rem;
@@ -111,7 +111,7 @@ const S_TextGroup = styled('div', {
 `;
 
 const S_Title = styled.strong`
-  color: #147a3d;
+  color: #3c2a12;
   overflow-wrap: anywhere;
   ${({ theme }) => theme.TYPOGRAPHY.TITLE3}
 
@@ -121,7 +121,7 @@ const S_Title = styled.strong`
 `;
 
 const S_Body = styled.p`
-  color: #2f8354;
+  color: #7a5b18;
   overflow-wrap: anywhere;
   ${({ theme }) => theme.TYPOGRAPHY.B2_B}
 
