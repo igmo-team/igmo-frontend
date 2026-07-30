@@ -20,7 +20,8 @@
     "canvas-confetti": "^1.9.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.2"
+    "react-router-dom": "^7.6.2",
+    "sonner": "^2.0.7"
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.0",
