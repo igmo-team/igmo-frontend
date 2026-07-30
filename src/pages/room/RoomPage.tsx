@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import { Surface, Toast } from '../../common/components';
+import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { isRoomCodeValid } from '../../domain/room/roomCode';
@@ -35,18 +35,7 @@ import {
 } from './utils/roomSessionStorage';
 
 import type { RoomEntryState } from './utils/getRoomEntryState';
-import type { ToastVariant } from '../../common/components/Toast';
 import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
-
-const TOAST_VISIBLE_MS = 2400;
-
-type RoomToastState = {
-  id: number;
-  title: string;
-  body?: string;
-  icon?: string;
-  variant?: ToastVariant;
-};
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -175,14 +164,7 @@ export function RoomPage() {
       : 0;
 
   const [isCountdownDone, setIsCountdownDone] = useState(false);
-  const [toast, setToast] = useState<RoomToastState | null>(null);
-  const toastIdRef = useRef(0);
-  const handledPerfectVoteToastKeysRef = useRef<Set<string>>(new Set());
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
-  const showToast = useCallback((nextToast: Omit<RoomToastState, 'id'>) => {
-    toastIdRef.current += 1;
-    setToast({ id: toastIdRef.current, ...nextToast });
-  }, []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
   const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
   const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
@@ -192,52 +174,6 @@ export function RoomPage() {
       navigate(PAGE_URL.HOME, { replace: true });
     }
   }, [hasValidRoomCode, navigate, roomCode, roomSession]);
-
-  useEffect(() => {
-    if (!toast) {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      setToast(null);
-    }, TOAST_VISIBLE_MS);
-
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [toast]);
-
-  useEffect(() => {
-    if (phase === 'LOBBY' || phase === 'GENERATING') {
-      handledPerfectVoteToastKeysRef.current.clear();
-    }
-  }, [phase]);
-
-  useEffect(() => {
-    if (phase !== 'VOTING' || voteSnapshot?.perfectGuessExists !== true) {
-      return;
-    }
-
-    const toastKey = `${voteSnapshot.roomCode}:${voteSnapshot.roundNumber}`;
-
-    if (handledPerfectVoteToastKeysRef.current.has(toastKey)) {
-      return;
-    }
-
-    handledPerfectVoteToastKeysRef.current.add(toastKey);
-    showToast({
-      variant: 'info',
-      icon: '🎯',
-      title: '완벽 정답자가 나왔어요!',
-      body: '이전 추측에서 원본 프롬프트를 정확히 맞혔습니다.',
-    });
-  }, [
-    phase,
-    showToast,
-    voteSnapshot?.perfectGuessExists,
-    voteSnapshot?.roomCode,
-    voteSnapshot?.roundNumber,
-  ]);
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
     writeRoomSession({
@@ -401,15 +337,6 @@ export function RoomPage() {
           null
         }
       />
-      {toast && (
-        <Toast
-          key={toast.id}
-          variant={toast.variant}
-          icon={toast.icon}
-          title={toast.title}
-          body={toast.body}
-        />
-      )}
 
       <S_GameMain>
         {phase === 'ENDED' ? (

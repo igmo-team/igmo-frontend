@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 
 import { Button } from '../../../common/components';
+import { showGameToast } from '../../../common/toast';
 
 import type {
   OwnVoteOptionNotice,
@@ -26,6 +27,7 @@ export function RoomVotingView({
   socketErrorMessage = '',
   onSubmit,
 }: RoomVotingViewProps) {
+  const shownPerfectToastKeyRef = useRef('');
   const [selectedOptionId, setSelectedOptionId] = useState('');
   const [hasSubmittedVote, setHasSubmittedVote] = useState(false);
   const isOwnImage = ownVoteOptionNotice?.ownImage === true;
@@ -56,6 +58,26 @@ export function RoomVotingView({
       setSelectedOptionId('');
     }
   }, [isOwnImage, isOwnVoteOptionNoticePending, ownOptionId, selectedOptionId]);
+
+  useEffect(() => {
+    if (!snapshot.perfectGuessExists) {
+      return;
+    }
+
+    const toastKey = `${snapshot.roomCode}:${snapshot.roundNumber}`;
+
+    if (shownPerfectToastKeyRef.current === toastKey) {
+      return;
+    }
+
+    shownPerfectToastKeyRef.current = toastKey;
+    showGameToast({
+      variant: 'info',
+      icon: '🎯',
+      title: '완벽 정답자가 나왔어요!',
+      body: '이전 추측에서 원본 프롬프트를 정확히 맞혔습니다.',
+    });
+  }, [snapshot.perfectGuessExists, snapshot.roomCode, snapshot.roundNumber]);
 
   const handleOptionClick = (optionId: string) => {
     if (isVoteBlocked || optionId === ownOptionId) {
