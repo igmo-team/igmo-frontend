@@ -71,25 +71,22 @@ const TOAST_VARIANT_COLORS: Record<
 };
 
 const S_Toast = styled('div', {
-  shouldForwardProp: (prop) =>
-    prop !== 'hasBody' && prop !== 'variant',
+  shouldForwardProp: (prop) => prop !== 'hasBody' && prop !== 'variant',
 })<{ hasBody: boolean; variant: GameToastVariant }>`
   display: grid;
-  width: min(calc(100vw - 3.2rem), 77.6rem);
+  width: 100%;
   min-height: ${({ hasBody }) => (hasBody ? '10.4rem' : '8.4rem')};
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 2rem;
   padding: ${({ hasBody }) => (hasBody ? '2rem 3.2rem' : '1.8rem 3.2rem')};
-  border: 0.25rem solid
-    ${({ variant }) => TOAST_VARIANT_COLORS[variant].border};
+  border: 0.25rem solid ${({ variant }) => TOAST_VARIANT_COLORS[variant].border};
   border-radius: ${({ theme }) => theme.RADIUS.IMAGE};
   background: ${({ variant }) => TOAST_VARIANT_COLORS[variant].background};
   color: ${({ variant }) => TOAST_VARIANT_COLORS[variant].title};
   pointer-events: none;
 
   @media ${MOBILE_MEDIA_QUERY} {
-    width: min(calc(100vw - 2.4rem), 77.6rem);
     min-height: ${({ hasBody }) => (hasBody ? '8.8rem' : '7.2rem')};
     gap: 1.4rem;
     padding: ${({ hasBody }) => (hasBody ? '1.6rem 2rem' : '1.5rem 2rem')};
