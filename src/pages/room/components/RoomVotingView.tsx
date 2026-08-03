@@ -30,7 +30,6 @@ export function RoomVotingView({
   const shownPerfectToastKeyRef = useRef('');
   const [selectedOptionId, setSelectedOptionId] = useState('');
   const [hasSubmittedVote, setHasSubmittedVote] = useState(false);
-  const isOwnImage = ownVoteOptionNotice?.ownImage === true;
   const isVoteAllowed = ownVoteOptionNotice?.voteAllowed === true;
   const ownOptionId = ownVoteOptionNotice?.optionId ?? null;
   const isVoteBlocked =
@@ -149,9 +148,9 @@ export function RoomVotingView({
 
         {!isOwnVoteOptionNoticePending && !isVoteAllowed && (
           <S_ActionStatus role="status">
-            {isOwnImage
-              ? '다른 참가자들이 내 그림의 진짜 프롬프트를 고르고 있어요.'
-              : '투표할 수 없는 상태예요.'}
+            {getVoteDisabledStatusMessage(
+              ownVoteOptionNotice?.voteDisabledReason,
+            )}
           </S_ActionStatus>
         )}
 
@@ -181,6 +180,20 @@ function getConfirmButtonText(hasSubmittedVote: boolean) {
   }
 
   return '투표 확정';
+}
+
+function getVoteDisabledStatusMessage(
+  voteDisabledReason: OwnVoteOptionNotice['voteDisabledReason'] | undefined,
+) {
+  if (voteDisabledReason === 'QUESTIONER') {
+    return '다른 참가자들이 내 그림의 진짜 프롬프트를 고르고 있어요.';
+  }
+
+  if (voteDisabledReason === 'PERFECT_GUESS') {
+    return '정답을 완벽히 맞혀서 이번 투표는 쉬어가도 돼요.';
+  }
+
+  return '투표할 수 없는 상태예요.';
 }
 
 function getOptionLabel(index: number) {
