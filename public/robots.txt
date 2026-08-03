@@ -1,5 +1,4 @@
 User-agent: *
 Allow: /
-Disallow: /room/
 
 Sitemap: https://igmo.co.kr/sitemap.xml
