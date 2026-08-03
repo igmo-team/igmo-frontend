@@ -31,12 +31,10 @@ export function RoomVotingView({
   const [selectedOptionId, setSelectedOptionId] = useState('');
   const [hasSubmittedVote, setHasSubmittedVote] = useState(false);
   const isOwnImage = ownVoteOptionNotice?.ownImage === true;
-  const ownOptionId =
-    ownVoteOptionNotice?.ownImage === false
-      ? ownVoteOptionNotice.optionId
-      : null;
+  const isVoteAllowed = ownVoteOptionNotice?.voteAllowed === true;
+  const ownOptionId = ownVoteOptionNotice?.optionId ?? null;
   const isVoteBlocked =
-    isOwnVoteOptionNoticePending || isOwnImage || hasSubmittedVote;
+    isOwnVoteOptionNoticePending || !isVoteAllowed || hasSubmittedVote;
   const isConfirmDisabled =
     !selectedOptionId || isVoteBlocked || !isSocketConnected;
   const confirmButtonText = getConfirmButtonText(hasSubmittedVote);
@@ -51,13 +49,18 @@ export function RoomVotingView({
   useEffect(() => {
     if (
       isOwnVoteOptionNoticePending ||
-      isOwnImage ||
+      !isVoteAllowed ||
       (ownOptionId && selectedOptionId === ownOptionId)
     ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedOptionId('');
     }
-  }, [isOwnImage, isOwnVoteOptionNoticePending, ownOptionId, selectedOptionId]);
+  }, [
+    isOwnVoteOptionNoticePending,
+    isVoteAllowed,
+    ownOptionId,
+    selectedOptionId,
+  ]);
 
   useEffect(() => {
     if (!snapshot.perfectGuessExists) {
@@ -144,13 +147,15 @@ export function RoomVotingView({
           </S_ActionStatus>
         )}
 
-        {!isOwnVoteOptionNoticePending && isOwnImage && (
+        {!isOwnVoteOptionNoticePending && !isVoteAllowed && (
           <S_ActionStatus role="status">
-            다른 참가자들이 내 그림의 진짜 프롬프트를 고르고 있어요.
+            {isOwnImage
+              ? '다른 참가자들이 내 그림의 진짜 프롬프트를 고르고 있어요.'
+              : '투표할 수 없는 상태예요.'}
           </S_ActionStatus>
         )}
 
-        {!isOwnVoteOptionNoticePending && !isOwnImage && (
+        {!isOwnVoteOptionNoticePending && isVoteAllowed && (
           <>
             <S_Notice>한번 투표하면 선택을 바꿀 수 없어요.</S_Notice>
             {socketErrorMessage && (
