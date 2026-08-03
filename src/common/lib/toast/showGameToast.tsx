@@ -5,6 +5,7 @@ import { GameToast } from '../../components';
 import type { GameToastProps } from '../../components/GameToast';
 
 const GAME_TOAST_DURATION_MS = 2400;
+const GAME_TOAST_ID = 'game-toast';
 
 export function showGameToast(message: GameToastProps) {
   return toast.custom(
@@ -18,6 +19,7 @@ export function showGameToast(message: GameToastProps) {
     ),
     {
       duration: GAME_TOAST_DURATION_MS,
+      id: GAME_TOAST_ID,
     },
   );
 }
