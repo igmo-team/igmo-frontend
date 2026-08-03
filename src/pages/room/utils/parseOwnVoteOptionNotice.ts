@@ -26,14 +26,34 @@ function isOwnVoteOptionNotice(value: unknown): value is OwnVoteOptionNotice {
   if (
     typeof notice.roomCode !== 'string' ||
     typeof notice.roundNumber !== 'number' ||
-    typeof notice.ownImage !== 'boolean'
+    typeof notice.ownImage !== 'boolean' ||
+    typeof notice.voteAllowed !== 'boolean' ||
+    !isVoteDisabledReasonOrNull(notice.voteDisabledReason)
   ) {
     return false;
   }
 
   if (notice.ownImage) {
-    return notice.optionId === null;
+    return (
+      notice.voteAllowed === false &&
+      notice.voteDisabledReason === 'QUESTIONER' &&
+      notice.optionId === null
+    );
   }
 
-  return typeof notice.optionId === 'string';
+  if (typeof notice.optionId !== 'string') {
+    return false;
+  }
+
+  if (notice.voteAllowed) {
+    return notice.voteDisabledReason === null;
+  }
+
+  return notice.voteDisabledReason === 'PERFECT_GUESS';
+}
+
+function isVoteDisabledReasonOrNull(
+  value: unknown,
+): value is OwnVoteOptionNotice['voteDisabledReason'] {
+  return value === null || value === 'QUESTIONER' || value === 'PERFECT_GUESS';
 }
