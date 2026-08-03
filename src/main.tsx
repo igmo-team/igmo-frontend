@@ -19,7 +19,6 @@ createRoot(document.getElementById('root')!).render(
         <Global styles={[resetCss, gameToastToasterCss]} />
         <Toaster
           className="game-toast-toaster"
-          duration={2400}
           offset={{ bottom: 'var(--toast-bottom-offset, 9.6rem)' }}
           mobileOffset={{ bottom: 'var(--toast-bottom-offset, 9.6rem)' }}
           position="bottom-center"
