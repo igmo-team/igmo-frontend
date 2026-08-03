@@ -134,6 +134,7 @@ export function useRoomSocket({
           setPhase(nextSnapshot.phase);
           if (nextSnapshot.phase === 'LOBBY') {
             setImageGenerationSnapshot(null);
+            setGuessSubmissionSnapshot(null);
           }
           setErrorMessage('');
           return;
@@ -158,6 +159,7 @@ export function useRoomSocket({
 
         if (nextPromptSnapshot) {
           setPromptSubmissionSnapshot(nextPromptSnapshot);
+          setGuessSubmissionSnapshot(null);
           setPhase(nextPromptSnapshot.phase);
           if (
             nextPromptSnapshot.promptEntries.find(
@@ -345,6 +347,7 @@ export function useRoomSocket({
 
     if (isPublished) {
       setOwnVoteOptionNoticeByRoundState(null);
+      setGuessSubmissionSnapshot(null);
     }
   };
 
