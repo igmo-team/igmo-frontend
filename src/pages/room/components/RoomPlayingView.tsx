@@ -3,14 +3,19 @@ import { useEffect, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
+import { showGameToast } from '../../../common/lib/toast';
 import { MOBILE_MEDIA_QUERY } from '../../../common/styles/breakpoints';
 import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
-import type { RoundSnapshot } from '../../../domain/room/types';
+import type {
+  GuessSubmissionSnapshot,
+  RoundSnapshot,
+} from '../../../domain/room/types';
 
 type RoomPlayingViewProps = {
   snapshot: RoundSnapshot;
   currentPlayerId?: string;
+  guessSubmissionSnapshot?: GuessSubmissionSnapshot | null;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
   onSubmit: (prompt: string) => void;
@@ -19,11 +24,13 @@ type RoomPlayingViewProps = {
 export function RoomPlayingView({
   snapshot,
   currentPlayerId,
+  guessSubmissionSnapshot,
   isSocketConnected,
   socketErrorMessage = '',
   onSubmit,
 }: RoomPlayingViewProps) {
   const isComposingRef = useRef(false);
+  const shownPerfectGuessToastKeyRef = useRef('');
   const {
     promptInputGroupRef,
     promptTextareaRef,
@@ -36,9 +43,17 @@ export function RoomPlayingView({
   const [promptText, setPromptText] = useState('');
   const [isSubmitPending, setIsSubmitPending] = useState(false);
   const isQuestioner = snapshot.questioner.id === currentPlayerId;
-  const isSubmitted =
+  const currentGuessSubmissionSnapshot =
+    guessSubmissionSnapshot?.roomCode === snapshot.roomCode &&
+    guessSubmissionSnapshot.roundNumber === snapshot.roundNumber
+      ? guessSubmissionSnapshot
+      : null;
+  const isServerSubmitted =
+    currentGuessSubmissionSnapshot?.status === 'SUBMITTED';
+  const isRoundSubmitted =
     snapshot.guessEntries.find((entry) => entry.player.id === currentPlayerId)
       ?.submitted ?? false;
+  const isSubmitted = isServerSubmitted || isRoundSubmitted;
   const isPromptEmpty = promptText.trim().length === 0;
   const isSubmitDisabled =
     isPromptEmpty ||
@@ -64,6 +79,44 @@ export function RoomPlayingView({
       setIsSubmitPending(false);
     }
   }, [isSubmitted, isSocketConnected, socketErrorMessage]);
+
+  useEffect(() => {
+    if (!currentGuessSubmissionSnapshot) {
+      return;
+    }
+
+    if (currentGuessSubmissionSnapshot.status === 'PERFECT_RETRY_REQUIRED') {
+      const toastKey = [
+        currentGuessSubmissionSnapshot.roomCode,
+        currentGuessSubmissionSnapshot.roundNumber,
+        currentGuessSubmissionSnapshot.guess,
+        currentGuessSubmissionSnapshot.confirmedScore ?? '',
+      ].join(':');
+
+      if (shownPerfectGuessToastKeyRef.current !== toastKey) {
+        shownPerfectGuessToastKeyRef.current = toastKey;
+        showGameToast({
+          variant: 'success',
+          icon: '🎯',
+          title: `정답 적중! +${currentGuessSubmissionSnapshot.confirmedScore ?? 3}점`,
+          body: '이제 진짜 같은 가짜 프롬프트를 입력하세요',
+        });
+      }
+
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPromptText('');
+      setIsSubmitPending(false);
+      return;
+    }
+
+    if (currentGuessSubmissionSnapshot.status === 'SUBMITTED') {
+      setPromptText(currentGuessSubmissionSnapshot.guess);
+      setIsSubmitPending(false);
+      return;
+    }
+
+    setIsSubmitPending(false);
+  }, [currentGuessSubmissionSnapshot]);
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,

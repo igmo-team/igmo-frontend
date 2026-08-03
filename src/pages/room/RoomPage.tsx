@@ -67,6 +67,7 @@ export function RoomPage() {
     phase,
     receivedSnapshot,
     promptSubmissionSnapshot,
+    guessSubmissionSnapshot,
     roundSnapshot,
     voteSnapshot,
     roundResultSnapshot,
@@ -392,6 +393,7 @@ export function RoomPage() {
                   <RoomPlayingView
                     snapshot={roundSnapshot}
                     currentPlayerId={currentPlayerId}
+                    guessSubmissionSnapshot={guessSubmissionSnapshot}
                     isSocketConnected={isConnected}
                     socketErrorMessage={errorMessage}
                     onSubmit={sendGuess}
