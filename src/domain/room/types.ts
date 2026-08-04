@@ -98,10 +98,14 @@ export type VoteSnapshot = {
   perfectGuessExists: boolean;
 };
 
+export type VoteDisabledReason = 'QUESTIONER' | 'PERFECT_GUESS';
+
 export type OwnVoteOptionNotice = {
   roomCode: string;
   roundNumber: number;
   ownImage: boolean;
+  voteAllowed: boolean;
+  voteDisabledReason: VoteDisabledReason | null;
   optionId: string | null;
 };
 
