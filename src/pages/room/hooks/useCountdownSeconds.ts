@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-const COUNTDOWN_INTERVAL_MS = 1000;
+const COUNTDOWN_INTERVAL_MS = 250;
+const SECOND_MS = 1000;
 
 export function useCountdownSeconds(deadline?: string | null) {
   const [currentTime, setCurrentTime] = useState(() => Date.now());
@@ -44,10 +45,15 @@ export function useCountdownSeconds(deadline?: string | null) {
     return 0;
   }
 
-  return Math.max(
-    0,
-    Math.ceil((deadlineTime - currentTime) / COUNTDOWN_INTERVAL_MS),
-  );
+  return getDisplaySeconds(deadlineTime - currentTime);
+}
+
+function getDisplaySeconds(remainingMs: number) {
+  if (remainingMs <= 0) {
+    return 0;
+  }
+
+  return Math.max(1, Math.floor(remainingMs / SECOND_MS));
 }
 
 function getDeadlineTime(deadline?: string | null) {
