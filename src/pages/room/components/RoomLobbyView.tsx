@@ -40,7 +40,7 @@ export function RoomLobbyView({
   const isHost = currentPlayer?.id === snapshot.hostId;
   const allGuestsReady = areAllGuestsReady(snapshot);
   const minPlayersToStart = Number(import.meta.env.VITE_MIN_PLAYERS_TO_START);
-  console.log(minPlayersToStart, snapshot.players.length);
+
   return (
     <S_RoomCard padding="lg" shadow>
       <S_RoomHeader>
