@@ -5,12 +5,15 @@ import styled from '@emotion/styled';
 
 import type { Theme } from '@emotion/react';
 
+type TextareaTone = 'default' | 'white';
+
 type TextareaProps = ComponentPropsWithRef<'textarea'> & {
   shadow?: boolean;
+  tone?: TextareaTone;
 };
 
-function Textarea({ shadow = false, ...rest }: TextareaProps) {
-  return <S_Textarea shadow={shadow} {...rest} />;
+function Textarea({ shadow = false, tone = 'default', ...rest }: TextareaProps) {
+  return <S_Textarea shadow={shadow} tone={tone} {...rest} />;
 }
 
 export default Textarea;
@@ -20,7 +23,6 @@ export default Textarea;
 const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
   width: 100%;
   border: ${theme.BORDER.DEFAULT};
-  background: ${theme.COLOR.PINK50};
   color: ${theme.COLOR.TEXT};
   font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
   font-size: 1.6rem;
@@ -44,10 +46,20 @@ const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
   }
 `;
 
+const toneStyles = (theme: Theme) => ({
+  default: css`
+    background: ${theme.COLOR.PINK50};
+  `,
+  white: css`
+    background: ${theme.COLOR.WHITE};
+  `,
+});
+
 const S_Textarea = styled('textarea', {
-  shouldForwardProp: (prop) => prop !== 'shadow',
-})<{ shadow: boolean }>`
+  shouldForwardProp: (prop) => prop !== 'shadow' && prop !== 'tone',
+})<{ shadow: boolean; tone: TextareaTone }>`
   ${fieldBaseStyle}
+  ${({ theme, tone }) => toneStyles(theme)[tone]}
   padding: 1.8rem;
   border-radius: ${({ theme }) => theme.RADIUS.LG};
   resize: none;

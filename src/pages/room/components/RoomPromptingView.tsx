@@ -1,99 +1,128 @@
+import { useRef, useState } from 'react';
+
 import styled from '@emotion/styled';
 
-import { Surface } from '../../../common/components';
-
-import { RoomPlayerList } from './RoomPlayerList';
-
-import type { RoomSnapshot } from '../../../domain/room/types';
+import { Button, Textarea } from '../../../common/components';
 
 type RoomPromptingViewProps = {
-  snapshot: RoomSnapshot;
-  currentPlayerId?: string;
+  isSocketConnected: boolean;
+  socketErrorMessage: string;
+  onSubmit: (prompt: string) => void;
 };
 
 export function RoomPromptingView({
-  snapshot,
-  currentPlayerId,
+  isSocketConnected,
+  socketErrorMessage,
+  onSubmit,
 }: RoomPromptingViewProps) {
+  const isComposingRef = useRef(false);
+  const [promptText, setPromptText] = useState('');
+  const isPromptEmpty = promptText.trim().length === 0;
+
+  const handlePromptChange = (
+    event: React.ChangeEvent<HTMLTextAreaElement>,
+  ) => {
+    setPromptText(event.target.value);
+  };
+
+  const handlePromptKeyDown = (
+    event: React.KeyboardEvent<HTMLTextAreaElement>,
+  ) => {
+    if (
+      event.key !== 'Enter' ||
+      event.shiftKey ||
+      event.nativeEvent.isComposing ||
+      event.keyCode === 229 ||
+      isComposingRef.current
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+    event.currentTarget.form?.requestSubmit();
+  };
+
+  const handleGenerateSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedPrompt = promptText.trim();
+
+    if (trimmedPrompt.length === 0 || !isSocketConnected) {
+      return;
+    }
+
+    onSubmit(trimmedPrompt);
+  };
+
   return (
-    <S_RoomCard padding="lg" shadow>
-      <S_RoomHeader>
-        <S_SectionLabel>방 코드</S_SectionLabel>
-        <S_RoomCode>{snapshot.roomCode}</S_RoomCode>
-      </S_RoomHeader>
+    <S_PromptSection>
+      <S_TextGroup>
+        <S_Title>AI에게 어떤 그림을 그리게 할까요?</S_Title>
+        <S_Guide>
+          시간 안에 입력하지 않으면 샘플 프롬프트로 자동 제출돼요.
+        </S_Guide>
+      </S_TextGroup>
 
-      <S_PhaseTitle>프롬프트 입력</S_PhaseTitle>
-      <S_PhaseGuide>질문을 준비하고 있어요.</S_PhaseGuide>
+      <S_InputGroup onSubmit={handleGenerateSubmit}>
+        <Textarea
+          value={promptText}
+          tone="white"
+          rows={4}
+          placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
+          shadow
+          onChange={handlePromptChange}
+          onCompositionStart={() => {
+            isComposingRef.current = true;
+          }}
+          onCompositionEnd={() => {
+            isComposingRef.current = false;
+          }}
+          onKeyDown={handlePromptKeyDown}
+        />
 
-      <S_PlayerHeader>
-        <S_PlayerTitle>플레이어 {snapshot.players.length}명</S_PlayerTitle>
-        <S_PlayerGuide>게임이 시작됐어요</S_PlayerGuide>
-      </S_PlayerHeader>
-      <RoomPlayerList
-        players={snapshot.players}
-        hostId={snapshot.hostId}
-        currentPlayerId={currentPlayerId}
-      />
-    </S_RoomCard>
+        {socketErrorMessage && (
+          <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+        )}
+
+        <Button type="submit" disabled={isPromptEmpty || !isSocketConnected}>
+          그림 생성하기
+        </Button>
+      </S_InputGroup>
+    </S_PromptSection>
   );
 }
 
-const S_RoomCard = styled(Surface)`
+const S_PromptSection = styled.section`
   display: flex;
-  max-width: 56rem;
+  width: 100%;
   flex-direction: column;
+  gap: 1.8rem;
 `;
 
-const S_RoomHeader = styled.div`
-  text-align: center;
-`;
-
-const S_SectionLabel = styled.p`
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  letter-spacing: 0.08em;
-  ${({ theme }) => theme.TYPOGRAPHY.LABEL1}
-`;
-
-const S_RoomCode = styled.p`
-  margin: 0.2rem 0 1.4rem;
-  color: ${({ theme }) => theme.COLOR.PRIMARY500};
-  font-family: 'Jua', 'Pretendard', 'Pretendard Variable', sans-serif;
-  font-size: clamp(4.2rem, 9vw, 6rem);
-  line-height: 1.1;
-  letter-spacing: 0.12em;
-`;
-
-const S_PhaseTitle = styled.h1`
-  margin-top: 0.8rem;
-  color: ${({ theme }) => theme.COLOR.TEXT};
-  text-align: center;
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE2}
-`;
-
-const S_PhaseGuide = styled.p`
-  margin-top: 0.8rem;
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  text-align: center;
-  ${({ theme }) => theme.TYPOGRAPHY.B4_R}
-`;
-
-const S_PlayerHeader = styled.div`
+const S_TextGroup = styled.div`
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1.2rem;
-  margin: 2.2rem 0 1.2rem;
+  flex-direction: column;
+  gap: 0.8rem;
 `;
 
-const S_PlayerTitle = styled.h1`
-  flex: none;
+const S_Title = styled.h2`
   color: ${({ theme }) => theme.COLOR.TEXT};
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
 `;
 
-const S_PlayerGuide = styled.p`
-  min-width: 0;
+const S_Guide = styled.p`
   color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  text-align: right;
-  ${({ theme }) => theme.TYPOGRAPHY.B6_B}
+  ${({ theme }) => theme.TYPOGRAPHY.B3_B}
+`;
+
+const S_InputGroup = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 2.4rem;
+`;
+
+const S_ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.COLOR.DANGER};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
 `;

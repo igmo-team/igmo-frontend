@@ -1,0 +1,343 @@
+import { useEffect, useRef, useState } from 'react';
+
+import styled from '@emotion/styled';
+
+import { Button } from '../../../common/components';
+import { showGameToast } from '../../../common/lib/toast';
+
+import type {
+  OwnVoteOptionNotice,
+  VoteSnapshot,
+} from '../../../domain/room/types';
+
+type RoomVotingViewProps = {
+  snapshot: VoteSnapshot;
+  ownVoteOptionNotice?: OwnVoteOptionNotice;
+  isOwnVoteOptionNoticePending: boolean;
+  isSocketConnected: boolean;
+  socketErrorMessage?: string;
+  onSubmit: (optionId: string) => boolean;
+};
+
+export function RoomVotingView({
+  snapshot,
+  ownVoteOptionNotice,
+  isOwnVoteOptionNoticePending,
+  isSocketConnected,
+  socketErrorMessage = '',
+  onSubmit,
+}: RoomVotingViewProps) {
+  const shownPerfectToastKeyRef = useRef('');
+  const [selectedOptionId, setSelectedOptionId] = useState('');
+  const [hasSubmittedVote, setHasSubmittedVote] = useState(false);
+  const isVoteAllowed = ownVoteOptionNotice?.voteAllowed === true;
+  const ownOptionId = ownVoteOptionNotice?.optionId ?? null;
+  const isVoteBlocked =
+    isOwnVoteOptionNoticePending || !isVoteAllowed || hasSubmittedVote;
+  const isConfirmDisabled =
+    !selectedOptionId || isVoteBlocked || !isSocketConnected;
+  const confirmButtonText = getConfirmButtonText(hasSubmittedVote);
+
+  useEffect(() => {
+    if (socketErrorMessage || !isSocketConnected) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHasSubmittedVote(false);
+    }
+  }, [isSocketConnected, socketErrorMessage]);
+
+  useEffect(() => {
+    if (
+      isOwnVoteOptionNoticePending ||
+      !isVoteAllowed ||
+      (ownOptionId && selectedOptionId === ownOptionId)
+    ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedOptionId('');
+    }
+  }, [
+    isOwnVoteOptionNoticePending,
+    isVoteAllowed,
+    ownOptionId,
+    selectedOptionId,
+  ]);
+
+  useEffect(() => {
+    if (!snapshot.perfectGuessExists) {
+      return;
+    }
+
+    const toastKey = `${snapshot.roomCode}:${snapshot.roundNumber}`;
+
+    if (shownPerfectToastKeyRef.current === toastKey) {
+      return;
+    }
+
+    shownPerfectToastKeyRef.current = toastKey;
+    showGameToast({
+      variant: 'info',
+      icon: '🎯',
+      title: '완벽 정답자가 나왔어요!',
+      body: '이전 추측에서 원본 프롬프트를 정확히 맞혔습니다.',
+    });
+  }, [snapshot.perfectGuessExists, snapshot.roomCode, snapshot.roundNumber]);
+
+  const handleOptionClick = (optionId: string) => {
+    if (isVoteBlocked || optionId === ownOptionId) {
+      return;
+    }
+
+    setSelectedOptionId(optionId);
+  };
+
+  const handleConfirmClick = () => {
+    if (isConfirmDisabled) {
+      return;
+    }
+
+    const isSubmitted = onSubmit(selectedOptionId);
+
+    if (!isSubmitted) {
+      return;
+    }
+
+    setHasSubmittedVote(true);
+  };
+
+  return (
+    <S_VotingSection>
+      <S_TextGroup>
+        <S_Title>진짜 프롬프트는? 🤔</S_Title>
+        <S_Guide>실제로 입력한 프롬프트 하나를 고르세요.</S_Guide>
+      </S_TextGroup>
+
+      <S_OptionList aria-label="투표 선택지">
+        {snapshot.voteOptions.map((option, index) => {
+          const isOwnOption = option.optionId === ownOptionId;
+          const isSelected = option.optionId === selectedOptionId;
+
+          return (
+            <S_OptionItem key={option.optionId}>
+              {isOwnOption ? (
+                <S_OwnOptionBox aria-disabled="true">
+                  <S_OptionLabel>{getOptionLabel(index)}</S_OptionLabel>
+                  <S_OptionText>{option.text}</S_OptionText>
+                  <S_OwnOptionBadge>내 답</S_OwnOptionBadge>
+                </S_OwnOptionBox>
+              ) : (
+                <S_OptionButton
+                  type="button"
+                  disabled={isVoteBlocked}
+                  selected={isSelected}
+                  onClick={() => handleOptionClick(option.optionId)}
+                >
+                  <S_OptionLabel>{getOptionLabel(index)}</S_OptionLabel>
+                  <S_OptionText>{option.text}</S_OptionText>
+                </S_OptionButton>
+              )}
+            </S_OptionItem>
+          );
+        })}
+      </S_OptionList>
+
+      <S_ActionArea>
+        {isOwnVoteOptionNoticePending && (
+          <S_ActionStatus role="status">
+            투표 정보를 불러오는 중이에요.
+          </S_ActionStatus>
+        )}
+
+        {!isOwnVoteOptionNoticePending && !isVoteAllowed && (
+          <S_ActionStatus role="status">
+            {getVoteDisabledStatusMessage(
+              ownVoteOptionNotice?.voteDisabledReason,
+            )}
+          </S_ActionStatus>
+        )}
+
+        {!isOwnVoteOptionNoticePending && isVoteAllowed && (
+          <>
+            <S_Notice>한번 투표하면 선택을 바꿀 수 없어요.</S_Notice>
+            {socketErrorMessage && (
+              <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+            )}
+            <Button
+              type="button"
+              disabled={isConfirmDisabled}
+              onClick={handleConfirmClick}
+            >
+              {confirmButtonText}
+            </Button>
+          </>
+        )}
+      </S_ActionArea>
+    </S_VotingSection>
+  );
+}
+
+function getConfirmButtonText(hasSubmittedVote: boolean) {
+  if (hasSubmittedVote) {
+    return '투표 완료';
+  }
+
+  return '투표 확정';
+}
+
+function getVoteDisabledStatusMessage(
+  voteDisabledReason: OwnVoteOptionNotice['voteDisabledReason'] | undefined,
+) {
+  if (voteDisabledReason === 'QUESTIONER') {
+    return '다른 참가자들이 내 그림의 진짜 프롬프트를 고르고 있어요.';
+  }
+
+  if (voteDisabledReason === 'PERFECT_GUESS') {
+    return '정답을 완벽히 맞혀서 이번 투표는 쉬어가도 돼요.';
+  }
+
+  return '투표할 수 없는 상태예요.';
+}
+
+function getOptionLabel(index: number) {
+  return String.fromCharCode(65 + index);
+}
+
+const S_VotingSection = styled.section`
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 2.4rem;
+`;
+
+const S_TextGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+`;
+
+const S_Title = styled.h2`
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
+`;
+
+const S_Guide = styled.p`
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  ${({ theme }) => theme.TYPOGRAPHY.B3_B}
+`;
+
+const S_OptionList = styled.ol`
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+`;
+
+const S_OptionItem = styled.li`
+  display: flex;
+`;
+
+const S_OptionButton = styled('button', {
+  shouldForwardProp: (prop) => prop !== 'selected',
+})<{ selected: boolean }>`
+  display: grid;
+  width: 100%;
+  min-height: 7.2rem;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1.6rem;
+  padding: 1.6rem 2rem;
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-color: ${({ theme, selected }) =>
+    selected ? theme.COLOR.PRIMARY500 : theme.COLOR.LINE};
+  border-radius: ${({ theme }) => theme.RADIUS.LG};
+  background: ${({ theme, selected }) =>
+    selected ? theme.COLOR.PRIMARY100 : theme.COLOR.WHITE};
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  box-shadow: ${({ theme, selected }) =>
+    selected ? theme.SHADOW.SURFACE : 'none'};
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+
+  &:not(:disabled):hover {
+    transform: translateY(-0.1rem);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+  }
+`;
+
+const S_OwnOptionBox = styled.div`
+  display: grid;
+  width: 100%;
+  min-height: 7.2rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.6rem;
+  padding: 1.6rem 2rem;
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-color: ${({ theme }) => theme.COLOR.LINE};
+  border-radius: ${({ theme }) => theme.RADIUS.LG};
+  background: ${({ theme }) => theme.COLOR.WHITE};
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  cursor: not-allowed;
+  opacity: 0.45;
+`;
+
+const S_OptionLabel = styled.span`
+  display: grid;
+  width: 3.2rem;
+  height: 3.2rem;
+  place-items: center;
+  border-radius: ${({ theme }) => theme.RADIUS.SM};
+  background: ${({ theme }) => theme.COLOR.PRIMARY100};
+  color: ${({ theme }) => theme.COLOR.PRIMARY500};
+  ${({ theme }) => theme.TYPOGRAPHY.B3_B}
+`;
+
+const S_OptionText = styled.span`
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+  ${({ theme }) => theme.TYPOGRAPHY.B2_B}
+`;
+
+const S_OwnOptionBadge = styled.span`
+  padding: 0.4rem 0.8rem;
+  border-radius: ${({ theme }) => theme.RADIUS.PILL};
+  background: ${({ theme }) => theme.COLOR.PINK50};
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  white-space: nowrap;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
+const S_ActionArea = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+`;
+
+const S_Notice = styled.p`
+  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
+const S_ErrorMessage = styled.p`
+  color: ${({ theme }) => theme.COLOR.DANGER};
+  text-align: center;
+  ${({ theme }) => theme.TYPOGRAPHY.B5_B}
+`;
+
+const S_ActionStatus = styled.p`
+  width: 100%;
+  padding: 2.4rem;
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-radius: ${({ theme }) => theme.RADIUS.MD};
+  background: ${({ theme }) => theme.COLOR.WHITE};
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  text-align: center;
+  box-shadow: ${({ theme }) => theme.SHADOW.SURFACE};
+  ${({ theme }) => theme.TYPOGRAPHY.B2_B}
+`;

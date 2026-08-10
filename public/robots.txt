@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://igmo.co.kr/sitemap.xml

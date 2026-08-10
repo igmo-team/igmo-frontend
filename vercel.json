@@ -1,4 +1,15 @@
 {
+  "headers": [
+    {
+      "source": "/room/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",
