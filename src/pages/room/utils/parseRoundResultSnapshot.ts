@@ -8,6 +8,7 @@ import type {
 } from '../../../domain/room/types';
 
 const ROUND_SCORE_REASONS = [
+  'PERFECT_GUESS',
   'CORRECT_ANSWER',
   'FOOLED_PLAYER',
   'QUESTIONER',

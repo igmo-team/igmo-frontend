@@ -119,6 +119,7 @@ export type RoundResult = {
 };
 
 export type RoundScoreReason =
+  | 'PERFECT_GUESS'
   | 'CORRECT_ANSWER'
   | 'FOOLED_PLAYER'
   | 'QUESTIONER';
