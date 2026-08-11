@@ -5,11 +5,11 @@ import { RoomEntryForm } from './components/RoomEntryForm';
 
 export function HomePage() {
   return (
-      <S_Page>
-        <HomeHero />
-        <RoomEntryForm />
-        <S_Footnote>🔓 로그인 없이 닉네임만으로 바로 시작</S_Footnote>
-      </S_Page>
+    <S_Page>
+      <HomeHero />
+      <RoomEntryForm />
+      <S_Footnote>🔓 로그인 없이 닉네임만으로 바로 시작</S_Footnote>
+    </S_Page>
   );
 }
 

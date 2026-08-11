@@ -1,0 +1,4 @@
+interface:
+  display_name: PR 설명 작성
+  short_description: PR 제목과 본문을 정해진 구조로 작성합니다.
+  default_prompt: $write-pr-description 현재 변경사항을 바탕으로 PR 제목과 본문을 작성해줘.
