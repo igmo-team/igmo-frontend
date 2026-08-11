@@ -21,7 +21,12 @@
 
 ## pages
 
-특정 페이지에서만 쓰는 컴포넌트, 훅, API 함수, 화면 전용 로직은 해당 페이지 폴더 안에 둔다. API 함수가 두 번째 페이지에서도 필요해지면 다른 페이지의 `apis`를 import하지 말고 `domain/<개념>/apis/`로 옮긴다.
+특정 페이지에서만 쓰는 컴포넌트, 훅, API 함수, 화면 전용 로직은 해당 페이지 폴더 안에 둔다. 두 번째 페이지에서도 필요해지면 더 이상 pages 전용 코드가 아니므로 다른 페이지의 코드를 import하지 않는다.
+
+공유가 필요해진 코드는 코드 종류와 관계없이 결정 트리로 위치를 다시 정한다.
+
+- 서비스 기획 용어를 알아야 하는 도메인 코드면 `domain/<개념>/` 하위로 옮긴다.
+- 어느 서비스에서나 그대로 쓸 수 있는 범용 코드면 `common/` 하위로 옮긴다.
 
 ```
 pages/
@@ -57,8 +62,8 @@ domain에 두는 것 / 두지 않는 것:
 | domain에 둔다                                   | domain에 두지 않는다 (→ 위치)            |
 | ----------------------------------------------- | ---------------------------------------- |
 | 비즈니스 명사 타입: `RoomSnapshot`, `GamePhase` | 특정 페이지의 UI 상태 (→ pages)          |
-| 도메인 규칙: 닉네임 길이, 방 코드 포맷          | 특정 페이지 전용 API 함수 (→ pages/apis) |
-| 여러 페이지에서 쓰는 도메인 API 함수            | Button 같은 UI primitive (→ common)      |
+| 도메인 규칙: 닉네임 길이, 방 코드 포맷          | 특정 페이지 전용 코드 (→ pages)          |
+| 여러 페이지에서 쓰는 도메인 API·훅·컴포넌트     | Button 같은 UI primitive (→ common)      |
 | 순수 함수: `isHost(playerId, snapshot)`         | axios client 같은 기술 인프라 (→ common) |
 | phase enum, 점수 계산                           |                                          |
 
@@ -92,7 +97,7 @@ pages → domain → common
 - `domain`은 `common`만 import할 수 있다.
 - `common`은 `domain`·`pages`를 import하지 않는다.
 - `domain`끼리의 직접 import는 하지 않는다. 필요해 보이면 도메인 경계가 잘못 나뉜 것인지 먼저 재검토하고, 불명확하면 사용자에게 물어본다.
-- 페이지끼리의 import(`pages/a` → `pages/b`)는 위반이다. 공유 API도 다른 페이지의 `apis`에서 빌려 쓰지 말고 `domain/<개념>/apis/`로 승격한다.
+- 페이지끼리의 import(`pages/a` → `pages/b`)는 위반이다. 공유가 필요하면 다른 페이지에서 빌려 쓰지 말고 결정 트리로 `domain` 또는 `common` 승격을 검토한다.
 
 위반 자가 점검 (결과가 나오면 위반):
 
