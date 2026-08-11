@@ -16,7 +16,7 @@
 전체 규칙은 `.codex/instructions/*.md`에 있다. 이 규칙에 근거한 코멘트는 **개인 취향이 아니다.** 필요한 경우 반드시 남긴다. 핵심 규칙은 아래와 같다:
 
 - 모든 HTTP 요청은 TanStack Query를 통한다. `mutateAsync` + try/catch, 또는 컴포넌트/핸들러에서 HTTP `fetch`/`axios`/`client.*`를 직접 호출하는 것은 위반이다. STOMP publish/subscribe는 제외한다. 성공/실패 처리는 `onSuccess`/`onError`에서 한다. (.codex/instructions/api.md)
-- API 함수는 `pages/<page>/apis/`에 두고, 파일 하나에 함수 하나만 둔다. 이름은 `createGame`이 아니라 `postGames`처럼 HTTP 메서드 + 리소스로 짓고, `common/api/client` 래퍼와 제네릭 2개를 모두 사용한다.
+- API 함수는 사용 범위에 맞는 `apis/`에 두고, 파일 하나에 함수 하나만 둔다. 페이지 전용 API는 `pages/<page>/apis/`, 여러 페이지에서 쓰는 도메인 API는 `domain/<domain>/apis/`에 둔다. 이름은 `createGame`이 아니라 `postGames`처럼 HTTP 메서드 + 리소스로 짓고, `common/api/client` 래퍼와 제네릭 2개를 모두 사용한다.
 - 색상, 타이포그래피, border, radius, shadow는 `THEME`(`src/common/styles/theme.ts`)에서만 가져온다. styled 블록 안의 하드코딩된 hex, `font-family`/`font-size`/`font-weight` 직접 선언은 위반이다. `px` 단위도 위반이며 `rem`을 쓴다. (.codex/instructions/styling.md)
 - import 방향은 `pages → domain → common`이다. `common`이 `domain`/`pages`를 import하거나, `domain`이 `pages`를 import하거나, 페이지끼리 import하는 것은 위반이다. (.codex/instructions/folder-structure.md; 앞의 두 항목은 ESLint error이기도 하다)
 - 새 공유 코드는 기본적으로 `pages/`에 둔다. `domain`/`common` 승격은 실제 사용처가 2곳 이상일 때만 한다. 성급한 승격과 추상화는 지적한다. (.codex/instructions/folder-structure.md)

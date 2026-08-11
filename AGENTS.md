@@ -44,14 +44,14 @@ igmo — "이 그림, 모지?" AI가 그린 그림 추리 파티게임의 프론
 
 작업 시작 전, 만들거나 수정할 파일 경로에 해당하는 문서를 **먼저 읽는다.** 여러 행에 걸리면 전부 읽는다.
 
-| 수정/생성하는 파일                                  | 먼저 읽을 문서                                                                     |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| 새 파일·폴더를 만들 때 (위치 결정)                  | [.codex/instructions/folder-structure.md](.codex/instructions/folder-structure.md) |
-| `*.tsx` 컴포넌트                                    | [.codex/instructions/components.md](.codex/instructions/components.md)             |
-| styled 컴포넌트 · 스타일 · `theme.ts`               | [.codex/instructions/styling.md](.codex/instructions/styling.md)                   |
-| `pages/*/apis/**` · `useMutation`/`useQuery` 사용부 | [.codex/instructions/api.md](.codex/instructions/api.md)                           |
-| 리팩토링 · 공통화 판단                              | [.codex/instructions/code-quality.md](.codex/instructions/code-quality.md)         |
-| 작업 마무리 · 검증                                  | [.codex/instructions/verification.md](.codex/instructions/verification.md)         |
+| 수정/생성하는 파일                                                       | 먼저 읽을 문서                                                                     |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| 새 파일·폴더를 만들 때 (위치 결정)                                       | [.codex/instructions/folder-structure.md](.codex/instructions/folder-structure.md) |
+| `*.tsx` 컴포넌트                                                         | [.codex/instructions/components.md](.codex/instructions/components.md)             |
+| styled 컴포넌트 · 스타일 · `theme.ts`                                    | [.codex/instructions/styling.md](.codex/instructions/styling.md)                   |
+| `pages/*/apis/**` · `domain/*/apis/**` · `useMutation`/`useQuery` 사용부 | [.codex/instructions/api.md](.codex/instructions/api.md)                           |
+| 리팩토링 · 공통화 판단                                                   | [.codex/instructions/code-quality.md](.codex/instructions/code-quality.md)         |
+| 작업 마무리 · 검증                                                       | [.codex/instructions/verification.md](.codex/instructions/verification.md)         |
 
 ## 절대 금지
 

@@ -8,11 +8,20 @@
 - STOMP publish/subscribe는 이 문서의 HTTP API 규칙 대상이 아니다.
 - HTTP 예외가 필요해 보이는 상황(예: 프리사인드 URL로 S3에 직접 업로드)이 오면 **구현하지 말고 먼저 사용자에게 물어본다.** 사용자가 예외로 인정한 경우에만 Query 밖에서 처리한다.
 
-## 새 API 만들기 = 아래 두 예시를 복사해서 이름만 바꾸기
+## API 함수 위치
 
-새 API를 추가할 때 구조를 새로 설계하지 않는다. 아래 실제 코드 쌍을 복사해서 URL·타입·이름만 바꾸는 것부터 시작한다.
+API 함수 위치는 사용 범위로 정한다.
 
-### 1. API 함수 — `pages/<페이지>/apis/` 에 파일 하나
+- 특정 페이지에서만 쓰는 API 함수는 `pages/<페이지>/apis/`에 둔다.
+- 여러 페이지에서 쓰는 도메인 API 함수는 `domain/<개념>/apis/`에 둔다.
+- 한 페이지 전용 API를 다른 페이지에서도 쓰게 되면 페이지끼리 import하지 말고 `domain/<개념>/apis/`로 옮긴다.
+- `common`에는 서비스 기획 용어가 들어간 API 함수를 두지 않는다. `common/api/client` 같은 기술 인프라만 둔다.
+
+## 새 API 만들기 = 아래 예시를 복사해서 이름만 바꾸기
+
+새 API를 추가할 때 구조를 새로 설계하지 않는다. 아래 실제 코드 쌍을 복사해서 URL·타입·이름·위치만 바꾸는 것부터 시작한다.
+
+### 1. API 함수 — 사용 범위에 맞는 `apis/`에 파일 하나
 
 [src/pages/home/apis/postGames.ts](../../src/pages/home/apis/postGames.ts) 전문:
 
@@ -45,6 +54,7 @@ export default function postGames(data: PostGamesRequest) {
 - 반드시 `common/api/client` 래퍼를 쓴다. axios를 직접 import하지 않는다 (`isAxiosError` 제외).
 - `Request`/`Response` 타입을 함수 위에 정의하고 제네릭 두 개를 모두 명시한다.
 - default export, 파일 하나에 API 함수 하나.
+- 위치는 사용 범위에 맞춘다. 페이지 전용이면 `pages/<페이지>/apis/`, 여러 페이지에서 쓰는 도메인 API면 `domain/<개념>/apis/`다.
 
 ### 2. 호출부 — `useMutation` + `onSuccess`/`onError`
 
@@ -124,6 +134,7 @@ API 함수 이름은 `HTTP 메서드 + 리소스 경로`로 짓는다. 동작을
 ## 커밋 전 체크리스트
 
 - [ ] 컴포넌트/훅/핸들러에서 HTTP 요청용 `client.*`나 axios를 직접 호출한 곳이 없는가? (`useMutation`의 `mutationFn` 제외)
-- [ ] 새 API 함수가 `pages/<페이지>/apis/`에 있고, 이름이 `메서드+리소스`인가?
+- [ ] 새 API 함수가 사용 범위에 맞는 `apis/`에 있고, 이름이 `메서드+리소스`인가?
+- [ ] 여러 페이지에서 쓰는 API를 다른 페이지의 `pages/*/apis`에서 import하지 않는가?
 - [ ] `onSuccess`/`onError`로 처리했는가? (`mutateAsync` + try/catch 없음)
 - [ ] 에러 메시지에 한국어 폴백이 있는가?

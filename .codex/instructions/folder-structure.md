@@ -21,7 +21,7 @@
 
 ## pages
 
-특정 페이지에서만 쓰는 컴포넌트, 훅, API 함수, 화면 전용 로직은 해당 페이지 폴더 안에 둔다.
+특정 페이지에서만 쓰는 컴포넌트, 훅, API 함수, 화면 전용 로직은 해당 페이지 폴더 안에 둔다. API 함수가 두 번째 페이지에서도 필요해지면 다른 페이지의 `apis`를 import하지 말고 `domain/<개념>/apis/`로 옮긴다.
 
 ```
 pages/
@@ -57,11 +57,14 @@ domain에 두는 것 / 두지 않는 것:
 | domain에 둔다                                   | domain에 두지 않는다 (→ 위치)            |
 | ----------------------------------------------- | ---------------------------------------- |
 | 비즈니스 명사 타입: `RoomSnapshot`, `GamePhase` | 특정 페이지의 UI 상태 (→ pages)          |
-| 도메인 규칙: 닉네임 길이, 방 코드 포맷          | API 호출 함수 (→ `pages/*/apis/`)        |
-| 순수 함수: `isHost(playerId, snapshot)`         | Button 같은 UI primitive (→ common)      |
-| phase enum, 점수 계산                           | axios client 같은 기술 인프라 (→ common) |
+| 도메인 규칙: 닉네임 길이, 방 코드 포맷          | 특정 페이지 전용 API 함수 (→ pages/apis) |
+| 여러 페이지에서 쓰는 도메인 API 함수            | Button 같은 UI primitive (→ common)      |
+| 순수 함수: `isHost(playerId, snapshot)`         | axios client 같은 기술 인프라 (→ common) |
+| phase enum, 점수 계산                           |                                          |
 
 domain 안의 파일명은 형식이 아니라 **개념**으로 짓는다. `utils.ts`·`helpers.ts` 금지. 파일이 커지면 `roomCode.ts`, `nickname.ts`처럼 개념 단위로 나눈다. `constants.ts`, `validators.ts` 같은 파일은 실제 중복이 2곳 이상 생겼을 때만 만든다.
+
+도메인 API 함수는 `domain/<개념>/apis/`에 둔다. 예를 들어 방 생성·방 참여처럼 room 도메인에 속하고 여러 페이지에서 쓰는 API는 `domain/room/apis/`에 둔다. 도메인 API도 HTTP 요청 규칙은 [api.md](api.md)를 따른다.
 
 ## common
 
@@ -89,18 +92,19 @@ pages → domain → common
 - `domain`은 `common`만 import할 수 있다.
 - `common`은 `domain`·`pages`를 import하지 않는다.
 - `domain`끼리의 직접 import는 하지 않는다. 필요해 보이면 도메인 경계가 잘못 나뉜 것인지 먼저 재검토하고, 불명확하면 사용자에게 물어본다.
-- 페이지끼리의 import(`pages/a` → `pages/b`)는 위반이다. 공유가 필요하면 결정 트리로 domain/common 승격을 검토한다.
+- 페이지끼리의 import(`pages/a` → `pages/b`)는 위반이다. 공유 API도 다른 페이지의 `apis`에서 빌려 쓰지 말고 `domain/<개념>/apis/`로 승격한다.
 
 위반 자가 점검 (결과가 나오면 위반):
 
 ```bash
 grep -rn "from '.*domain\|from '.*pages" src/common
 grep -rn "from '.*pages" src/domain
+find src/pages -mindepth 1 -maxdepth 1 -type d | while read -r page_dir; do page_name=${page_dir##*/}; git diff --name-only -- src/pages | grep -v "^${page_dir}/" | xargs grep -HnE "from ['\"](\\.\\./)+${page_name}(/|['\"])" 2>/dev/null; done
 ```
 
 ## 커밋 전 체크리스트
 
 - [ ] 새로 만든 파일마다 결정 트리를 통과시켰는가? (확신 없으면 pages)
 - [ ] domain/common에 새 파일을 올렸다면 실제 사용처가 2곳 이상인가?
-- [ ] 위의 import 방향 grep 2개가 아무것도 출력하지 않는가?
+- [ ] 위의 import 방향 점검 명령이 아무것도 출력하지 않는가?
 - [ ] domain에 `utils.ts` 같은 형식 기반 파일명을 만들지 않았는가?
