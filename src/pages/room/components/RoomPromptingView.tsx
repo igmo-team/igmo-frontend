@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
+import { usePreventMobileInputFocusScroll } from '../hooks/usePreventMobileInputFocusScroll';
 
 type RoomPromptingViewProps = {
   isSocketConnected: boolean;
@@ -16,6 +17,11 @@ export function RoomPromptingView({
   onSubmit,
 }: RoomPromptingViewProps) {
   const isComposingRef = useRef(false);
+  const {
+    inputRef: promptTextareaRef,
+    handleInputTouchEnd,
+    handleInputTouchStart,
+  } = usePreventMobileInputFocusScroll();
   const [promptText, setPromptText] = useState('');
   const isPromptEmpty = promptText.trim().length === 0;
 
@@ -65,6 +71,7 @@ export function RoomPromptingView({
 
       <S_InputGroup onSubmit={handleGenerateSubmit}>
         <Textarea
+          ref={promptTextareaRef}
           value={promptText}
           tone="white"
           rows={4}
@@ -78,6 +85,8 @@ export function RoomPromptingView({
             isComposingRef.current = false;
           }}
           onKeyDown={handlePromptKeyDown}
+          onTouchEnd={handleInputTouchEnd}
+          onTouchStart={handleInputTouchStart}
         />
 
         {socketErrorMessage && (
