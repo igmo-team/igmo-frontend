@@ -1,8 +1,9 @@
-import { type TouchEvent, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import { usePreventMobileInputFocusScroll } from './usePreventMobileInputFocusScroll';
 
 const MOBILE_PROMPT_INPUT_BOTTOM_PROPERTY = '--mobile-composer-bottom';
 const KEYBOARD_DISMISS_DRAG_THRESHOLD = 10;
-const TOUCH_FOCUS_MOVE_THRESHOLD = 8;
 
 function getVisualViewportBottomOffset() {
   const visualViewport = window.visualViewport;
@@ -16,8 +17,11 @@ function getVisualViewportBottomOffset() {
 
 export function useMobilePromptInputKeyboard() {
   const promptInputGroupRef = useRef<HTMLFormElement>(null);
-  const promptTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const touchFocusStartPointRef = useRef<{ x: number; y: number } | null>(null);
+  const {
+    inputRef: promptTextareaRef,
+    handleInputTouchEnd,
+    handleInputTouchStart,
+  } = usePreventMobileInputFocusScroll();
   const [isPromptInputFocused, setIsPromptInputFocused] = useState(false);
 
   useEffect(() => {
@@ -127,7 +131,6 @@ export function useMobilePromptInputKeyboard() {
   }, [isPromptInputFocused]);
 
   const handlePromptInputBlur = () => {
-    touchFocusStartPointRef.current = null;
     setIsPromptInputFocused(false);
   };
 
@@ -135,63 +138,12 @@ export function useMobilePromptInputKeyboard() {
     setIsPromptInputFocused(true);
   };
 
-  const handlePromptInputTouchEnd = (
-    event: TouchEvent<HTMLTextAreaElement>,
-  ) => {
-    const touchStartPoint = touchFocusStartPointRef.current;
-    const changedTouch = event.changedTouches[0];
-
-    touchFocusStartPointRef.current = null;
-
-    if (!touchStartPoint || !changedTouch) {
-      return;
-    }
-
-    const touchMoveDistanceX = Math.abs(
-      changedTouch.clientX - touchStartPoint.x,
-    );
-    const touchMoveDistanceY = Math.abs(
-      changedTouch.clientY - touchStartPoint.y,
-    );
-
-    if (
-      touchMoveDistanceX > TOUCH_FOCUS_MOVE_THRESHOLD ||
-      touchMoveDistanceY > TOUCH_FOCUS_MOVE_THRESHOLD
-    ) {
-      return;
-    }
-
-    promptTextareaRef.current?.focus({ preventScroll: true });
-  };
-
-  const handlePromptInputTouchStart = (
-    event: TouchEvent<HTMLTextAreaElement>,
-  ) => {
-    const promptTextareaElement = promptTextareaRef.current;
-    const touch = event.touches[0];
-
-    if (
-      !touch ||
-      !promptTextareaElement ||
-      document.activeElement === promptTextareaElement
-    ) {
-      touchFocusStartPointRef.current = null;
-      return;
-    }
-
-    event.preventDefault();
-    touchFocusStartPointRef.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-    };
-  };
-
   return {
     promptInputGroupRef,
     promptTextareaRef,
     handlePromptInputBlur,
     handlePromptInputFocus,
-    handlePromptInputTouchEnd,
-    handlePromptInputTouchStart,
+    handlePromptInputTouchEnd: handleInputTouchEnd,
+    handlePromptInputTouchStart: handleInputTouchStart,
   };
 }
