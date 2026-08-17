@@ -136,10 +136,10 @@ export function useMobilePromptInputKeyboard() {
   };
 
   const handlePromptInputTouchEnd = (
-    event: TouchEvent<HTMLTextAreaElement>,
+    e: TouchEvent<HTMLTextAreaElement>,
   ) => {
     const touchStartPoint = touchFocusStartPointRef.current;
-    const changedTouch = event.changedTouches[0];
+    const changedTouch = e.changedTouches[0];
 
     touchFocusStartPointRef.current = null;
 
@@ -165,10 +165,10 @@ export function useMobilePromptInputKeyboard() {
   };
 
   const handlePromptInputTouchStart = (
-    event: TouchEvent<HTMLTextAreaElement>,
+    e: TouchEvent<HTMLTextAreaElement>,
   ) => {
     const promptTextareaElement = promptTextareaRef.current;
-    const touch = event.touches[0];
+    const touch = e.touches[0];
 
     if (
       !touch ||
@@ -179,7 +179,7 @@ export function useMobilePromptInputKeyboard() {
       return;
     }
 
-    event.preventDefault();
+    e.preventDefault();
     touchFocusStartPointRef.current = {
       x: touch.clientX,
       y: touch.clientY,
