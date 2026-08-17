@@ -1,66 +1,86 @@
 import {
-  type TouchEvent,
-  useCallback,
+  type TouchEvent as ReactTouchEvent,
   useEffect,
   useRef,
   useState,
 } from 'react';
 
 const TOUCH_FOCUS_MOVE_THRESHOLD = 8;
-
-type ScrollPoint = {
-  x: number;
-  y: number;
-};
+const KEYBOARD_DISMISS_DRAG_THRESHOLD = 10;
 
 export function useMobileInputScrollLock() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const scrollPointRef = useRef<ScrollPoint | null>(null);
   const touchFocusStartPointRef = useRef<{ x: number; y: number } | null>(null);
   const [isInputFocused, setIsInputFocused] = useState(false);
-
-  const saveScrollPoint = useCallback(() => {
-    scrollPointRef.current = {
-      x: window.scrollX,
-      y: window.scrollY,
-    };
-  }, []);
-
-  const restoreScrollPoint = useCallback(() => {
-    const scrollPoint = scrollPointRef.current;
-
-    if (!scrollPoint) {
-      return;
-    }
-
-    if (window.scrollX !== scrollPoint.x || window.scrollY !== scrollPoint.y) {
-      window.scrollTo(scrollPoint.x, scrollPoint.y);
-    }
-  }, []);
 
   useEffect(() => {
     if (!isInputFocused) {
       return;
     }
 
-    const visualViewport = window.visualViewport;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let shouldDismissKeyboardOnDrag = false;
 
-    restoreScrollPoint();
-    visualViewport?.addEventListener('resize', restoreScrollPoint);
-    visualViewport?.addEventListener('scroll', restoreScrollPoint);
-    window.addEventListener('resize', restoreScrollPoint);
-    window.addEventListener('scroll', restoreScrollPoint, { passive: true });
+    const handleDocumentTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      const eventTarget = event.target;
+      const inputElement = inputRef.current;
+
+      if (!touch || !inputElement || !(eventTarget instanceof Node)) {
+        shouldDismissKeyboardOnDrag = false;
+        return;
+      }
+
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      shouldDismissKeyboardOnDrag = !inputElement.contains(eventTarget);
+    };
+
+    const handleDocumentTouchMove = (event: TouchEvent) => {
+      if (!shouldDismissKeyboardOnDrag) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const touch = event.touches[0];
+
+      if (!touch) {
+        return;
+      }
+
+      const dragDistanceX = Math.abs(touch.clientX - touchStartX);
+      const dragDistanceY = Math.abs(touch.clientY - touchStartY);
+
+      if (
+        dragDistanceY < KEYBOARD_DISMISS_DRAG_THRESHOLD ||
+        dragDistanceY < dragDistanceX
+      ) {
+        return;
+      }
+
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+
+      shouldDismissKeyboardOnDrag = false;
+    };
+
+    document.addEventListener('touchstart', handleDocumentTouchStart, {
+      passive: true,
+    });
+    document.addEventListener('touchmove', handleDocumentTouchMove, {
+      passive: false,
+    });
 
     return () => {
-      visualViewport?.removeEventListener('resize', restoreScrollPoint);
-      visualViewport?.removeEventListener('scroll', restoreScrollPoint);
-      window.removeEventListener('resize', restoreScrollPoint);
-      window.removeEventListener('scroll', restoreScrollPoint);
+      document.removeEventListener('touchstart', handleDocumentTouchStart);
+      document.removeEventListener('touchmove', handleDocumentTouchMove);
     };
-  }, [isInputFocused, restoreScrollPoint]);
+  }, [isInputFocused]);
 
   const handleInputBlur = () => {
-    scrollPointRef.current = null;
     touchFocusStartPointRef.current = null;
     setIsInputFocused(false);
   };
@@ -69,7 +89,9 @@ export function useMobileInputScrollLock() {
     setIsInputFocused(true);
   };
 
-  const handleInputTouchEnd = (e: TouchEvent<HTMLTextAreaElement>) => {
+  const handleInputTouchEnd = (
+    e: ReactTouchEvent<HTMLTextAreaElement>,
+  ) => {
     const touchStartPoint = touchFocusStartPointRef.current;
     const changedTouch = e.changedTouches[0];
 
@@ -96,7 +118,9 @@ export function useMobileInputScrollLock() {
     inputRef.current?.focus({ preventScroll: true });
   };
 
-  const handleInputTouchStart = (e: TouchEvent<HTMLTextAreaElement>) => {
+  const handleInputTouchStart = (
+    e: ReactTouchEvent<HTMLTextAreaElement>,
+  ) => {
     const inputElement = inputRef.current;
     const touch = e.touches[0];
 
@@ -106,7 +130,6 @@ export function useMobileInputScrollLock() {
     }
 
     e.preventDefault();
-    saveScrollPoint();
     touchFocusStartPointRef.current = {
       x: touch.clientX,
       y: touch.clientY,
