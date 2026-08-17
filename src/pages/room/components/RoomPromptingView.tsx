@@ -3,7 +3,7 @@ import { useRef, useState } from 'react';
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
-import { usePreventMobileInputFocusScroll } from '../hooks/usePreventMobileInputFocusScroll';
+import { useMobileInputScrollLock } from '../hooks/useMobileInputScrollLock';
 
 type RoomPromptingViewProps = {
   isSocketConnected: boolean;
@@ -19,9 +19,11 @@ export function RoomPromptingView({
   const isComposingRef = useRef(false);
   const {
     inputRef: promptTextareaRef,
+    handleInputBlur,
+    handleInputFocus,
     handleInputTouchEnd,
     handleInputTouchStart,
-  } = usePreventMobileInputFocusScroll();
+  } = useMobileInputScrollLock();
   const [promptText, setPromptText] = useState('');
   const isPromptEmpty = promptText.trim().length === 0;
 
@@ -77,6 +79,7 @@ export function RoomPromptingView({
           rows={4}
           placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
           shadow
+          onBlur={handleInputBlur}
           onChange={handlePromptChange}
           onCompositionStart={() => {
             isComposingRef.current = true;
@@ -84,6 +87,7 @@ export function RoomPromptingView({
           onCompositionEnd={() => {
             isComposingRef.current = false;
           }}
+          onFocus={handleInputFocus}
           onKeyDown={handlePromptKeyDown}
           onTouchEnd={handleInputTouchEnd}
           onTouchStart={handleInputTouchStart}
