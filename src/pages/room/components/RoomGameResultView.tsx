@@ -63,30 +63,30 @@ export function RoomGameResultView({
 
         {displayRanking.length > 0 ? (
           <S_RankingList aria-label="최종 순위">
-            {displayRanking.map(({ entry, colorIndex }) => (
-              <S_RankingItem
-                key={entry.player.id}
-                isCardRow={isTiedWinner}
-                isWinner={entry.rank === 1}
-              >
-                <S_RankText isWinner={entry.rank === 1}>
-                  {entry.rank}
-                </S_RankText>
+            {displayRanking.map(({ entry, colorIndex }) => {
+              const isCurrentPlayer = entry.player.id === currentPlayerId;
+              const isWinner = entry.rank === 1;
 
-                <PlayerAvatar
-                  player={entry.player}
-                  colorIndex={colorIndex}
-                />
+              return (
+                <S_RankingItem
+                  key={entry.player.id}
+                  isCurrentPlayer={isCurrentPlayer}
+                  isWinner={isWinner}
+                >
+                  <S_RankText isWinner={isWinner}>{entry.rank}</S_RankText>
 
-                <S_Nickname>{entry.player.nickname}</S_Nickname>
+                  <PlayerAvatar player={entry.player} colorIndex={colorIndex} />
 
-                {entry.rank === 1 && (
-                  <S_RowCrown aria-label="우승자" width={22} height={22} />
-                )}
+                  <S_Nickname>{entry.player.nickname}</S_Nickname>
 
-                <S_TotalScore>{entry.totalScore}</S_TotalScore>
-              </S_RankingItem>
-            ))}
+                  {isWinner && (
+                    <S_RowCrown aria-label="우승자" width={22} height={22} />
+                  )}
+
+                  <S_TotalScore>{entry.totalScore}</S_TotalScore>
+                </S_RankingItem>
+              );
+            })}
           </S_RankingList>
         ) : (
           <S_EmptyRanking>다른 참가자 순위가 없어요.</S_EmptyRanking>
@@ -411,58 +411,29 @@ const S_RankingList = styled.ol`
 `;
 
 const S_RankingItem = styled('li', {
-  shouldForwardProp: (prop) => prop !== 'isCardRow' && prop !== 'isWinner',
-})<{ isCardRow: boolean; isWinner: boolean }>`
+  shouldForwardProp: (prop) =>
+    prop !== 'isCurrentPlayer' && prop !== 'isWinner',
+})<{ isCurrentPlayer: boolean; isWinner: boolean }>`
   display: grid;
-  min-height: ${({ isCardRow, isWinner }) => {
-    if (!isCardRow) {
-      return '5.6rem';
-    }
-
-    return isWinner ? '8.4rem' : '6.8rem';
-  }};
+  min-height: ${({ isWinner }) => (isWinner ? '8.4rem' : '6.8rem')};
   grid-template-columns: 3.2rem auto minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 1.2rem;
-  padding: ${({ isCardRow, isWinner }) => {
-    if (!isCardRow) {
-      return '0';
-    }
-
-    return isWinner ? '1.2rem 2rem' : '1rem 1.4rem';
-  }};
-  border: ${({ theme, isWinner }) =>
-    isWinner ? theme.BORDER.DEFAULT : '0.25rem solid transparent'};
-  border-color: ${({ theme, isWinner }) =>
-    isWinner ? theme.COLOR.PRIMARY500 : 'transparent'};
+  padding: ${({ isWinner }) => (isWinner ? '1.2rem 2rem' : '1rem 1.4rem')};
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-color: ${({ theme, isCurrentPlayer }) =>
+    isCurrentPlayer ? theme.COLOR.PRIMARY500 : 'transparent'};
   border-radius: ${({ theme }) => theme.RADIUS.LG};
-  background: ${({ theme, isCardRow, isWinner }) => {
-    if (!isCardRow) {
-      return 'transparent';
-    }
-
-    return isWinner ? theme.COLOR.PINK50 : theme.COLOR.WHITE;
-  }};
-  box-shadow: ${({ theme, isWinner }) =>
-    isWinner ? `0 0.6rem 0 ${theme.COLOR.PRIMARY500}` : 'none'};
+  background: ${({ theme, isCurrentPlayer }) =>
+    isCurrentPlayer ? theme.COLOR.PINK50 : theme.COLOR.WHITE};
+  box-shadow: ${({ theme, isCurrentPlayer }) =>
+    isCurrentPlayer ? `0 0.6rem 0 ${theme.COLOR.PRIMARY500}` : 'none'};
 
   @media (max-width: 36rem) {
-    min-height: ${({ isCardRow, isWinner }) => {
-      if (!isCardRow) {
-        return '5.2rem';
-      }
-
-      return isWinner ? '7.6rem' : '6.2rem';
-    }};
+    min-height: ${({ isWinner }) => (isWinner ? '7.6rem' : '6.2rem')};
     grid-template-columns: 2.6rem auto minmax(0, 1fr) auto auto;
     gap: 0.8rem;
-    padding: ${({ isCardRow, isWinner }) => {
-      if (!isCardRow) {
-        return '0';
-      }
-
-      return isWinner ? '1rem 1.4rem' : '0.9rem 1rem';
-    }};
+    padding: ${({ isWinner }) => (isWinner ? '1rem 1.4rem' : '0.9rem 1rem')};
   }
 `;
 
