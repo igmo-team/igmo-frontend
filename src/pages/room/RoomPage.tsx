@@ -421,6 +421,7 @@ export function RoomPage() {
                   <RoomRoundResultView
                     key={roundResultSnapshot.roundNumber}
                     snapshot={roundResultSnapshot}
+                    currentPlayerId={currentPlayerId}
                   />
                 ) : (
                   <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>

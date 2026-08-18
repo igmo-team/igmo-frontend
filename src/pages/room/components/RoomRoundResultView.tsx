@@ -7,12 +7,35 @@ import type {
   RoundResult,
   RoundResultSnapshot,
 } from '../../../domain/room/types';
+import type { Theme } from '@emotion/react';
 
 type RoomRoundResultViewProps = {
   snapshot: RoundResultSnapshot;
+  currentPlayerId?: string;
 };
 
-export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
+type ResultCardVariant = 'default' | 'answer' | 'current';
+
+const RESULT_CARD_BORDER_COLOR = (
+  theme: Theme,
+): Record<ResultCardVariant, string> => ({
+  answer: theme.COLOR.SUCCESS,
+  current: theme.COLOR.PRIMARY500,
+  default: theme.COLOR.LINE,
+});
+
+const RESULT_CARD_BOX_SHADOW = (
+  theme: Theme,
+): Record<ResultCardVariant, string> => ({
+  answer: `0 0.6rem 0 ${theme.COLOR.SUCCESS}`,
+  current: `0 0.6rem 0 ${theme.COLOR.PRIMARY500}`,
+  default: 'none',
+});
+
+export function RoomRoundResultView({
+  snapshot,
+  currentPlayerId,
+}: RoomRoundResultViewProps) {
   const totalVoteCount = snapshot.results.reduce(
     (sum, result) => sum + result.voters.length,
     0,
@@ -28,13 +51,19 @@ export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
       <S_ResultList aria-label="라운드 선택지 결과">
         {snapshot.results.map((result, index) => {
           const voteCount = result.voters.length;
-          const voteRatio =
-            totalVoteCount > 0 ? voteCount / totalVoteCount : 0;
+          const voteRatio = totalVoteCount > 0 ? voteCount / totalVoteCount : 0;
+          const isCurrentPlayer = result.player.id === currentPlayerId;
+          const resultCardVariant = getResultCardVariant({
+            isAnswer: result.isAnswer,
+            isCurrentPlayer,
+          });
 
           return (
             <S_ResultItem key={`${result.player.id}-${result.guessText}`}>
               <S_ResultCard
                 isAnswer={result.isAnswer}
+                isCurrentPlayer={isCurrentPlayer}
+                variant={resultCardVariant}
                 voteRatio={voteRatio}
               >
                 <S_ResultMain>
@@ -64,27 +93,36 @@ export function RoomRoundResultView({ snapshot }: RoomRoundResultViewProps) {
         <S_ScoreTitle>이번 라운드 점수</S_ScoreTitle>
 
         <S_ScoreList aria-label="이번 라운드 점수">
-          {roundScores.map((roundScore, index) => (
-            <S_ScoreItem key={roundScore.player.id}>
-              <S_RankBadge rank={index + 1}>{getRankLabel(index)}</S_RankBadge>
+          {roundScores.map((roundScore, index) => {
+            const isCurrentPlayer = roundScore.player.id === currentPlayerId;
 
-              <PlayerAvatar player={roundScore.player} index={index} />
+            return (
+              <S_ScoreItem
+                key={roundScore.player.id}
+                isCurrentPlayer={isCurrentPlayer}
+              >
+                <S_RankBadge rank={index + 1}>
+                  {getRankLabel(index)}
+                </S_RankBadge>
 
-              <S_PlayerName>{roundScore.player.nickname}</S_PlayerName>
+                <PlayerAvatar player={roundScore.player} index={index} />
 
-              <S_DetailList>
-                {roundScore.scoreDetails.map((detail) => (
-                  <S_DetailBadge key={`${detail.reason}-${detail.label}`}>
-                    {detail.label} +{detail.score}
-                  </S_DetailBadge>
-                ))}
-              </S_DetailList>
+                <S_PlayerName>{roundScore.player.nickname}</S_PlayerName>
 
-              <S_RoundScore score={roundScore.roundScore}>
-                {formatRoundScore(roundScore.roundScore)}
-              </S_RoundScore>
-            </S_ScoreItem>
-          ))}
+                <S_DetailList>
+                  {roundScore.scoreDetails.map((detail) => (
+                    <S_DetailBadge key={`${detail.reason}-${detail.label}`}>
+                      {detail.label} +{detail.score}
+                    </S_DetailBadge>
+                  ))}
+                </S_DetailList>
+
+                <S_RoundScore score={roundScore.roundScore}>
+                  {formatRoundScore(roundScore.roundScore)}
+                </S_RoundScore>
+              </S_ScoreItem>
+            );
+          })}
         </S_ScoreList>
       </S_ScoreBoard>
     </S_ResultSection>
@@ -143,6 +181,24 @@ function formatRoundScore(score: RoundResult['roundScore']) {
   return '0';
 }
 
+function getResultCardVariant({
+  isAnswer,
+  isCurrentPlayer,
+}: {
+  isAnswer: boolean;
+  isCurrentPlayer: boolean;
+}): ResultCardVariant {
+  if (isCurrentPlayer) {
+    return 'current';
+  }
+
+  if (isAnswer) {
+    return 'answer';
+  }
+
+  return 'default';
+}
+
 const S_ResultSection = styled.section`
   display: flex;
   width: 100%;
@@ -166,8 +222,17 @@ const S_ResultItem = styled.li`
 `;
 
 const S_ResultCard = styled('article', {
-  shouldForwardProp: (prop) => prop !== 'isAnswer' && prop !== 'voteRatio',
-})<{ isAnswer: boolean; voteRatio: number }>`
+  shouldForwardProp: (prop) =>
+    prop !== 'isAnswer' &&
+    prop !== 'isCurrentPlayer' &&
+    prop !== 'variant' &&
+    prop !== 'voteRatio',
+})<{
+  isAnswer: boolean;
+  isCurrentPlayer: boolean;
+  variant: ResultCardVariant;
+  voteRatio: number;
+}>`
   display: flex;
   width: 100%;
   min-height: 6.8rem;
@@ -175,18 +240,19 @@ const S_ResultCard = styled('article', {
   gap: 1.2rem;
   padding: 1.2rem 1.6rem;
   border: ${({ theme }) => theme.BORDER.DEFAULT};
-  border-color: ${({ theme, isAnswer }) =>
-    isAnswer ? theme.COLOR.SUCCESS : theme.COLOR.LINE};
+  border-color: ${({ theme, variant }) =>
+    RESULT_CARD_BORDER_COLOR(theme)[variant]};
   border-radius: ${({ theme }) => theme.RADIUS.LG};
-  background:
-    ${({ theme, isAnswer, voteRatio }) => {
-      const progress = `${Math.min(Math.max(voteRatio, 0), 1) * 100}%`;
-      const progressColor = isAnswer ? '#E5F8EC' : theme.COLOR.PRIMARY200;
+  background: ${({ theme, isAnswer, isCurrentPlayer, voteRatio }) => {
+    const progress = `${Math.min(Math.max(voteRatio, 0), 1) * 100}%`;
+    const progressColor = isAnswer
+      ? theme.COLOR.PINK50
+      : theme.COLOR.PRIMARY200;
+    const baseColor = isCurrentPlayer ? theme.COLOR.PINK50 : theme.COLOR.WHITE;
 
-      return `linear-gradient(90deg, ${progressColor} 0 ${progress}, ${theme.COLOR.WHITE} ${progress} 100%)`;
-    }};
-  box-shadow: ${({ theme, isAnswer }) =>
-    isAnswer ? `0 0.6rem 0 ${theme.COLOR.SUCCESS}` : 'none'};
+    return `linear-gradient(90deg, ${progressColor} 0 ${progress}, ${baseColor} ${progress} 100%)`;
+  }};
+  box-shadow: ${({ theme, variant }) => RESULT_CARD_BOX_SHADOW(theme)[variant]};
 
   @media (max-width: 36rem) {
     min-height: 6.8rem;
@@ -282,7 +348,7 @@ const S_ScoreBoard = styled.section`
   padding: 2.2rem 2rem 2.4rem;
   border: ${({ theme }) => theme.BORDER.DEFAULT};
   border-radius: ${({ theme }) => theme.RADIUS.IMAGE};
-  background: ${({ theme }) => theme.COLOR.PINK50};
+  background: ${({ theme }) => theme.COLOR.WHITE};
   box-shadow: ${({ theme }) => theme.SHADOW.SURFACE};
 
   @media (max-width: 36rem) {
@@ -301,12 +367,18 @@ const S_ScoreList = styled.ol`
   gap: 1rem;
 `;
 
-const S_ScoreItem = styled.li`
+const S_ScoreItem = styled('li', {
+  shouldForwardProp: (prop) => prop !== 'isCurrentPlayer',
+})<{ isCurrentPlayer: boolean }>`
   display: grid;
   min-width: 0;
   grid-template-columns: 2.4rem auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 1.2rem;
+  padding: 0.6rem 1rem;
+  border-radius: ${({ theme }) => theme.RADIUS.MD};
+  background: ${({ theme, isCurrentPlayer }) =>
+    isCurrentPlayer ? theme.COLOR.PINK50 : 'transparent'};
 
   @media (max-width: 36rem) {
     grid-template-columns: 2rem auto auto minmax(0, 1fr) auto;
