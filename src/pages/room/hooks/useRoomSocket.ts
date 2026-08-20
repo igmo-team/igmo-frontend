@@ -26,6 +26,7 @@ import type {
   RoomSnapshot,
   RoundResultSnapshot,
   RoundSnapshot,
+  SubmissionType,
   VoteSnapshot,
 } from '../../../domain/room/types';
 import type { RoomSession } from '../utils/roomSessionStorage';
@@ -59,8 +60,8 @@ type UseRoomSocketResult = {
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => void;
-  sendPrompt: (prompt: string) => void;
-  sendGuess: (guess: string) => void;
+  sendPrompt: (prompt: string, submissionType?: SubmissionType) => boolean;
+  sendGuess: (guess: string, submissionType?: SubmissionType) => boolean;
   sendVote: (optionId: string) => boolean;
   sendRestart: () => void;
 };
@@ -316,23 +317,24 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/start`);
   };
 
-  const sendPrompt = (prompt: string) => {
-    if (!roomCode) {
-      return;
-    }
-
-    const isPublished = publish(
+  const sendPrompt = (
+    prompt: string,
+    submissionType: SubmissionType = 'NORMAL',
+  ) => {
+    return publish(
       `/app/rooms/${roomCode}/prompts`,
-      JSON.stringify({ prompt }),
+      JSON.stringify({ prompt, submissionType }),
     );
-
-    if (!isPublished) {
-      return;
-    }
   };
 
-  const sendGuess = (guess: string) => {
-    publish(`/app/rooms/${roomCode}/guesses`, JSON.stringify({ guess }));
+  const sendGuess = (
+    guess: string,
+    submissionType: SubmissionType = 'NORMAL',
+  ) => {
+    return publish(
+      `/app/rooms/${roomCode}/guesses`,
+      JSON.stringify({ guess, submissionType }),
+    );
   };
 
   const sendVote = (optionId: string) => {
