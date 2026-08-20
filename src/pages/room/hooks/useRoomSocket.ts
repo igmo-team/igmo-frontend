@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { createStompClient } from '../../../common/socket/createStompClient';
 import {
@@ -291,20 +291,23 @@ export function useRoomSocket({
     };
   }, [roomSession, roomCode]);
 
-  const publish = (destination: string, body?: string) => {
-    if (!roomCode || !stompClientRef.current?.connected) {
-      return false;
-    }
+  const publish = useCallback(
+    (destination: string, body?: string) => {
+      if (!roomCode || !stompClientRef.current?.connected) {
+        return false;
+      }
 
-    setErrorMessage('');
-    stompClientRef.current.publish({
-      destination,
-      ...(body === undefined
-        ? {}
-        : { body, headers: { 'content-type': 'application/json' } }),
-    });
-    return true;
-  };
+      setErrorMessage('');
+      stompClientRef.current.publish({
+        destination,
+        ...(body === undefined
+          ? {}
+          : { body, headers: { 'content-type': 'application/json' } }),
+      });
+      return true;
+    },
+    [roomCode],
+  );
 
   const sendReady = (nextReady: boolean) => {
     publish(
@@ -317,19 +320,25 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/start`);
   };
 
-  const sendPrompt = (prompt: string, submissionType: SubmissionType) => {
-    return publish(
-      `/app/rooms/${roomCode}/prompts`,
-      JSON.stringify({ prompt, submissionType }),
-    );
-  };
+  const sendPrompt = useCallback(
+    (prompt: string, submissionType: SubmissionType) => {
+      return publish(
+        `/app/rooms/${roomCode}/prompts`,
+        JSON.stringify({ prompt, submissionType }),
+      );
+    },
+    [publish, roomCode],
+  );
 
-  const sendGuess = (guess: string, submissionType: SubmissionType) => {
-    return publish(
-      `/app/rooms/${roomCode}/guesses`,
-      JSON.stringify({ guess, submissionType }),
-    );
-  };
+  const sendGuess = useCallback(
+    (guess: string, submissionType: SubmissionType) => {
+      return publish(
+        `/app/rooms/${roomCode}/guesses`,
+        JSON.stringify({ guess, submissionType }),
+      );
+    },
+    [publish, roomCode],
+  );
 
   const sendVote = (optionId: string) => {
     return publish(
