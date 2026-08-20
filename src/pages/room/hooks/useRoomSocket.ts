@@ -60,8 +60,8 @@ type UseRoomSocketResult = {
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => void;
-  sendPrompt: (prompt: string, submissionType?: SubmissionType) => boolean;
-  sendGuess: (guess: string, submissionType?: SubmissionType) => boolean;
+  sendPrompt: (prompt: string, submissionType: SubmissionType) => boolean;
+  sendGuess: (guess: string, submissionType: SubmissionType) => boolean;
   sendVote: (optionId: string) => boolean;
   sendRestart: () => void;
 };
@@ -317,20 +317,14 @@ export function useRoomSocket({
     publish(`/app/rooms/${roomCode}/start`);
   };
 
-  const sendPrompt = (
-    prompt: string,
-    submissionType: SubmissionType = 'NORMAL',
-  ) => {
+  const sendPrompt = (prompt: string, submissionType: SubmissionType) => {
     return publish(
       `/app/rooms/${roomCode}/prompts`,
       JSON.stringify({ prompt, submissionType }),
     );
   };
 
-  const sendGuess = (
-    guess: string,
-    submissionType: SubmissionType = 'NORMAL',
-  ) => {
+  const sendGuess = (guess: string, submissionType: SubmissionType) => {
     return publish(
       `/app/rooms/${roomCode}/guesses`,
       JSON.stringify({ guess, submissionType }),

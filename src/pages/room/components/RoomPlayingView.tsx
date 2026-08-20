@@ -20,7 +20,7 @@ type RoomPlayingViewProps = {
   guessSubmissionSnapshot?: GuessSubmissionSnapshot | null;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
-  onSubmit: (prompt: string, submissionType?: SubmissionType) => boolean;
+  onSubmit: (prompt: string, submissionType: SubmissionType) => boolean;
 };
 
 export function RoomPlayingView({
@@ -64,12 +64,12 @@ export function RoomPlayingView({
 
   const isDeadlineExpired = useDeadlineSubmission({
     deadline: snapshot.guessDeadline,
-    shouldSubmit: !isQuestioner && !isSubmitted,
+    shouldSubmit: !isQuestioner && !isSubmitted && !isSubmitPending,
     onDeadline: handleDeadlineSubmit,
   });
 
-  const isSubmissionClosed = isDeadlineExpired;
-  const isPromptEmpty = promptText.trim().length === 0;
+  const isSubmissionClosed = isDeadlineExpired || isSubmitPending;
+  const isPromptEmpty = promptText === '';
   const isSubmitDisabled =
     isPromptEmpty ||
     isQuestioner ||
@@ -170,8 +170,11 @@ export function RoomPlayingView({
       return;
     }
 
+    if (!onSubmit(promptText, 'NORMAL')) {
+      return;
+    }
+
     setIsSubmitPending(true);
-    onSubmit(promptText);
   };
 
   const handleSubmitButtonTouchStart = (

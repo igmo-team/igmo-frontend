@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
 
+import type { SubmissionType } from '../../../domain/room/types';
+
 type RoomPromptFailedViewProps = {
   prompt?: string;
   isSocketConnected?: boolean;
   socketErrorMessage?: string;
-  onSubmit?: (prompt: string) => void;
+  onSubmit?: (prompt: string, submissionType: SubmissionType) => boolean;
 };
 
 export function RoomPromptFailedView({
@@ -19,7 +21,7 @@ export function RoomPromptFailedView({
 }: RoomPromptFailedViewProps) {
   const isComposingRef = useRef(false);
   const [promptText, setPromptText] = useState(prompt);
-  const isPromptEmpty = promptText.trim().length === 0;
+  const isPromptEmpty = promptText === '';
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
@@ -47,13 +49,11 @@ export function RoomPromptFailedView({
   const handleRetrySubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmedPrompt = promptText.trim();
-
-    if (trimmedPrompt.length === 0 || !isSocketConnected || !onSubmit) {
+    if (promptText === '' || !isSocketConnected || !onSubmit) {
       return;
     }
 
-    onSubmit(trimmedPrompt);
+    onSubmit(promptText, 'NORMAL');
   };
 
   return (

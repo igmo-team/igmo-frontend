@@ -12,7 +12,7 @@ type RoomPromptingViewProps = {
   deadline: string;
   isSocketConnected: boolean;
   socketErrorMessage: string;
-  onSubmit: (prompt: string, submissionType?: SubmissionType) => boolean;
+  onSubmit: (prompt: string, submissionType: SubmissionType) => boolean;
 };
 
 export function RoomPromptingView({
@@ -31,7 +31,8 @@ export function RoomPromptingView({
     handleInputTouchStart,
   } = useMobileInputScrollLock();
   const [promptText, setPromptText] = useState('');
-  const isPromptEmpty = promptText.trim().length === 0;
+  const [isSubmitPending, setIsSubmitPending] = useState(false);
+  const isPromptEmpty = promptText === '';
 
   const handleDeadlineSubmit = useCallback(() => {
     onSubmit(latestPromptRef.current, 'DEADLINE');
@@ -39,11 +40,11 @@ export function RoomPromptingView({
 
   const isDeadlineExpired = useDeadlineSubmission({
     deadline,
-    shouldSubmit: true,
+    shouldSubmit: !isSubmitPending,
     onDeadline: handleDeadlineSubmit,
   });
 
-  const isSubmissionClosed = isDeadlineExpired;
+  const isSubmissionClosed = isDeadlineExpired || isSubmitPending;
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
@@ -74,13 +75,13 @@ export function RoomPromptingView({
   const handleGenerateSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmedPrompt = promptText.trim();
-
-    if (trimmedPrompt.length === 0 || !isSocketConnected || isSubmissionClosed) {
+    if (promptText === '' || !isSocketConnected || isSubmissionClosed) {
       return;
     }
 
-    onSubmit(trimmedPrompt);
+    if (onSubmit(promptText, 'NORMAL')) {
+      setIsSubmitPending(true);
+    }
   };
 
   return (
