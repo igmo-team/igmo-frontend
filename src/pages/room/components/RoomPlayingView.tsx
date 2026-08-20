@@ -190,9 +190,6 @@ export function RoomPlayingView({
         <S_FormArea>
           <S_TextGroup>
             <S_Title>진짜 같은 가짜 프롬프트를 적으세요</S_Title>
-            <S_Guide>
-              남들이 당신의 답을 진짜라고 착각하면 <S_Point>+100점!</S_Point>
-            </S_Guide>
           </S_TextGroup>
 
           <S_InputGroup
@@ -338,15 +335,6 @@ const S_TextGroup = styled.div`
 const S_Title = styled.h2`
   color: ${({ theme }) => theme.COLOR.TEXT};
   ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
-`;
-
-const S_Guide = styled.p`
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  ${({ theme }) => theme.TYPOGRAPHY.B3_B}
-`;
-
-const S_Point = styled.strong`
-  color: ${({ theme }) => theme.COLOR.PRIMARY500};
 `;
 
 const S_InputGroup = styled('form', {
