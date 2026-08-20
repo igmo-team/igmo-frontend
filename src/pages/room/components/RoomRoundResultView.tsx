@@ -377,8 +377,8 @@ const S_ScoreItem = styled('li', {
   gap: 1.2rem;
   padding: 0.6rem 1rem;
   border-radius: ${({ theme }) => theme.RADIUS.MD};
-  background: ${({ theme, isCurrentPlayer }) =>
-    isCurrentPlayer ? theme.COLOR.PINK50 : 'transparent'};
+  border: ${({ theme, isCurrentPlayer }) =>
+    isCurrentPlayer ? `2px solid ${theme.COLOR.PRIMARY500}` : 'none'};
 
   @media (max-width: 36rem) {
     grid-template-columns: 2rem auto auto minmax(0, 1fr) auto;
