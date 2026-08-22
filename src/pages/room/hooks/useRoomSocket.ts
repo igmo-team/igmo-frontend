@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { captureAnalyticsEvent } from '../../../common/analytics';
 import { createStompClient } from '../../../common/socket/createStompClient';
 import {
   readHasPlayedCountdown,
@@ -58,9 +59,9 @@ type UseRoomSocketResult = {
   isConnected: boolean;
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
-  sendStart: () => void;
-  sendPrompt: (prompt: string) => void;
-  sendGuess: (guess: string) => void;
+  sendStart: () => boolean;
+  sendPrompt: (prompt: string) => boolean;
+  sendGuess: (guess: string) => boolean;
   sendVote: (optionId: string) => boolean;
   sendRestart: () => void;
 };
@@ -97,6 +98,41 @@ export function useRoomSocket({
   const [isConnected, setIsConnected] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const stompClientRef = useRef<Client | null>(null);
+  const lastMessageReceivedAtRef = useRef<number | null>(null);
+  const hasConnectedRef = useRef(false);
+  const hasConnectionLostRef = useRef(false);
+  const hasReportedReconnectFailedRef = useRef(false);
+  const socketAnalyticsPropertiesRef = useRef({
+    room_code: roomCode,
+    player_id: roomSession?.playerId,
+    phase,
+    round_number: undefined as number | undefined,
+    total_round_count: undefined as number | undefined,
+  });
+
+  useEffect(() => {
+    socketAnalyticsPropertiesRef.current = {
+      room_code: roomCode,
+      player_id: roomSession?.playerId,
+      phase,
+      round_number: getCurrentRoundNumber({
+        roundSnapshot,
+        voteSnapshot,
+        roundResultSnapshot,
+      }),
+      total_round_count: getCurrentTotalRoundCount({
+        roundSnapshot,
+        roundResultSnapshot,
+      }),
+    };
+  }, [
+    phase,
+    roomCode,
+    roomSession?.playerId,
+    roundResultSnapshot,
+    roundSnapshot,
+    voteSnapshot,
+  ]);
 
   useEffect(() => {
     if (!roomCode || !roomSession) {
@@ -106,6 +142,10 @@ export function useRoomSocket({
     let isActive = true;
     const currentPlayerId = roomSession.playerId;
     const client = createStompClient();
+    lastMessageReceivedAtRef.current = null;
+    hasConnectedRef.current = false;
+    hasConnectionLostRef.current = false;
+    hasReportedReconnectFailedRef.current = false;
     stompClientRef.current = client;
 
     client.connectHeaders = {
@@ -122,10 +162,22 @@ export function useRoomSocket({
       setIsConnected(true);
       setErrorMessage('');
 
+      if (hasConnectionLostRef.current) {
+        captureAnalyticsEvent('socket_reconnected', {
+          ...socketAnalyticsPropertiesRef.current,
+        });
+      }
+
+      hasConnectedRef.current = true;
+      hasConnectionLostRef.current = false;
+      hasReportedReconnectFailedRef.current = false;
+
       client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
         if (!isActive) {
           return;
         }
+
+        lastMessageReceivedAtRef.current = Date.now();
 
         const nextSnapshot = parseRoomSnapshot(message.body);
 
@@ -204,6 +256,8 @@ export function useRoomSocket({
           return;
         }
 
+        lastMessageReceivedAtRef.current = Date.now();
+
         const nextImageGenerationSnapshot = parseImageGenerationSnapshot(
           message.body,
         );
@@ -217,6 +271,8 @@ export function useRoomSocket({
         if (!isActive) {
           return;
         }
+
+        lastMessageReceivedAtRef.current = Date.now();
 
         const nextGuessSubmissionSnapshot = parseGuessSubmissionSnapshot(
           message.body,
@@ -244,6 +300,8 @@ export function useRoomSocket({
           return;
         }
 
+        lastMessageReceivedAtRef.current = Date.now();
+
         const nextOwnVoteOptionNotice = parseOwnVoteOptionNotice(message.body);
 
         if (nextOwnVoteOptionNotice?.roomCode === roomCode) {
@@ -262,6 +320,7 @@ export function useRoomSocket({
           return;
         }
 
+        lastMessageReceivedAtRef.current = Date.now();
         setErrorMessage(parseSocketError(message.body));
       });
     };
@@ -272,10 +331,38 @@ export function useRoomSocket({
       }
     };
 
-    client.onWebSocketClose = () => {
+    client.onWebSocketClose = (event) => {
       if (isActive) {
         setIsConnected(false);
+
+        if (hasConnectedRef.current && !hasConnectionLostRef.current) {
+          hasConnectionLostRef.current = true;
+          captureAnalyticsEvent('socket_connection_lost', {
+            ...socketAnalyticsPropertiesRef.current,
+            close_code: event.code,
+            was_clean: event.wasClean,
+            last_message_age_ms: getLastMessageAgeMs(
+              lastMessageReceivedAtRef.current,
+            ),
+          });
+        }
       }
+    };
+
+    client.onWebSocketError = () => {
+      if (
+        !isActive ||
+        !hasConnectionLostRef.current ||
+        hasReportedReconnectFailedRef.current
+      ) {
+        return;
+      }
+
+      hasReportedReconnectFailedRef.current = true;
+      captureAnalyticsEvent('socket_reconnect_failed', {
+        ...socketAnalyticsPropertiesRef.current,
+        reason: 'WEBSOCKET_ERROR',
+      });
     };
 
     client.activate();
@@ -313,26 +400,22 @@ export function useRoomSocket({
   };
 
   const sendStart = () => {
-    publish(`/app/rooms/${roomCode}/start`);
+    return publish(`/app/rooms/${roomCode}/start`);
   };
 
   const sendPrompt = (prompt: string) => {
     if (!roomCode) {
-      return;
+      return false;
     }
 
-    const isPublished = publish(
+    return publish(
       `/app/rooms/${roomCode}/prompts`,
       JSON.stringify({ prompt }),
     );
-
-    if (!isPublished) {
-      return;
-    }
   };
 
   const sendGuess = (guess: string) => {
-    publish(`/app/rooms/${roomCode}/guesses`, JSON.stringify({ guess }));
+    return publish(`/app/rooms/${roomCode}/guesses`, JSON.stringify({ guess }));
   };
 
   const sendVote = (optionId: string) => {
@@ -382,4 +465,38 @@ export function useRoomSocket({
     sendVote,
     sendRestart,
   };
+}
+
+function getCurrentRoundNumber({
+  roundSnapshot,
+  voteSnapshot,
+  roundResultSnapshot,
+}: {
+  roundSnapshot: RoundSnapshot | null;
+  voteSnapshot: VoteSnapshot | null;
+  roundResultSnapshot: RoundResultSnapshot | null;
+}) {
+  return (
+    roundSnapshot?.roundNumber ??
+    voteSnapshot?.roundNumber ??
+    roundResultSnapshot?.roundNumber
+  );
+}
+
+function getCurrentTotalRoundCount({
+  roundSnapshot,
+  roundResultSnapshot,
+}: {
+  roundSnapshot: RoundSnapshot | null;
+  roundResultSnapshot: RoundResultSnapshot | null;
+}) {
+  return roundSnapshot?.totalRoundCount ?? roundResultSnapshot?.totalRoundCount;
+}
+
+function getLastMessageAgeMs(lastMessageReceivedAt: number | null) {
+  if (lastMessageReceivedAt === null) {
+    return null;
+  }
+
+  return Date.now() - lastMessageReceivedAt;
 }

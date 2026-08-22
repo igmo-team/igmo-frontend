@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-import type { AxiosRequestConfig } from 'axios';
+import { captureAnalyticsEvent } from '../analytics';
+
+import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 type RequestConfig<RequestBody> = Omit<
   AxiosRequestConfig<RequestBody>,
@@ -23,45 +25,77 @@ async function get<ResponseBody, RequestBody>(
   config: RequestConfig<RequestBody>,
 ): Promise<ResponseBody> {
   const { url, ...options } = config;
-  const response = await axiosInstance.get<ResponseBody>(url, options);
-
-  return response.data;
+  return requestWithAnalytics('GET', url, () =>
+    axiosInstance.get<ResponseBody>(url, options),
+  );
 }
 
 async function post<ResponseBody, RequestBody>(
   config: RequestConfig<RequestBody>,
 ): Promise<ResponseBody> {
   const { url, data, ...options } = config;
-  const response = await axiosInstance.post<ResponseBody>(url, data, options);
-
-  return response.data;
+  return requestWithAnalytics('POST', url, () =>
+    axiosInstance.post<ResponseBody>(url, data, options),
+  );
 }
 
 async function patch<ResponseBody, RequestBody>(
   config: RequestConfig<RequestBody>,
 ): Promise<ResponseBody> {
   const { url, data, ...options } = config;
-  const response = await axiosInstance.patch<ResponseBody>(url, data, options);
-
-  return response.data;
+  return requestWithAnalytics('PATCH', url, () =>
+    axiosInstance.patch<ResponseBody>(url, data, options),
+  );
 }
 
 async function put<ResponseBody, RequestBody>(
   config: RequestConfig<RequestBody>,
 ): Promise<ResponseBody> {
   const { url, data, ...options } = config;
-  const response = await axiosInstance.put<ResponseBody>(url, data, options);
-
-  return response.data;
+  return requestWithAnalytics('PUT', url, () =>
+    axiosInstance.put<ResponseBody>(url, data, options),
+  );
 }
 
 async function del<ResponseBody, RequestBody>(
   config: RequestConfig<RequestBody>,
 ): Promise<ResponseBody> {
   const { url, ...options } = config;
-  const response = await axiosInstance.delete<ResponseBody>(url, options);
+  return requestWithAnalytics('DELETE', url, () =>
+    axiosInstance.delete<ResponseBody>(url, options),
+  );
+}
 
-  return response.data;
+async function requestWithAnalytics<ResponseBody>(
+  method: string,
+  url: string,
+  request: () => Promise<AxiosResponse<ResponseBody>>,
+) {
+  const startedAt = performance.now();
+
+  try {
+    const response = await request();
+
+    captureAnalyticsEvent('api_request_completed', {
+      method,
+      endpoint: url,
+      status: response.status,
+      duration_ms: Math.round(performance.now() - startedAt),
+      success: true,
+    });
+
+    return response.data;
+  } catch (error) {
+    captureAnalyticsEvent('api_request_completed', {
+      method,
+      endpoint: url,
+      status: axios.isAxiosError(error) ? error.response?.status : undefined,
+      duration_ms: Math.round(performance.now() - startedAt),
+      success: false,
+    });
+
+    throw error;
+  }
 }
 
 const client = {
