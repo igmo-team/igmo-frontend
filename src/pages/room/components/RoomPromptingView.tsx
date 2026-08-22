@@ -1,22 +1,28 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
+import { useDeadlineSubmission } from '../hooks/useDeadlineSubmission';
 import { useMobileInputScrollLock } from '../hooks/useMobileInputScrollLock';
 
+import type { SubmissionType } from '../../../domain/room/types';
+
 type RoomPromptingViewProps = {
+  deadline: string;
   isSocketConnected: boolean;
   socketErrorMessage: string;
-  onSubmit: (prompt: string) => void;
+  onSubmit: (prompt: string, submissionType: SubmissionType) => boolean;
 };
 
 export function RoomPromptingView({
+  deadline,
   isSocketConnected,
   socketErrorMessage,
   onSubmit,
 }: RoomPromptingViewProps) {
   const isComposingRef = useRef(false);
+  const latestPromptRef = useRef('');
   const {
     inputRef: promptTextareaRef,
     handleInputBlur,
@@ -25,12 +31,28 @@ export function RoomPromptingView({
     handleInputTouchStart,
   } = useMobileInputScrollLock();
   const [promptText, setPromptText] = useState('');
-  const isPromptEmpty = promptText.trim().length === 0;
+  const [isSubmitPending, setIsSubmitPending] = useState(false);
+  const isPromptEmpty = promptText === '';
+
+  const handleDeadlineSubmit = useCallback(() => {
+    onSubmit(latestPromptRef.current, 'DEADLINE');
+  }, [onSubmit]);
+
+  const isDeadlineExpired = useDeadlineSubmission({
+    deadline,
+    shouldSubmit: !isSubmitPending,
+    onDeadline: handleDeadlineSubmit,
+  });
+
+  const isSubmissionClosed = isDeadlineExpired || isSubmitPending;
 
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
-    setPromptText(event.target.value);
+    const nextPrompt = event.target.value;
+
+    latestPromptRef.current = nextPrompt;
+    setPromptText(nextPrompt);
   };
 
   const handlePromptKeyDown = (
@@ -53,13 +75,13 @@ export function RoomPromptingView({
   const handleGenerateSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const trimmedPrompt = promptText.trim();
-
-    if (trimmedPrompt.length === 0 || !isSocketConnected) {
+    if (promptText === '' || !isSocketConnected || isSubmissionClosed) {
       return;
     }
 
-    onSubmit(trimmedPrompt);
+    if (onSubmit(promptText, 'NORMAL')) {
+      setIsSubmitPending(true);
+    }
   };
 
   return (
@@ -79,6 +101,7 @@ export function RoomPromptingView({
           rows={4}
           placeholder="예: 눈사람한테 목도리 빌리는 강아지, 엘리베이터에 갇힌 산타 "
           shadow
+          disabled={isSubmissionClosed}
           onBlur={handleInputBlur}
           onChange={handlePromptChange}
           onCompositionStart={() => {
@@ -97,7 +120,10 @@ export function RoomPromptingView({
           <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
         )}
 
-        <Button type="submit" disabled={isPromptEmpty || !isSocketConnected}>
+        <Button
+          type="submit"
+          disabled={isPromptEmpty || !isSocketConnected || isSubmissionClosed}
+        >
           그림 생성하기
         </Button>
       </S_InputGroup>
