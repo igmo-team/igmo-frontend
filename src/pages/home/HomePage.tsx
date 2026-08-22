@@ -1,9 +1,17 @@
+import { useEffect } from 'react';
+
 import styled from '@emotion/styled';
+
+import { captureAnalyticsEvent } from '../../common/analytics';
 
 import { HomeHero } from './components/HomeHero';
 import { RoomEntryForm } from './components/RoomEntryForm';
 
 export function HomePage() {
+  useEffect(() => {
+    captureAnalyticsEvent('home_viewed');
+  }, []);
+
   return (
     <S_Page>
       <HomeHero />
