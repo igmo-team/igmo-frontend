@@ -359,11 +359,7 @@ export function RoomPage() {
                 <>
                   {!activeImageGenerationSnapshot && (
                     <RoomPromptingView
-                      deadline={
-                        phase === 'GENERATING'
-                          ? (promptSubmissionSnapshot?.promptDeadline ?? '')
-                          : ''
-                      }
+                      deadline={promptSubmissionSnapshot?.promptDeadline ?? ''}
                       isSocketConnected={isConnected}
                       socketErrorMessage={errorMessage}
                       onSubmit={sendPrompt}

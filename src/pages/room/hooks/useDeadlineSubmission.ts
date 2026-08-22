@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+const DEADLINE_SUBMISSION_LEAD_MS = 300;
+
 type UseDeadlineSubmissionParams = {
   deadline?: string;
   shouldSubmit: boolean;
@@ -30,7 +32,7 @@ export function useDeadlineSubmission({
         setExpiredDeadline(deadline);
         onDeadline();
       },
-      Math.max(0, deadlineTime - Date.now()),
+      Math.max(0, deadlineTime - Date.now() - DEADLINE_SUBMISSION_LEAD_MS),
     );
 
     return () => {
