@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
 import { showGameToast } from '../../../common/lib/toast';
 import { MOBILE_MEDIA_QUERY } from '../../../common/styles/breakpoints';
+import { useDeadlineSubmission } from '../hooks/useDeadlineSubmission';
 import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
 import type {
   GuessSubmissionSnapshot,
   RoundSnapshot,
+  SubmissionType,
 } from '../../../domain/room/types';
 
 type RoomPlayingViewProps = {
@@ -18,7 +20,7 @@ type RoomPlayingViewProps = {
   guessSubmissionSnapshot?: GuessSubmissionSnapshot | null;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
-  onSubmit: (prompt: string) => void;
+  onSubmit: (prompt: string, submissionType: SubmissionType) => boolean;
 };
 
 export function RoomPlayingView({
@@ -30,6 +32,7 @@ export function RoomPlayingView({
   onSubmit,
 }: RoomPlayingViewProps) {
   const isComposingRef = useRef(false);
+  const latestPromptRef = useRef('');
   const shownPerfectGuessToastKeyRef = useRef('');
   const {
     promptInputGroupRef,
@@ -54,12 +57,25 @@ export function RoomPlayingView({
     snapshot.guessEntries.find((entry) => entry.player.id === currentPlayerId)
       ?.submitted ?? false;
   const isSubmitted = isServerSubmitted || isRoundSubmitted;
-  const isPromptEmpty = promptText.trim().length === 0;
+
+  const handleDeadlineSubmit = useCallback(() => {
+    onSubmit(latestPromptRef.current, 'DEADLINE');
+  }, [onSubmit]);
+
+  const isDeadlineExpired = useDeadlineSubmission({
+    deadline: snapshot.guessDeadline,
+    shouldSubmit: !isQuestioner && !isSubmitted && !isSubmitPending,
+    onDeadline: handleDeadlineSubmit,
+  });
+
+  const isSubmissionClosed = isDeadlineExpired || isSubmitPending;
+  const isPromptEmpty = promptText === '';
   const isSubmitDisabled =
     isPromptEmpty ||
     isQuestioner ||
     isSubmitted ||
     isSubmitPending ||
+    isSubmissionClosed ||
     !isSocketConnected;
   const submitButtonText = getSubmitButtonText(isSubmitted, isSubmitPending);
   const mobileSubmitButtonText = getMobileSubmitButtonText(
@@ -70,6 +86,7 @@ export function RoomPlayingView({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPromptText('');
+    latestPromptRef.current = '';
     setIsSubmitPending(false);
   }, [snapshot.roundNumber, snapshot.questioner.id, snapshot.imageUrl]);
 
@@ -105,12 +122,14 @@ export function RoomPlayingView({
 
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setPromptText('');
+      latestPromptRef.current = '';
       setIsSubmitPending(false);
       return;
     }
 
     if (currentGuessSubmissionSnapshot.status === 'SUBMITTED') {
       setPromptText(currentGuessSubmissionSnapshot.guess);
+      latestPromptRef.current = currentGuessSubmissionSnapshot.guess;
       setIsSubmitPending(false);
       return;
     }
@@ -121,7 +140,10 @@ export function RoomPlayingView({
   const handlePromptChange = (
     event: React.ChangeEvent<HTMLTextAreaElement>,
   ) => {
-    setPromptText(event.target.value);
+    const nextPrompt = event.target.value;
+
+    latestPromptRef.current = nextPrompt;
+    setPromptText(nextPrompt);
   };
 
   const handlePromptKeyDown = (
@@ -148,8 +170,11 @@ export function RoomPlayingView({
       return;
     }
 
+    if (!onSubmit(promptText, 'NORMAL')) {
+      return;
+    }
+
     setIsSubmitPending(true);
-    onSubmit(promptText);
   };
 
   const handleSubmitButtonTouchStart = (
@@ -204,7 +229,9 @@ export function RoomPlayingView({
               rows={3}
               placeholder="예: 노을 지는 한강에서 컵라면 먹는 고양이"
               shadow
-              disabled={isSubmitted || isSubmitPending}
+              disabled={
+                isSubmitted || isSubmitPending || isSubmissionClosed
+              }
               onChange={handlePromptChange}
               onCompositionStart={() => {
                 isComposingRef.current = true;

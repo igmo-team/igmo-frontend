@@ -14,6 +14,8 @@ export type RoomPhase =
   | 'RESULTS'
   | 'ENDED';
 
+export type SubmissionType = 'NORMAL' | 'DEADLINE';
+
 export type RoomMessageType =
   | 'LOBBY_SNAPSHOT'
   | 'PROMPT_SUBMISSION_SNAPSHOT'

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { captureAnalyticsEvent } from '../../../common/analytics';
 import { createStompClient } from '../../../common/socket/createStompClient';
@@ -27,6 +27,7 @@ import type {
   RoomSnapshot,
   RoundResultSnapshot,
   RoundSnapshot,
+  SubmissionType,
   VoteSnapshot,
 } from '../../../domain/room/types';
 import type { RoomSession } from '../utils/roomSessionStorage';
@@ -60,8 +61,8 @@ type UseRoomSocketResult = {
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => boolean;
-  sendPrompt: (prompt: string) => boolean;
-  sendGuess: (guess: string) => boolean;
+  sendPrompt: (prompt: string, submissionType: SubmissionType) => boolean;
+  sendGuess: (guess: string, submissionType: SubmissionType) => boolean;
   sendVote: (optionId: string) => boolean;
   sendRestart: () => void;
 };
@@ -377,20 +378,23 @@ export function useRoomSocket({
     };
   }, [roomSession, roomCode]);
 
-  const publish = (destination: string, body?: string) => {
-    if (!roomCode || !stompClientRef.current?.connected) {
-      return false;
-    }
+  const publish = useCallback(
+    (destination: string, body?: string) => {
+      if (!roomCode || !stompClientRef.current?.connected) {
+        return false;
+      }
 
-    setErrorMessage('');
-    stompClientRef.current.publish({
-      destination,
-      ...(body === undefined
-        ? {}
-        : { body, headers: { 'content-type': 'application/json' } }),
-    });
-    return true;
-  };
+      setErrorMessage('');
+      stompClientRef.current.publish({
+        destination,
+        ...(body === undefined
+          ? {}
+          : { body, headers: { 'content-type': 'application/json' } }),
+      });
+      return true;
+    },
+    [roomCode],
+  );
 
   const sendReady = (nextReady: boolean) => {
     publish(
@@ -403,20 +407,25 @@ export function useRoomSocket({
     return publish(`/app/rooms/${roomCode}/start`);
   };
 
-  const sendPrompt = (prompt: string) => {
-    if (!roomCode) {
-      return false;
-    }
+  const sendPrompt = useCallback(
+    (prompt: string, submissionType: SubmissionType) => {
+      return publish(
+        `/app/rooms/${roomCode}/prompts`,
+        JSON.stringify({ prompt, submissionType }),
+      );
+    },
+    [publish, roomCode],
+  );
 
-    return publish(
-      `/app/rooms/${roomCode}/prompts`,
-      JSON.stringify({ prompt }),
-    );
-  };
-
-  const sendGuess = (guess: string) => {
-    return publish(`/app/rooms/${roomCode}/guesses`, JSON.stringify({ guess }));
-  };
+  const sendGuess = useCallback(
+    (guess: string, submissionType: SubmissionType) => {
+      return publish(
+        `/app/rooms/${roomCode}/guesses`,
+        JSON.stringify({ guess, submissionType }),
+      );
+    },
+    [publish, roomCode],
+  );
 
   const sendVote = (optionId: string) => {
     return publish(
