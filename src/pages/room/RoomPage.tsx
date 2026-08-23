@@ -37,6 +37,8 @@ import {
 
 import type { RoomEntryState } from './utils/getRoomEntryState';
 import type {
+  GuessSubmissionPayload,
+  PromptSubmissionPayload,
   RoomPlayer,
   RoundResultSnapshot,
   RoundSnapshot,
@@ -288,8 +290,8 @@ export function RoomPage() {
   };
 
   const handlePromptSubmit = useCallback(
-    (prompt: string) => {
-      const isPublished = sendPrompt(prompt);
+    ({ prompt, submissionType }: PromptSubmissionPayload) => {
+      const isPublished = sendPrompt({ prompt, submissionType });
 
       if (isPublished) {
         captureAnalyticsEvent('prompt_submitted', {
@@ -304,8 +306,8 @@ export function RoomPage() {
   );
 
   const handleGuessSubmit = useCallback(
-    (guess: string) => {
-      const isPublished = sendGuess(guess);
+    ({ guess, submissionType }: GuessSubmissionPayload) => {
+      const isPublished = sendGuess({ guess, submissionType });
 
       if (isPublished) {
         captureAnalyticsEvent('guess_submitted', {

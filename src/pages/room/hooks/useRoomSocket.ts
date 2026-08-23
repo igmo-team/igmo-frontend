@@ -19,15 +19,16 @@ import { parseVoteSnapshot } from '../utils/parseVoteSnapshot';
 
 import type {
   GameResultSnapshot,
+  GuessSubmissionPayload,
   GuessSubmissionSnapshot,
   ImageGenerationSnapshot,
   OwnVoteOptionNotice,
+  PromptSubmissionPayload,
   PromptSubmissionSnapshot,
   RoomPhase,
   RoomSnapshot,
   RoundResultSnapshot,
   RoundSnapshot,
-  SubmissionType,
   VoteSnapshot,
 } from '../../../domain/room/types';
 import type { RoomSession } from '../utils/roomSessionStorage';
@@ -61,8 +62,8 @@ type UseRoomSocketResult = {
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => boolean;
-  sendPrompt: (prompt: string, submissionType: SubmissionType) => boolean;
-  sendGuess: (guess: string, submissionType: SubmissionType) => boolean;
+  sendPrompt: (payload: PromptSubmissionPayload) => boolean;
+  sendGuess: (payload: GuessSubmissionPayload) => boolean;
   sendVote: (optionId: string) => boolean;
   sendRestart: () => void;
 };
@@ -408,7 +409,7 @@ export function useRoomSocket({
   };
 
   const sendPrompt = useCallback(
-    (prompt: string, submissionType: SubmissionType) => {
+    ({ prompt, submissionType }: PromptSubmissionPayload) => {
       return publish(
         `/app/rooms/${roomCode}/prompts`,
         JSON.stringify({ prompt, submissionType }),
@@ -418,7 +419,7 @@ export function useRoomSocket({
   );
 
   const sendGuess = useCallback(
-    (guess: string, submissionType: SubmissionType) => {
+    ({ guess, submissionType }: GuessSubmissionPayload) => {
       return publish(
         `/app/rooms/${roomCode}/guesses`,
         JSON.stringify({ guess, submissionType }),

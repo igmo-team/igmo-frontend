@@ -16,6 +16,16 @@ export type RoomPhase =
 
 export type SubmissionType = 'NORMAL' | 'DEADLINE';
 
+export type PromptSubmissionPayload = {
+  prompt: string;
+  submissionType: SubmissionType;
+};
+
+export type GuessSubmissionPayload = {
+  guess: string;
+  submissionType: SubmissionType;
+};
+
 export type RoomMessageType =
   | 'LOBBY_SNAPSHOT'
   | 'PROMPT_SUBMISSION_SNAPSHOT'

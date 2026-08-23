@@ -9,9 +9,9 @@ import { useDeadlineSubmission } from '../hooks/useDeadlineSubmission';
 import { useMobilePromptInputKeyboard } from '../hooks/useMobilePromptInputKeyboard';
 
 import type {
+  GuessSubmissionPayload,
   GuessSubmissionSnapshot,
   RoundSnapshot,
-  SubmissionType,
 } from '../../../domain/room/types';
 
 type RoomPlayingViewProps = {
@@ -20,7 +20,7 @@ type RoomPlayingViewProps = {
   guessSubmissionSnapshot?: GuessSubmissionSnapshot | null;
   isSocketConnected: boolean;
   socketErrorMessage?: string;
-  onSubmit: (prompt: string, submissionType: SubmissionType) => boolean;
+  onSubmit: (payload: GuessSubmissionPayload) => boolean;
 };
 
 export function RoomPlayingView({
@@ -59,7 +59,10 @@ export function RoomPlayingView({
   const isSubmitted = isServerSubmitted || isRoundSubmitted;
 
   const handleDeadlineSubmit = useCallback(() => {
-    onSubmit(latestPromptRef.current, 'DEADLINE');
+    onSubmit({
+      guess: latestPromptRef.current,
+      submissionType: 'DEADLINE',
+    });
   }, [onSubmit]);
 
   const isDeadlineExpired = useDeadlineSubmission({
@@ -170,7 +173,7 @@ export function RoomPlayingView({
       return;
     }
 
-    if (!onSubmit(promptText, 'NORMAL')) {
+    if (!onSubmit({ guess: promptText, submissionType: 'NORMAL' })) {
       return;
     }
 
@@ -229,9 +232,7 @@ export function RoomPlayingView({
               rows={3}
               placeholder="예: 노을 지는 한강에서 컵라면 먹는 고양이"
               shadow
-              disabled={
-                isSubmitted || isSubmitPending || isSubmissionClosed
-              }
+              disabled={isSubmitted || isSubmitPending || isSubmissionClosed}
               onChange={handlePromptChange}
               onCompositionStart={() => {
                 isComposingRef.current = true;
