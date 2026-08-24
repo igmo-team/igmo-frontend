@@ -1,4 +1,7 @@
-import { captureAnalyticsEvent } from '../../common/analytics';
+import {
+  captureAnalyticsEvent,
+  identifyAnalyticsUser,
+} from '../../common/analytics';
 
 type RoomJoinedProperties = {
   entryMode: 'create' | 'join' | 'direct_link';
@@ -17,6 +20,10 @@ type RoomJoinFailedProperties = {
 };
 
 export function trackRoomJoined(properties: RoomJoinedProperties) {
+  if (properties.playerId) {
+    identifyAnalyticsUser(properties.playerId);
+  }
+
   captureAnalyticsEvent('room_joined', {
     entry_mode: properties.entryMode,
     room_code: properties.roomCode,

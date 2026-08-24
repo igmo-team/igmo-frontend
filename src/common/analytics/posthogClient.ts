@@ -15,6 +15,7 @@ posthog.init(POSTHOG_PROJECT_TOKEN, {
   api_host: POSTHOG_HOST,
   autocapture: false,
   capture_pageview: false,
+  persistence: 'sessionStorage',
 });
 
 export default posthog;
