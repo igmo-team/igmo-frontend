@@ -3,7 +3,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import { captureAnalyticsEvent } from '../../common/analytics';
+import {
+  captureAnalyticsEvent,
+  identifyAnalyticsUser,
+} from '../../common/analytics';
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
@@ -185,6 +188,9 @@ export function RoomPage() {
       is_host: snapshot ? snapshot.hostId === currentPlayerId : undefined,
       player_count: snapshot?.players.length,
       phase,
+      is_questioner: roundSnapshot
+        ? roundSnapshot.questioner.id === currentPlayerId
+        : undefined,
       round_number: getCurrentRoundNumber({
         roundSnapshot,
         voteSnapshot,
@@ -211,6 +217,12 @@ export function RoomPage() {
       navigate(PAGE_URL.HOME, { replace: true });
     }
   }, [hasValidRoomCode, navigate, roomCode, roomSession]);
+
+  useEffect(() => {
+    if (currentPlayerId) {
+      identifyAnalyticsUser(currentPlayerId);
+    }
+  }, [currentPlayerId]);
 
   useEffect(() => {
     if (!snapshot || !displayRoomCode) {
@@ -297,6 +309,7 @@ export function RoomPage() {
         captureAnalyticsEvent('prompt_submitted', {
           ...roomAnalyticsProperties,
           prompt_length: prompt.length,
+          submission_type: submissionType,
         });
       }
 
@@ -313,6 +326,7 @@ export function RoomPage() {
         captureAnalyticsEvent('guess_submitted', {
           ...roomAnalyticsProperties,
           guess_length: guess.length,
+          submission_type: submissionType,
         });
       }
 
