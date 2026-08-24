@@ -6,13 +6,13 @@ import { Button, Textarea } from '../../../common/components';
 import { useDeadlineSubmission } from '../hooks/useDeadlineSubmission';
 import { useMobileInputScrollLock } from '../hooks/useMobileInputScrollLock';
 
-import type { SubmissionType } from '../../../domain/room/types';
+import type { PromptSubmissionPayload } from '../../../domain/room/types';
 
 type RoomPromptingViewProps = {
   deadline: string;
   isSocketConnected: boolean;
   socketErrorMessage: string;
-  onSubmit: (prompt: string, submissionType: SubmissionType) => boolean;
+  onSubmit: (payload: PromptSubmissionPayload) => boolean;
 };
 
 export function RoomPromptingView({
@@ -35,7 +35,10 @@ export function RoomPromptingView({
   const isPromptEmpty = promptText === '';
 
   const handleDeadlineSubmit = useCallback(() => {
-    onSubmit(latestPromptRef.current, 'DEADLINE');
+    onSubmit({
+      prompt: latestPromptRef.current,
+      submissionType: 'DEADLINE',
+    });
   }, [onSubmit]);
 
   const isDeadlineExpired = useDeadlineSubmission({
@@ -79,7 +82,7 @@ export function RoomPromptingView({
       return;
     }
 
-    if (onSubmit(promptText, 'NORMAL')) {
+    if (onSubmit({ prompt: promptText, submissionType: 'NORMAL' })) {
       setIsSubmitPending(true);
     }
   };

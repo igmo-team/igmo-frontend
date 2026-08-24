@@ -7,6 +7,10 @@ import { useNavigate } from 'react-router-dom';
 
 import { Button, Input, Surface } from '../../../common/components';
 import { PAGE_URL } from '../../../common/constants/pageUrl';
+import {
+  trackRoomJoined,
+  trackRoomJoinFailed,
+} from '../../../domain/room/analytics';
 import { writeRoomSession } from '../../room/utils/roomSessionStorage';
 import postGamePlayer from '../apis/postGamePlayer';
 import postGames from '../apis/postGames';
@@ -47,6 +51,14 @@ export function RoomEntryForm() {
   const { mutate: createGame, isPending: isCreateGamePending } = useMutation({
     mutationFn: postGames,
     onSuccess: ({ roomCode, playerId, secret, snapshot }) => {
+      trackRoomJoined({
+        entryMode: 'create',
+        roomCode,
+        playerId,
+        isHost: snapshot.hostId === playerId,
+        playerCount: snapshot.players.length,
+        nicknameLength: nickname.trim().length,
+      });
       writeRoomSession({ roomCode, playerId, secret });
 
       navigate(`${PAGE_URL.ROOM}/${roomCode}`, {
@@ -59,12 +71,25 @@ export function RoomEntryForm() {
     },
     onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
+        trackRoomJoinFailed({
+          entryMode: 'create',
+          nicknameLength: nickname.trim().length,
+          reason:
+            error.response?.data.message ?? `HTTP_${error.response?.status}`,
+        });
+
         setErrorMessage(
           error.response?.data.message ??
             '방을 만들지 못했어요. 다시 시도해주세요.',
         );
         return;
       }
+
+      trackRoomJoinFailed({
+        entryMode: 'create',
+        nicknameLength: nickname.trim().length,
+        reason: 'UNKNOWN',
+      });
 
       setErrorMessage('방을 만들지 못했어요. 다시 시도해주세요.');
     },
@@ -73,6 +98,14 @@ export function RoomEntryForm() {
   const { mutate: joinGame, isPending: isJoinGamePending } = useMutation({
     mutationFn: postGamePlayer,
     onSuccess: ({ playerId, secret, snapshot }) => {
+      trackRoomJoined({
+        entryMode: 'join',
+        roomCode: snapshot.roomCode,
+        playerId,
+        isHost: snapshot.hostId === playerId,
+        playerCount: snapshot.players.length,
+        nicknameLength: nickname.trim().length,
+      });
       writeRoomSession({ roomCode: snapshot.roomCode, playerId, secret });
 
       navigate(`${PAGE_URL.ROOM}/${snapshot.roomCode}`, {
@@ -85,12 +118,27 @@ export function RoomEntryForm() {
     },
     onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
+        trackRoomJoinFailed({
+          entryMode: 'join',
+          roomCode,
+          nicknameLength: nickname.trim().length,
+          reason:
+            error.response?.data.message ?? `HTTP_${error.response?.status}`,
+        });
+
         setErrorMessage(
           error.response?.data.message ??
             '방에 참여하지 못했어요. 다시 시도해주세요.',
         );
         return;
       }
+
+      trackRoomJoinFailed({
+        entryMode: 'join',
+        roomCode,
+        nicknameLength: nickname.trim().length,
+        reason: 'UNKNOWN',
+      });
 
       setErrorMessage('방에 참여하지 못했어요. 다시 시도해주세요.');
     },

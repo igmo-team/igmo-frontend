@@ -1,8 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
+import {
+  captureAnalyticsEvent,
+  identifyAnalyticsUser,
+} from '../../common/analytics';
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
@@ -35,7 +39,14 @@ import {
 } from './utils/roomSessionStorage';
 
 import type { RoomEntryState } from './utils/getRoomEntryState';
-import type { RoomPlayer, RoundSnapshot } from '../../domain/room/types';
+import type {
+  GuessSubmissionPayload,
+  PromptSubmissionPayload,
+  RoomPlayer,
+  RoundResultSnapshot,
+  RoundSnapshot,
+  VoteSnapshot,
+} from '../../domain/room/types';
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -45,6 +56,8 @@ export function RoomPage() {
     () => getRoomEntryState(location.state),
     [location.state],
   );
+  const trackedPhaseKeyRef = useRef('');
+  const trackedGameCompletedRoomCodeRef = useRef('');
   const roomSession = useMemo(() => {
     if (!roomCode) {
       return null;
@@ -168,12 +181,84 @@ export function RoomPage() {
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
   const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
   const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
+  const roomAnalyticsProperties = useMemo(
+    () => ({
+      room_code: displayRoomCode,
+      player_id: currentPlayerId,
+      is_host: snapshot ? snapshot.hostId === currentPlayerId : undefined,
+      player_count: snapshot?.players.length,
+      phase,
+      is_questioner: roundSnapshot
+        ? roundSnapshot.questioner.id === currentPlayerId
+        : undefined,
+      round_number: getCurrentRoundNumber({
+        roundSnapshot,
+        voteSnapshot,
+        roundResultSnapshot,
+      }),
+      total_round_count: getCurrentTotalRoundCount({
+        roundSnapshot,
+        roundResultSnapshot,
+      }),
+    }),
+    [
+      currentPlayerId,
+      displayRoomCode,
+      phase,
+      roundResultSnapshot,
+      roundSnapshot,
+      snapshot,
+      voteSnapshot,
+    ],
+  );
 
   useEffect(() => {
     if (roomCode && !roomSession && !hasValidRoomCode) {
       navigate(PAGE_URL.HOME, { replace: true });
     }
   }, [hasValidRoomCode, navigate, roomCode, roomSession]);
+
+  useEffect(() => {
+    if (currentPlayerId) {
+      identifyAnalyticsUser(currentPlayerId);
+    }
+  }, [currentPlayerId]);
+
+  useEffect(() => {
+    if (!snapshot || !displayRoomCode) {
+      return;
+    }
+
+    const phaseKey = [
+      displayRoomCode,
+      phase,
+      roomAnalyticsProperties.round_number ?? '',
+    ].join(':');
+
+    if (trackedPhaseKeyRef.current === phaseKey) {
+      return;
+    }
+
+    trackedPhaseKeyRef.current = phaseKey;
+    captureAnalyticsEvent('game_phase_entered', roomAnalyticsProperties);
+  }, [displayRoomCode, phase, roomAnalyticsProperties, snapshot]);
+
+  useEffect(() => {
+    if (
+      phase !== 'ENDED' ||
+      !displayRoomCode ||
+      !gameResultSnapshot ||
+      trackedGameCompletedRoomCodeRef.current === displayRoomCode
+    ) {
+      return;
+    }
+
+    trackedGameCompletedRoomCodeRef.current = displayRoomCode;
+    captureAnalyticsEvent('game_completed', {
+      ...roomAnalyticsProperties,
+      player_count: gameResultSnapshot.finalRanking.length,
+    });
+  }, [displayRoomCode, gameResultSnapshot, phase, roomAnalyticsProperties]);
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
     writeRoomSession({
@@ -209,8 +294,59 @@ export function RoomPage() {
       return;
     }
 
-    sendStart();
+    const isPublished = sendStart();
+
+    if (isPublished) {
+      captureAnalyticsEvent('game_started', roomAnalyticsProperties);
+    }
   };
+
+  const handlePromptSubmit = useCallback(
+    ({ prompt, submissionType }: PromptSubmissionPayload) => {
+      const isPublished = sendPrompt({ prompt, submissionType });
+
+      if (isPublished) {
+        captureAnalyticsEvent('prompt_submitted', {
+          ...roomAnalyticsProperties,
+          prompt_length: prompt.length,
+          submission_type: submissionType,
+        });
+      }
+
+      return isPublished;
+    },
+    [roomAnalyticsProperties, sendPrompt],
+  );
+
+  const handleGuessSubmit = useCallback(
+    ({ guess, submissionType }: GuessSubmissionPayload) => {
+      const isPublished = sendGuess({ guess, submissionType });
+
+      if (isPublished) {
+        captureAnalyticsEvent('guess_submitted', {
+          ...roomAnalyticsProperties,
+          guess_length: guess.length,
+          submission_type: submissionType,
+        });
+      }
+
+      return isPublished;
+    },
+    [roomAnalyticsProperties, sendGuess],
+  );
+
+  const handleVoteSubmit = useCallback(
+    (optionId: string) => {
+      const isPublished = sendVote(optionId);
+
+      if (isPublished) {
+        captureAnalyticsEvent('vote_submitted', roomAnalyticsProperties);
+      }
+
+      return isPublished;
+    },
+    [roomAnalyticsProperties, sendVote],
+  );
 
   if (!roomSession && roomCode && hasValidRoomCode) {
     return (
@@ -362,7 +498,7 @@ export function RoomPage() {
                       deadline={promptSubmissionSnapshot?.promptDeadline ?? ''}
                       isSocketConnected={isConnected}
                       socketErrorMessage={errorMessage}
-                      onSubmit={sendPrompt}
+                      onSubmit={handlePromptSubmit}
                     />
                   )}
                   {activeImageGenerationSnapshot?.status === 'GENERATING' && (
@@ -383,7 +519,7 @@ export function RoomPage() {
                         activeImageGenerationSnapshot?.errorMessage ||
                         ''
                       }
-                      onSubmit={sendPrompt}
+                      onSubmit={handlePromptSubmit}
                     />
                   )}
                 </>
@@ -397,7 +533,7 @@ export function RoomPage() {
                     guessSubmissionSnapshot={guessSubmissionSnapshot}
                     isSocketConnected={isConnected}
                     socketErrorMessage={errorMessage}
-                    onSubmit={sendGuess}
+                    onSubmit={handleGuessSubmit}
                   />
                 ) : (
                   <S_EmptyState>
@@ -413,7 +549,7 @@ export function RoomPage() {
                   isOwnVoteOptionNoticePending={isOwnVoteOptionNoticePending}
                   isSocketConnected={isConnected}
                   socketErrorMessage={errorMessage}
-                  onSubmit={sendVote}
+                  onSubmit={handleVoteSubmit}
                 />
               )}
 
@@ -459,6 +595,32 @@ function getTimerTotalSeconds(startedAt?: string, deadline?: string) {
   }
 
   return Math.max(0, Math.round((deadlineTime - startedAtTime) / 1000));
+}
+
+function getCurrentRoundNumber({
+  roundSnapshot,
+  voteSnapshot,
+  roundResultSnapshot,
+}: {
+  roundSnapshot: RoundSnapshot | null;
+  voteSnapshot: VoteSnapshot | null;
+  roundResultSnapshot: RoundResultSnapshot | null;
+}) {
+  return (
+    roundSnapshot?.roundNumber ??
+    voteSnapshot?.roundNumber ??
+    roundResultSnapshot?.roundNumber
+  );
+}
+
+function getCurrentTotalRoundCount({
+  roundSnapshot,
+  roundResultSnapshot,
+}: {
+  roundSnapshot: RoundSnapshot | null;
+  roundResultSnapshot: RoundResultSnapshot | null;
+}) {
+  return roundSnapshot?.totalRoundCount ?? roundResultSnapshot?.totalRoundCount;
 }
 
 const S_Page = styled.main`

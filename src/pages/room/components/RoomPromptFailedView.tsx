@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 
 import { Button, Textarea } from '../../../common/components';
 
-import type { SubmissionType } from '../../../domain/room/types';
+import type { PromptSubmissionPayload } from '../../../domain/room/types';
 
 type RoomPromptFailedViewProps = {
   prompt?: string;
   isSocketConnected?: boolean;
   socketErrorMessage?: string;
-  onSubmit?: (prompt: string, submissionType: SubmissionType) => boolean;
+  onSubmit?: (payload: PromptSubmissionPayload) => boolean;
 };
 
 export function RoomPromptFailedView({
@@ -53,7 +53,7 @@ export function RoomPromptFailedView({
       return;
     }
 
-    onSubmit(promptText, 'NORMAL');
+    onSubmit({ prompt: promptText, submissionType: 'NORMAL' });
   };
 
   return (

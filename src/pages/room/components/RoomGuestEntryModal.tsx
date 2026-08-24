@@ -5,6 +5,10 @@ import { useMutation } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 
 import { Button, Input, Surface } from '../../../common/components';
+import {
+  trackRoomJoined,
+  trackRoomJoinFailed,
+} from '../../../domain/room/analytics';
 import postGamePlayer from '../../home/apis/postGamePlayer';
 import { getNicknameErrorMessage } from '../../home/utils/roomEntryValidation';
 
@@ -38,6 +42,14 @@ export function RoomGuestEntryModal({
   const { mutate: joinGame, isPending } = useMutation({
     mutationFn: postGamePlayer,
     onSuccess: ({ playerId, secret, snapshot }) => {
+      trackRoomJoined({
+        entryMode: 'direct_link',
+        roomCode: snapshot.roomCode,
+        playerId,
+        isHost: snapshot.hostId === playerId,
+        playerCount: snapshot.players.length,
+        nicknameLength: nickname.trim().length,
+      });
       onSuccess({
         playerId,
         secret,
@@ -46,12 +58,27 @@ export function RoomGuestEntryModal({
     },
     onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
+        trackRoomJoinFailed({
+          entryMode: 'direct_link',
+          roomCode,
+          nicknameLength: nickname.trim().length,
+          reason:
+            error.response?.data.message ?? `HTTP_${error.response?.status}`,
+        });
+
         setErrorMessage(
           error.response?.data.message ??
             '방에 참여하지 못했어요. 다시 시도해주세요.',
         );
         return;
       }
+
+      trackRoomJoinFailed({
+        entryMode: 'direct_link',
+        roomCode,
+        nicknameLength: nickname.trim().length,
+        reason: 'UNKNOWN',
+      });
 
       setErrorMessage('방에 참여하지 못했어요. 다시 시도해주세요.');
     },
