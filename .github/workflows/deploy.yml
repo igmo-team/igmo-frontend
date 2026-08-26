@@ -54,3 +54,36 @@ jobs:
           echo "deployment_url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Smoke check deployment
+        id: smoke
+        run: |
+          DEPLOYMENT_URL="${{ steps.deploy.outputs.deployment_url }}"
+
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Deployment URL is empty."
+            exit 1
+          fi
+
+          for attempt in 1 2 3; do
+            if curl --fail --silent --show-error --location --max-time 20 "$DEPLOYMENT_URL/" > /dev/null; then
+              echo "Smoke check passed."
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Smoke check failed. Retrying in 10 seconds..."
+              sleep 10
+            fi
+          done
+
+          echo "Smoke check failed after 3 attempts."
+          exit 1
+
+      - name: Rollback on smoke check failure
+        if: ${{ failure() && steps.deploy.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        run: |
+          vercel rollback --token="$VERCEL_TOKEN"
+          vercel rollback status --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
