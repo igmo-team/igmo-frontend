@@ -39,16 +39,89 @@ jobs:
 
       - name: Pull Vercel environment
         id: pull_vercel_environment
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: |
+          for attempt in 1 2 3; do
+            if vercel pull --yes --environment=production --token="$VERCEL_TOKEN"; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Failed to pull Vercel environment. Retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+
+          echo "Failed to pull Vercel environment after 3 attempts."
+          exit 1
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Validate Vercel production environment
+        id: validate_vercel_environment
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const envTypePath = 'src/vite-env.d.ts';
+          const vercelEnvPath = '.vercel/.env.production.local';
+
+          if (!fs.existsSync(vercelEnvPath)) {
+            console.error(`${vercelEnvPath} does not exist. Run vercel pull before validation.`);
+            process.exit(1);
+          }
+
+          const envTypes = fs.readFileSync(envTypePath, 'utf8');
+          const requiredEnvNames = [...envTypes.matchAll(/readonly\s+(VITE_[A-Z0-9_]+)\s*:/g)]
+            .map((match) => match[1])
+            .sort();
+
+          const vercelEnv = fs.readFileSync(vercelEnvPath, 'utf8');
+          const envValues = new Map();
+
+          for (const rawLine of vercelEnv.split(/\r?\n/)) {
+            const line = rawLine.trim();
+
+            if (!line || line.startsWith('#')) {
+              continue;
+            }
+
+            const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+
+            if (!match) {
+              continue;
+            }
+
+            let value = match[2].trim();
+
+            if (
+              (value.startsWith('"') && value.endsWith('"')) ||
+              (value.startsWith("'") && value.endsWith("'"))
+            ) {
+              value = value.slice(1, -1);
+            }
+
+            envValues.set(match[1], value);
+          }
+
+          const missingEnvNames = requiredEnvNames.filter((name) => {
+            const value = envValues.get(name);
+
+            return value === undefined || value.length === 0;
+          });
+
+          if (missingEnvNames.length > 0) {
+            console.error(`Missing Vercel production env: ${missingEnvNames.join(', ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Validated ${requiredEnvNames.length} Vercel production env variables.`);
+          NODE
 
       - name: Build project
         id: build
         run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
       - name: Deploy to Vercel
         id: deploy
@@ -109,6 +182,7 @@ jobs:
               ['Install dependencies', process.env.INSTALL_DEPENDENCIES_OUTCOME],
               ['Install Vercel CLI', process.env.INSTALL_VERCEL_CLI_OUTCOME],
               ['Pull Vercel environment', process.env.PULL_VERCEL_ENVIRONMENT_OUTCOME],
+              ['Validate Vercel production environment', process.env.VALIDATE_VERCEL_ENVIRONMENT_OUTCOME],
               ['Build project', process.env.BUILD_OUTCOME],
               ['Deploy to Vercel', process.env.DEPLOY_OUTCOME],
               ['Smoke check deployment', process.env.SMOKE_OUTCOME],
@@ -180,6 +254,7 @@ jobs:
           INSTALL_DEPENDENCIES_OUTCOME: ${{ steps.install_dependencies.outcome }}
           INSTALL_VERCEL_CLI_OUTCOME: ${{ steps.install_vercel_cli.outcome }}
           PULL_VERCEL_ENVIRONMENT_OUTCOME: ${{ steps.pull_vercel_environment.outcome }}
+          VALIDATE_VERCEL_ENVIRONMENT_OUTCOME: ${{ steps.validate_vercel_environment.outcome }}
           BUILD_OUTCOME: ${{ steps.build.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
