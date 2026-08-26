@@ -30,17 +30,21 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
+        id: install_dependencies
         run: npm ci
 
       - name: Install Vercel CLI
+        id: install_vercel_cli
         run: npm install --global vercel@latest
 
       - name: Pull Vercel environment
+        id: pull_vercel_environment
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
       - name: Build project
+        id: build
         run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -81,9 +85,103 @@ jobs:
           exit 1
 
       - name: Rollback on smoke check failure
+        id: rollback
         if: ${{ failure() && steps.deploy.outcome == 'success' && steps.smoke.outcome == 'failure' }}
         run: |
           vercel rollback --token="$VERCEL_TOKEN"
           vercel rollback status --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Notify Discord on deployment failure
+        if: ${{ failure() }}
+        run: |
+          node <<'NODE'
+          async function main() {
+            const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+
+            if (!webhookUrl) {
+              console.log('DISCORD_WEBHOOK_URL is not set. Skipping Discord notification.');
+              return;
+            }
+
+            const outcomes = [
+              ['Install dependencies', process.env.INSTALL_DEPENDENCIES_OUTCOME],
+              ['Install Vercel CLI', process.env.INSTALL_VERCEL_CLI_OUTCOME],
+              ['Pull Vercel environment', process.env.PULL_VERCEL_ENVIRONMENT_OUTCOME],
+              ['Build project', process.env.BUILD_OUTCOME],
+              ['Deploy to Vercel', process.env.DEPLOY_OUTCOME],
+              ['Smoke check deployment', process.env.SMOKE_OUTCOME],
+              ['Rollback on smoke check failure', process.env.ROLLBACK_OUTCOME],
+            ];
+            const failedSteps = outcomes
+              .filter(([, outcome]) => outcome === 'failure')
+              .map(([name]) => name);
+
+            const smokeFailed = process.env.SMOKE_OUTCOME === 'failure';
+            const rollbackSucceeded = process.env.ROLLBACK_OUTCOME === 'success';
+            const rollbackFailed = process.env.ROLLBACK_OUTCOME === 'failure';
+            const deploymentUrl = process.env.DEPLOYMENT_URL || 'N/A';
+            const valueOrFallback = (value) => value || 'N/A';
+
+            let title = 'Vercel production deployment failed';
+            let description = 'Build or deploy failed before the new production deployment passed verification.';
+            let color = 0xffcc00;
+
+            if (smokeFailed && rollbackSucceeded) {
+              title = 'Vercel smoke check failed and rollback completed';
+              description = 'The new production deployment failed smoke check. Vercel rollback completed.';
+              color = 0x2ecc71;
+            } else if (smokeFailed && rollbackFailed) {
+              title = 'Vercel smoke check failed and rollback failed';
+              description = 'The new production deployment failed smoke check, and automatic rollback failed. Manual recovery is required.';
+              color = 0xe74c3c;
+            }
+
+            const payload = {
+              embeds: [
+                {
+                  title,
+                  description,
+                  color,
+                  fields: [
+                    { name: 'Repository', value: valueOrFallback(process.env.GITHUB_REPOSITORY), inline: true },
+                    { name: 'Branch', value: valueOrFallback(process.env.GITHUB_REF_NAME), inline: true },
+                    { name: 'Commit', value: process.env.GITHUB_SHA?.slice(0, 7) || 'N/A', inline: true },
+                    { name: 'Deployment URL', value: deploymentUrl, inline: false },
+                    { name: 'Failed step', value: failedSteps.join(', ') || 'N/A', inline: false },
+                    { name: 'Rollback result', value: process.env.ROLLBACK_OUTCOME || 'skipped', inline: true },
+                    { name: 'Workflow run', value: valueOrFallback(process.env.WORKFLOW_RUN_URL), inline: false },
+                  ],
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            };
+
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Discord notification failed with ${response.status}`);
+            }
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+          INSTALL_DEPENDENCIES_OUTCOME: ${{ steps.install_dependencies.outcome }}
+          INSTALL_VERCEL_CLI_OUTCOME: ${{ steps.install_vercel_cli.outcome }}
+          PULL_VERCEL_ENVIRONMENT_OUTCOME: ${{ steps.pull_vercel_environment.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
+          WORKFLOW_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
