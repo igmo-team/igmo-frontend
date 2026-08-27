@@ -142,19 +142,19 @@ jobs:
             exit 1
           fi
 
-          for attempt in 1 2 3; do
-            if curl --fail --silent --show-error --location --max-time 20 "$DEPLOYMENT_URL/" > /dev/null; then
+          for attempt in 1 2; do
+            if curl --fail --silent --show-error --location --connect-timeout 2 --max-time 4 "$DEPLOYMENT_URL/" > /dev/null; then
               echo "Smoke check passed."
               exit 0
             fi
 
-            if [ "$attempt" -lt 3 ]; then
-              echo "Smoke check failed. Retrying in 10 seconds..."
-              sleep 10
+            if [ "$attempt" -lt 2 ]; then
+              echo "Smoke check failed. Retrying in 2 seconds..."
+              sleep 2
             fi
           done
 
-          echo "Smoke check failed after 3 attempts."
+          echo "Smoke check failed after 2 attempts."
           exit 1
 
       - name: Rollback on smoke check failure
