@@ -11,7 +11,7 @@ env:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -30,23 +30,243 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
+        id: install_dependencies
         run: npm ci
 
       - name: Install Vercel CLI
+        id: install_vercel_cli
         run: npm install --global vercel@latest
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        id: pull_vercel_environment
+        run: |
+          for attempt in 1 2 3; do
+            if vercel pull --yes --environment=production --token="$VERCEL_TOKEN"; then
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 3 ]; then
+              echo "Failed to pull Vercel environment. Retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+
+          echo "Failed to pull Vercel environment after 3 attempts."
+          exit 1
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
 
+      - name: Validate Vercel production environment
+        id: validate_vercel_environment
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+
+          const envTypePath = 'src/vite-env.d.ts';
+          const vercelEnvPath = '.vercel/.env.production.local';
+
+          if (!fs.existsSync(vercelEnvPath)) {
+            console.error(`${vercelEnvPath} does not exist. Run vercel pull before validation.`);
+            process.exit(1);
+          }
+
+          const envTypes = fs.readFileSync(envTypePath, 'utf8');
+          const requiredEnvNames = [...envTypes.matchAll(/readonly\s+(VITE_[A-Z0-9_]+)\s*:/g)]
+            .map((match) => match[1])
+            .sort();
+
+          const vercelEnv = fs.readFileSync(vercelEnvPath, 'utf8');
+          const envValues = new Map();
+
+          for (const rawLine of vercelEnv.split(/\r?\n/)) {
+            const line = rawLine.trim();
+
+            if (!line || line.startsWith('#')) {
+              continue;
+            }
+
+            const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+
+            if (!match) {
+              continue;
+            }
+
+            let value = match[2].trim();
+
+            if (
+              (value.startsWith('"') && value.endsWith('"')) ||
+              (value.startsWith("'") && value.endsWith("'"))
+            ) {
+              value = value.slice(1, -1);
+            }
+
+            envValues.set(match[1], value);
+          }
+
+          const missingEnvNames = requiredEnvNames.filter((name) => {
+            const value = envValues.get(name);
+
+            return value === undefined || value.length === 0;
+          });
+
+          if (missingEnvNames.length > 0) {
+            console.error(`Missing Vercel production env: ${missingEnvNames.join(', ')}`);
+            process.exit(1);
+          }
+
+          console.log(`Validated ${requiredEnvNames.length} Vercel production env variables.`);
+          NODE
+
       - name: Build project
+        id: build
         run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
 
       - name: Deploy to Vercel
-        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+        id: deploy
+        run: |
+          DEPLOYMENT_URL="$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")"
+          echo "$DEPLOYMENT_URL"
+          echo "deployment_url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Smoke check deployment
+        id: smoke
+        run: |
+          DEPLOYMENT_URL="${{ steps.deploy.outputs.deployment_url }}"
+
+          if [ -z "$DEPLOYMENT_URL" ]; then
+            echo "Deployment URL is empty."
+            exit 1
+          fi
+
+          for attempt in 1 2; do
+            if curl --fail --silent --show-error --location --connect-timeout 2 --max-time 4 "$DEPLOYMENT_URL/" > /dev/null; then
+              echo "Smoke check passed."
+              exit 0
+            fi
+
+            if [ "$attempt" -lt 2 ]; then
+              echo "Smoke check failed. Retrying in 2 seconds..."
+              sleep 2
+            fi
+          done
+
+          echo "Smoke check failed after 2 attempts."
+          exit 1
+
+      - name: Rollback on smoke check failure
+        id: rollback
+        if: ${{ failure() && steps.deploy.outcome == 'success' && steps.smoke.outcome == 'failure' }}
+        run: |
+          vercel rollback --token="$VERCEL_TOKEN"
+          vercel rollback status --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+      - name: Notify Discord on deployment failure
+        if: ${{ failure() }}
+        run: |
+          node <<'NODE'
+          async function main() {
+            const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+
+            if (!webhookUrl) {
+              console.log('DISCORD_WEBHOOK_URL is not set. Skipping Discord notification.');
+              return;
+            }
+
+            const outcomes = [
+              ['Install dependencies', process.env.INSTALL_DEPENDENCIES_OUTCOME],
+              ['Install Vercel CLI', process.env.INSTALL_VERCEL_CLI_OUTCOME],
+              ['Pull Vercel environment', process.env.PULL_VERCEL_ENVIRONMENT_OUTCOME],
+              ['Validate Vercel production environment', process.env.VALIDATE_VERCEL_ENVIRONMENT_OUTCOME],
+              ['Build project', process.env.BUILD_OUTCOME],
+              ['Deploy to Vercel', process.env.DEPLOY_OUTCOME],
+              ['Smoke check deployment', process.env.SMOKE_OUTCOME],
+              ['Rollback on smoke check failure', process.env.ROLLBACK_OUTCOME],
+            ];
+            const failedSteps = outcomes
+              .filter(([, outcome]) => outcome === 'failure')
+              .map(([name]) => name);
+
+            const smokeFailed = process.env.SMOKE_OUTCOME === 'failure';
+            const rollbackSucceeded = process.env.ROLLBACK_OUTCOME === 'success';
+            const rollbackFailed = process.env.ROLLBACK_OUTCOME === 'failure';
+            const vercelEnvironmentValidationFailed =
+              process.env.VALIDATE_VERCEL_ENVIRONMENT_OUTCOME === 'failure';
+            const buildFailed = process.env.BUILD_OUTCOME === 'failure';
+            const deployFailed = process.env.DEPLOY_OUTCOME === 'failure';
+            const deploymentUrl = process.env.DEPLOYMENT_URL || 'N/A';
+            const valueOrFallback = (value) => value || 'N/A';
+
+            let title = '배포 실패 감지';
+            let description = 'Build or deploy failed before the new production deployment passed verification.';
+            let color = 0xffcc00;
+
+            if (smokeFailed && rollbackSucceeded) {
+              title = '배포 이상 감지 및 자동 롤백 완료';
+              description = 'The new production deployment failed smoke check. Vercel rollback completed.';
+              color = 0x2ecc71;
+            } else if (smokeFailed && rollbackFailed) {
+              title = '배포 이상 감지, 수동 복구 필요';
+              description = 'The new production deployment failed smoke check, and automatic rollback failed. Manual recovery is required.';
+              color = 0xe74c3c;
+            } else if (vercelEnvironmentValidationFailed) {
+              title = '배포 환경변수 누락 감지';
+            } else if (buildFailed) {
+              title = '빌드 실패 감지';
+            } else if (deployFailed) {
+              title = 'Vercel 배포 실패 감지';
+            }
+
+            const payload = {
+              embeds: [
+                {
+                  title,
+                  description,
+                  color,
+                  fields: [
+                    { name: 'Repository', value: valueOrFallback(process.env.GITHUB_REPOSITORY), inline: true },
+                    { name: 'Branch', value: valueOrFallback(process.env.GITHUB_REF_NAME), inline: true },
+                    { name: 'Commit', value: process.env.GITHUB_SHA?.slice(0, 7) || 'N/A', inline: true },
+                    { name: 'Deployment URL', value: deploymentUrl, inline: false },
+                    { name: 'Failed step', value: failedSteps.join(', ') || 'N/A', inline: false },
+                    { name: 'Rollback result', value: process.env.ROLLBACK_OUTCOME || 'skipped', inline: true },
+                    { name: 'Workflow run', value: valueOrFallback(process.env.WORKFLOW_RUN_URL), inline: false },
+                  ],
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            };
+
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Discord notification failed with ${response.status}`);
+            }
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment_url }}
+          INSTALL_DEPENDENCIES_OUTCOME: ${{ steps.install_dependencies.outcome }}
+          INSTALL_VERCEL_CLI_OUTCOME: ${{ steps.install_vercel_cli.outcome }}
+          PULL_VERCEL_ENVIRONMENT_OUTCOME: ${{ steps.pull_vercel_environment.outcome }}
+          VALIDATE_VERCEL_ENVIRONMENT_OUTCOME: ${{ steps.validate_vercel_environment.outcome }}
+          BUILD_OUTCOME: ${{ steps.build.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          ROLLBACK_OUTCOME: ${{ steps.rollback.outcome }}
+          WORKFLOW_RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
