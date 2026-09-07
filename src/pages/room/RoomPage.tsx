@@ -34,6 +34,10 @@ import {
 } from './utils/getRoomHeaderState';
 import { getRoomPhaseLabel } from './utils/getRoomPhaseLabel';
 import {
+  getRoomTimerRange,
+  getRoomTimerState,
+} from './utils/getRoomTimerState';
+import {
   deleteRoomSession,
   readRoomSession,
   writeRoomSession,
@@ -114,66 +118,6 @@ export function RoomPage() {
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
 
-  const promptCountdownSeconds = useCountdownSeconds(
-    promptSubmissionSnapshot?.promptDeadline,
-  );
-  const guessCountdownSeconds = useCountdownSeconds(
-    roundSnapshot?.guessDeadline,
-  );
-  const voteCountdownSeconds = useCountdownSeconds(voteSnapshot?.voteDeadline);
-  const resultCountdownSeconds = useCountdownSeconds(
-    roundResultSnapshot?.resultDeadline,
-  );
-
-  const promptTimerTotalSeconds = getTimerTotalSeconds(
-    promptSubmissionSnapshot?.promptStartedAt,
-    promptSubmissionSnapshot?.promptDeadline,
-  );
-  const guessTimerTotalSeconds = getTimerTotalSeconds(
-    roundSnapshot?.guessStartedAt,
-    roundSnapshot?.guessDeadline,
-  );
-  const voteTimerTotalSeconds = getTimerTotalSeconds(
-    voteSnapshot?.voteStartedAt,
-    voteSnapshot?.voteDeadline,
-  );
-  const resultTimerTotalSeconds = getTimerTotalSeconds(
-    roundResultSnapshot?.resultStartedAt,
-    roundResultSnapshot?.resultDeadline,
-  );
-  const promptTimerSeconds = Math.min(
-    promptCountdownSeconds,
-    promptTimerTotalSeconds,
-  );
-  const promptTimerProgressRatio =
-    promptTimerTotalSeconds > 0
-      ? Math.min(Math.max(promptTimerSeconds / promptTimerTotalSeconds, 0), 1)
-      : 0;
-  const guessTimerSeconds = Math.min(
-    guessCountdownSeconds,
-    guessTimerTotalSeconds,
-  );
-  const guessTimerProgressRatio =
-    guessTimerTotalSeconds > 0
-      ? Math.min(Math.max(guessTimerSeconds / guessTimerTotalSeconds, 0), 1)
-      : 0;
-  const voteTimerSeconds = Math.min(
-    voteCountdownSeconds,
-    voteTimerTotalSeconds,
-  );
-  const voteTimerProgressRatio =
-    voteTimerTotalSeconds > 0
-      ? Math.min(Math.max(voteTimerSeconds / voteTimerTotalSeconds, 0), 1)
-      : 0;
-  const resultTimerSeconds = Math.min(
-    resultCountdownSeconds,
-    resultTimerTotalSeconds,
-  );
-  const resultTimerProgressRatio =
-    resultTimerTotalSeconds > 0
-      ? Math.min(Math.max(resultTimerSeconds / resultTimerTotalSeconds, 0), 1)
-      : 0;
-
   const currentOwnVoteOptionNotice =
     voteSnapshot === null
       ? undefined
@@ -187,6 +131,13 @@ export function RoomPage() {
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
   const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
+  const timerRange = getRoomTimerRange({
+    roomSocket,
+    activeImageGenerationSnapshot,
+    isCountdownPlaying,
+  });
+  const timerCountdownSeconds = useCountdownSeconds(timerRange?.deadline);
+  const timerState = getRoomTimerState(timerRange, timerCountdownSeconds);
   const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
 
   const roomAnalyticsProperties = useMemo(
@@ -395,15 +346,6 @@ export function RoomPage() {
     );
   }
 
-  const shouldShowTimer =
-    phase === 'GENERATING' &&
-    activeImageGenerationSnapshot?.status !== 'GENERATING' &&
-    activeImageGenerationSnapshot?.status !== 'READY';
-  const shouldShowPlayingTimer = isPlayingViewVisible && Boolean(roundSnapshot);
-  const shouldShowVotingTimer = phase === 'VOTING' && Boolean(voteSnapshot);
-  const shouldShowResultTimer =
-    phase === 'RESULTS' && Boolean(roundResultSnapshot);
-
   const headerRound = getRoomHeaderRound(roomSocket);
   const headerStatus = getRoomHeaderStatus({
     roomSocket,
@@ -418,25 +360,7 @@ export function RoomPage() {
         headerStatus={headerStatus}
         round={headerRound}
         phaseLabel={getRoomPhaseLabel(phase)}
-        timer={
-          (shouldShowTimer && {
-            seconds: promptTimerSeconds,
-            progressRatio: promptTimerProgressRatio,
-          }) ||
-          (shouldShowPlayingTimer && {
-            seconds: guessTimerSeconds,
-            progressRatio: guessTimerProgressRatio,
-          }) ||
-          (shouldShowVotingTimer && {
-            seconds: voteTimerSeconds,
-            progressRatio: voteTimerProgressRatio,
-          }) ||
-          (shouldShowResultTimer && {
-            seconds: resultTimerSeconds,
-            progressRatio: resultTimerProgressRatio,
-          }) ||
-          null
-        }
+        timer={timerState}
       />
 
       <S_GameMain>
@@ -538,21 +462,6 @@ export function RoomPage() {
       </S_GameMain>
     </S_GameContainer>
   );
-}
-
-function getTimerTotalSeconds(startedAt?: string, deadline?: string) {
-  if (!startedAt || !deadline) {
-    return 0;
-  }
-
-  const startedAtTime = new Date(startedAt).getTime();
-  const deadlineTime = new Date(deadline).getTime();
-
-  if (Number.isNaN(startedAtTime) || Number.isNaN(deadlineTime)) {
-    return 0;
-  }
-
-  return Math.max(0, Math.round((deadlineTime - startedAtTime) / 1000));
 }
 
 function getCurrentRoundNumber({
