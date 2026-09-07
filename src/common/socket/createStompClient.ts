@@ -21,5 +21,6 @@ export function createStompClient() {
     heartbeatIncoming: 2000,
     heartbeatOutgoing: 2000,
     heartbeatToleranceMultiplier: 2,
+    discardWebsocketOnCommFailure: true,
   });
 }
