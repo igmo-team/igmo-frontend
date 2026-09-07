@@ -37,6 +37,7 @@ import {
   getRoomTimerRange,
   getRoomTimerState,
 } from './utils/getRoomTimerState';
+import { getVotePermissionState } from './utils/getVotePermissionState';
 import {
   deleteRoomSession,
   readRoomSession,
@@ -94,7 +95,6 @@ export function RoomPage() {
     gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
-    ownVoteOptionNoticeByRound,
     isConnected,
     errorMessage,
     sendReady,
@@ -118,15 +118,6 @@ export function RoomPage() {
 
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
 
-  const currentOwnVoteOptionNotice =
-    voteSnapshot === null
-      ? undefined
-      : ownVoteOptionNoticeByRound[voteSnapshot.roundNumber];
-  const isOwnVoteOptionNoticePending =
-    phase === 'VOTING' &&
-    voteSnapshot !== null &&
-    currentOwnVoteOptionNotice === undefined;
-
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
@@ -138,6 +129,7 @@ export function RoomPage() {
   });
   const timerCountdownSeconds = useCountdownSeconds(timerRange?.deadline);
   const timerState = getRoomTimerState(timerRange, timerCountdownSeconds);
+  const votePermissionState = getVotePermissionState(roomSocket);
   const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
 
   const roomAnalyticsProperties = useMemo(
@@ -434,8 +426,12 @@ export function RoomPage() {
                 <RoomVotingView
                   key={voteSnapshot.roundNumber}
                   snapshot={voteSnapshot}
-                  ownVoteOptionNotice={currentOwnVoteOptionNotice}
-                  isOwnVoteOptionNoticePending={isOwnVoteOptionNoticePending}
+                  ownVoteOptionNotice={
+                    votePermissionState.ownVoteOptionNotice
+                  }
+                  isOwnVoteOptionNoticePending={
+                    votePermissionState.isOwnVoteOptionNoticePending
+                  }
                   isSocketConnected={isConnected}
                   socketErrorMessage={errorMessage}
                   onSubmit={handleVoteSubmit}
