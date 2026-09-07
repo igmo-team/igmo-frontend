@@ -1,12 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
-import {
-  captureAnalyticsEvent,
-  identifyAnalyticsUser,
-} from '../../common/analytics';
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
@@ -25,6 +21,7 @@ import { RoomPromptResultView } from './components/RoomPromptResultView';
 import { RoomRoundResultView } from './components/RoomRoundResultView';
 import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
+import { useRoomAnalytics } from './hooks/useRoomAnalytics';
 import { useRoomSocket } from './hooks/useRoomSocket';
 import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
@@ -48,9 +45,6 @@ import type { RoomEntryState } from './utils/getRoomEntryState';
 import type {
   GuessSubmissionPayload,
   PromptSubmissionPayload,
-  RoundResultSnapshot,
-  RoundSnapshot,
-  VoteSnapshot,
 } from '../../domain/room/types';
 
 export function RoomPage() {
@@ -63,8 +57,6 @@ export function RoomPage() {
     [location.state],
   );
 
-  const trackedPhaseKeyRef = useRef('');
-  const trackedGameCompletedRoomCodeRef = useRef('');
   const roomSession = useMemo(() => {
     if (!roomCode) {
       return null;
@@ -131,85 +123,22 @@ export function RoomPage() {
   const timerState = getRoomTimerState(timerRange, timerCountdownSeconds);
   const votePermissionState = getVotePermissionState(roomSocket);
   const hasValidRoomCode = Boolean(roomCode && isRoomCodeValid(roomCode));
-
-  const roomAnalyticsProperties = useMemo(
-    () => ({
-      room_code: displayRoomCode,
-      player_id: currentPlayerId,
-      is_host: snapshot ? snapshot.hostId === currentPlayerId : undefined,
-      player_count: snapshot?.players.length,
-      phase,
-      is_questioner: roundSnapshot
-        ? roundSnapshot.questioner.id === currentPlayerId
-        : undefined,
-      round_number: getCurrentRoundNumber({
-        roundSnapshot,
-        voteSnapshot,
-        roundResultSnapshot,
-      }),
-      total_round_count: getCurrentTotalRoundCount({
-        roundSnapshot,
-        roundResultSnapshot,
-      }),
-    }),
-    [
-      currentPlayerId,
-      displayRoomCode,
-      phase,
-      roundResultSnapshot,
-      roundSnapshot,
-      snapshot,
-      voteSnapshot,
-    ],
-  );
+  const roomAnalytics = useRoomAnalytics({
+    roomCode: displayRoomCode,
+    currentPlayerId,
+    roomSnapshot: snapshot,
+    phase,
+    roundSnapshot,
+    voteSnapshot,
+    roundResultSnapshot,
+    gameResultSnapshot,
+  });
 
   useEffect(() => {
     if (roomCode && !roomSession && !hasValidRoomCode) {
       navigate(PAGE_URL.HOME, { replace: true });
     }
   }, [hasValidRoomCode, navigate, roomCode, roomSession]);
-
-  useEffect(() => {
-    if (currentPlayerId) {
-      identifyAnalyticsUser(currentPlayerId);
-    }
-  }, [currentPlayerId]);
-
-  useEffect(() => {
-    if (!snapshot || !displayRoomCode) {
-      return;
-    }
-
-    const phaseKey = [
-      displayRoomCode,
-      phase,
-      roomAnalyticsProperties.round_number ?? '',
-    ].join(':');
-
-    if (trackedPhaseKeyRef.current === phaseKey) {
-      return;
-    }
-
-    trackedPhaseKeyRef.current = phaseKey;
-    captureAnalyticsEvent('game_phase_entered', roomAnalyticsProperties);
-  }, [displayRoomCode, phase, roomAnalyticsProperties, snapshot]);
-
-  useEffect(() => {
-    if (
-      phase !== 'ENDED' ||
-      !displayRoomCode ||
-      !gameResultSnapshot ||
-      trackedGameCompletedRoomCodeRef.current === displayRoomCode
-    ) {
-      return;
-    }
-
-    trackedGameCompletedRoomCodeRef.current = displayRoomCode;
-    captureAnalyticsEvent('game_completed', {
-      ...roomAnalyticsProperties,
-      player_count: gameResultSnapshot.finalRanking.length,
-    });
-  }, [displayRoomCode, gameResultSnapshot, phase, roomAnalyticsProperties]);
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
     writeRoomSession({
@@ -248,7 +177,7 @@ export function RoomPage() {
     const isPublished = sendStart();
 
     if (isPublished) {
-      captureAnalyticsEvent('game_started', roomAnalyticsProperties);
+      roomAnalytics.trackGameStarted();
     }
   };
 
@@ -257,16 +186,12 @@ export function RoomPage() {
       const isPublished = sendPrompt({ prompt, submissionType });
 
       if (isPublished) {
-        captureAnalyticsEvent('prompt_submitted', {
-          ...roomAnalyticsProperties,
-          prompt_length: prompt.length,
-          submission_type: submissionType,
-        });
+        roomAnalytics.trackPromptSubmitted({ prompt, submissionType });
       }
 
       return isPublished;
     },
-    [roomAnalyticsProperties, sendPrompt],
+    [roomAnalytics, sendPrompt],
   );
 
   const handleGuessSubmit = useCallback(
@@ -274,16 +199,12 @@ export function RoomPage() {
       const isPublished = sendGuess({ guess, submissionType });
 
       if (isPublished) {
-        captureAnalyticsEvent('guess_submitted', {
-          ...roomAnalyticsProperties,
-          guess_length: guess.length,
-          submission_type: submissionType,
-        });
+        roomAnalytics.trackGuessSubmitted({ guess, submissionType });
       }
 
       return isPublished;
     },
-    [roomAnalyticsProperties, sendGuess],
+    [roomAnalytics, sendGuess],
   );
 
   const handleVoteSubmit = useCallback(
@@ -291,12 +212,12 @@ export function RoomPage() {
       const isPublished = sendVote(optionId);
 
       if (isPublished) {
-        captureAnalyticsEvent('vote_submitted', roomAnalyticsProperties);
+        roomAnalytics.trackVoteSubmitted();
       }
 
       return isPublished;
     },
-    [roomAnalyticsProperties, sendVote],
+    [roomAnalytics, sendVote],
   );
 
   if (!roomSession && roomCode && hasValidRoomCode) {
@@ -458,32 +379,6 @@ export function RoomPage() {
       </S_GameMain>
     </S_GameContainer>
   );
-}
-
-function getCurrentRoundNumber({
-  roundSnapshot,
-  voteSnapshot,
-  roundResultSnapshot,
-}: {
-  roundSnapshot: RoundSnapshot | null;
-  voteSnapshot: VoteSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-}) {
-  return (
-    roundSnapshot?.roundNumber ??
-    voteSnapshot?.roundNumber ??
-    roundResultSnapshot?.roundNumber
-  );
-}
-
-function getCurrentTotalRoundCount({
-  roundSnapshot,
-  roundResultSnapshot,
-}: {
-  roundSnapshot: RoundSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-}) {
-  return roundSnapshot?.totalRoundCount ?? roundResultSnapshot?.totalRoundCount;
 }
 
 const S_Page = styled.main`
