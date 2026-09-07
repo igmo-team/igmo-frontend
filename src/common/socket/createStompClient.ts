@@ -18,5 +18,9 @@ export function createStompClient() {
     brokerURL: createWebSocketUrl(),
     reconnectDelay: 5000,
     connectionTimeout: 8000,
+    heartbeatIncoming: 2000,
+    heartbeatOutgoing: 2000,
+    heartbeatToleranceMultiplier: 2,
+    discardWebsocketOnCommFailure: true,
   });
 }
