@@ -1,6 +1,6 @@
+import type { RoomPlayer, RoomSnapshot } from '../../../domain/room/types';
 import type { RoomGameHeaderStatus } from '../components/RoomGameHeader';
 import type { useRoomSocket } from '../hooks/useRoomSocket';
-import type { RoomPlayer, RoomSnapshot } from '../../../domain/room/types';
 
 type RoomSocket = ReturnType<typeof useRoomSocket>;
 
@@ -95,7 +95,7 @@ function getRoomHeaderCompletedPlayerIds({
   roomSocket: RoomSocket;
   isCountdownPlaying: boolean;
 }) {
-  const { phase, promptSubmissionSnapshot, roundSnapshot } = roomSocket;
+  const { phase, roundSnapshot } = roomSocket;
 
   if (phase === 'GENERATING' || isCountdownPlaying) {
     return getPromptReadyPlayerIds(roomSocket);

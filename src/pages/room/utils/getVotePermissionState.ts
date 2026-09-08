@@ -1,5 +1,5 @@
-import type { useRoomSocket } from '../hooks/useRoomSocket';
 import type { OwnVoteOptionNotice } from '../../../domain/room/types';
+import type { useRoomSocket } from '../hooks/useRoomSocket';
 
 type RoomSocket = ReturnType<typeof useRoomSocket>;
 

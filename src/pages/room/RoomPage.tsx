@@ -134,12 +134,6 @@ export function RoomPage() {
     gameResultSnapshot,
   });
 
-  useEffect(() => {
-    if (roomCode && !roomSession && !hasValidRoomCode) {
-      navigate(PAGE_URL.HOME, { replace: true });
-    }
-  }, [hasValidRoomCode, navigate, roomCode, roomSession]);
-
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
     writeRoomSession({
       roomCode: nextEntryState.snapshot.roomCode,
@@ -219,6 +213,12 @@ export function RoomPage() {
     },
     [roomAnalytics, sendVote],
   );
+
+  useEffect(() => {
+    if (roomCode && !roomSession && !hasValidRoomCode) {
+      navigate(PAGE_URL.HOME, { replace: true });
+    }
+  }, [hasValidRoomCode, navigate, roomCode, roomSession]);
 
   if (!roomSession && roomCode && hasValidRoomCode) {
     return (
