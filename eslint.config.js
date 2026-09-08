@@ -23,7 +23,7 @@ const compat = new FlatCompat({
 });
 
 export default defineConfig([
-  globalIgnores(['**/dist']),
+  globalIgnores(['**/dist', '**/.vercel']),
   ...pluginQuery.configs['flat/recommended'],
   {
     extends: fixupConfigRules(
