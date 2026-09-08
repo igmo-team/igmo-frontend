@@ -9,7 +9,6 @@ export type RoomPhase =
   | 'LOBBY'
   | 'GENERATING'
   | 'PLAYING'
-  | 'SUBMITTING'
   | 'VOTING'
   | 'RESULTS'
   | 'ENDED';
