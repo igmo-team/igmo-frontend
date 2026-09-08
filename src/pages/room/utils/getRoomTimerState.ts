@@ -78,7 +78,6 @@ export function getRoomTimerRange({
       };
 
     case 'LOBBY':
-    case 'SUBMITTING':
     case 'ENDED':
       return null;
   }

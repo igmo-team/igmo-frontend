@@ -27,7 +27,6 @@ export function getRoomHeaderRound(roomSocket: RoomSocket) {
 
     case 'LOBBY':
     case 'GENERATING':
-    case 'SUBMITTING':
     case 'ENDED':
       return undefined;
   }
