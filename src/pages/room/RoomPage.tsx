@@ -77,14 +77,9 @@ export function RoomPage() {
 
   const roomSocket = useRoomSocket({ roomCode, roomSession, initialSnapshot });
   const {
+    currentSnapshot,
     phase,
-    receivedSnapshot,
-    promptSubmissionSnapshot,
     guessSubmissionSnapshot,
-    roundSnapshot,
-    voteSnapshot,
-    roundResultSnapshot,
-    gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
@@ -97,8 +92,7 @@ export function RoomPage() {
     sendRestart,
   } = roomSocket;
 
-  const snapshot = receivedSnapshot ?? initialSnapshot;
-  const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
+  const displayRoomCode = currentSnapshot?.roomCode ?? roomCode ?? '';
 
   const activeImageGenerationSnapshot =
     imageGenerationSnapshot?.roomCode === displayRoomCode
@@ -126,12 +120,8 @@ export function RoomPage() {
   const roomAnalytics = useRoomAnalytics({
     roomCode: displayRoomCode,
     currentPlayerId,
-    roomSnapshot: snapshot,
+    currentSnapshot,
     phase,
-    roundSnapshot,
-    voteSnapshot,
-    roundResultSnapshot,
-    gameResultSnapshot,
   });
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
@@ -156,15 +146,18 @@ export function RoomPage() {
   };
 
   const handleStart = () => {
-    if (!snapshot) {
+    if (currentSnapshot?.type !== 'LOBBY_SNAPSHOT') {
       return;
     }
 
-    if (snapshot.phase !== 'LOBBY' || currentPlayerId !== snapshot.hostId) {
+    if (
+      currentSnapshot.phase !== 'LOBBY' ||
+      currentPlayerId !== currentSnapshot.hostId
+    ) {
       return;
     }
 
-    if (!areAllGuestsReady(snapshot)) {
+    if (!areAllGuestsReady(currentSnapshot)) {
       return;
     }
 
@@ -229,7 +222,7 @@ export function RoomPage() {
     );
   }
 
-  if (!snapshot) {
+  if (!currentSnapshot) {
     return (
       <S_Page>
         <S_RoomCard padding="lg" shadow>
@@ -239,11 +232,11 @@ export function RoomPage() {
     );
   }
 
-  if (phase === 'LOBBY') {
+  if (phase === 'LOBBY' && currentSnapshot.type === 'LOBBY_SNAPSHOT') {
     return (
       <S_Page>
         <RoomLobbyView
-          snapshot={snapshot}
+          snapshot={currentSnapshot}
           currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
@@ -262,7 +255,6 @@ export function RoomPage() {
   const headerRound = getRoomHeaderRound(roomSocket);
   const headerStatus = getRoomHeaderStatus({
     roomSocket,
-    roomSnapshot: snapshot,
     currentPlayerId,
     isCountdownPlaying,
   });
@@ -279,9 +271,9 @@ export function RoomPage() {
       <S_GameMain>
         {phase === 'ENDED' ? (
           <S_GameResultContent>
-            {gameResultSnapshot ? (
+            {currentSnapshot.type === 'GAME_RESULT_SNAPSHOT' ? (
               <RoomGameResultView
-                snapshot={gameResultSnapshot}
+                snapshot={currentSnapshot}
                 currentPlayerId={currentPlayerId}
                 onRestart={sendRestart}
                 onHomeButtonClick={handleLeaveButtonClick}
@@ -297,7 +289,11 @@ export function RoomPage() {
                 <>
                   {!activeImageGenerationSnapshot && (
                     <RoomPromptingView
-                      deadline={promptSubmissionSnapshot?.promptDeadline ?? ''}
+                      deadline={
+                        currentSnapshot.type === 'PROMPT_SUBMISSION_SNAPSHOT'
+                          ? currentSnapshot.promptDeadline
+                          : ''
+                      }
                       isSocketConnected={isConnected}
                       socketErrorMessage={errorMessage}
                       onSubmit={handlePromptSubmit}
@@ -328,9 +324,9 @@ export function RoomPage() {
               )}
 
               {isPlayingViewVisible &&
-                (roundSnapshot ? (
+                (currentSnapshot.type === 'ROUND_SNAPSHOT' ? (
                   <RoomPlayingView
-                    snapshot={roundSnapshot}
+                    snapshot={currentSnapshot}
                     currentPlayerId={currentPlayerId}
                     guessSubmissionSnapshot={guessSubmissionSnapshot}
                     isSocketConnected={isConnected}
@@ -343,10 +339,10 @@ export function RoomPage() {
                   </S_EmptyState>
                 ))}
 
-              {phase === 'VOTING' && voteSnapshot && (
+              {currentSnapshot.type === 'VOTE_SNAPSHOT' && (
                 <RoomVotingView
-                  key={voteSnapshot.roundNumber}
-                  snapshot={voteSnapshot}
+                  key={currentSnapshot.roundNumber}
+                  snapshot={currentSnapshot}
                   ownVoteOptionNotice={
                     votePermissionState.ownVoteOptionNotice
                   }
@@ -360,10 +356,10 @@ export function RoomPage() {
               )}
 
               {phase === 'RESULTS' &&
-                (roundResultSnapshot ? (
+                (currentSnapshot.type === 'ROUND_RESULT_SNAPSHOT' ? (
                   <RoomRoundResultView
-                    key={roundResultSnapshot.roundNumber}
-                    snapshot={roundResultSnapshot}
+                    key={currentSnapshot.roundNumber}
+                    snapshot={currentSnapshot}
                     currentPlayerId={currentPlayerId}
                   />
                 ) : (

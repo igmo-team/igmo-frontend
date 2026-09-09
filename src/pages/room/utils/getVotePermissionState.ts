@@ -11,9 +11,9 @@ export type VotePermissionState = {
 export function getVotePermissionState(
   roomSocket: RoomSocket,
 ): VotePermissionState {
-  const { phase, voteSnapshot, ownVoteOptionNoticeByRound } = roomSocket;
+  const { currentSnapshot, ownVoteOptionNoticeByRound } = roomSocket;
 
-  if (phase !== 'VOTING' || voteSnapshot === null) {
+  if (currentSnapshot?.type !== 'VOTE_SNAPSHOT') {
     return {
       ownVoteOptionNotice: undefined,
       isOwnVoteOptionNoticePending: false,
@@ -21,7 +21,7 @@ export function getVotePermissionState(
   }
 
   const ownVoteOptionNotice =
-    ownVoteOptionNoticeByRound[voteSnapshot.roundNumber];
+    ownVoteOptionNoticeByRound[currentSnapshot.roundNumber];
 
   return {
     ownVoteOptionNotice,

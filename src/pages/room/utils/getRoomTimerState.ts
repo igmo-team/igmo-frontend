@@ -23,62 +23,52 @@ export function getRoomTimerRange({
   activeImageGenerationSnapshot,
   isCountdownPlaying,
 }: GetRoomTimerRangeParams): RoomTimerRange | null {
-  const {
-    phase,
-    promptSubmissionSnapshot,
-    roundSnapshot,
-    voteSnapshot,
-    roundResultSnapshot,
-  } = roomSocket;
+  const { currentSnapshot } = roomSocket;
 
-  switch (phase) {
-    case 'GENERATING': {
+  if (!currentSnapshot) {
+    return null;
+  }
+
+  switch (currentSnapshot.type) {
+    case 'PROMPT_SUBMISSION_SNAPSHOT': {
       const shouldShowPromptTimer =
         activeImageGenerationSnapshot?.status !== 'GENERATING' &&
         activeImageGenerationSnapshot?.status !== 'READY';
 
-      if (!shouldShowPromptTimer || !promptSubmissionSnapshot) {
+      if (!shouldShowPromptTimer) {
         return null;
       }
 
       return {
-        startedAt: promptSubmissionSnapshot.promptStartedAt,
-        deadline: promptSubmissionSnapshot.promptDeadline,
+        startedAt: currentSnapshot.promptStartedAt,
+        deadline: currentSnapshot.promptDeadline,
       };
     }
 
-    case 'PLAYING':
-      if (isCountdownPlaying || !roundSnapshot) {
+    case 'ROUND_SNAPSHOT':
+      if (isCountdownPlaying) {
         return null;
       }
 
       return {
-        startedAt: roundSnapshot.guessStartedAt,
-        deadline: roundSnapshot.guessDeadline,
+        startedAt: currentSnapshot.guessStartedAt,
+        deadline: currentSnapshot.guessDeadline,
       };
 
-    case 'VOTING':
-      if (!voteSnapshot) {
-        return null;
-      }
-
+    case 'VOTE_SNAPSHOT':
       return {
-        startedAt: voteSnapshot.voteStartedAt,
-        deadline: voteSnapshot.voteDeadline,
+        startedAt: currentSnapshot.voteStartedAt,
+        deadline: currentSnapshot.voteDeadline,
       };
 
-    case 'RESULTS':
-      if (!roundResultSnapshot) {
-        return null;
-      }
-
+    case 'ROUND_RESULT_SNAPSHOT':
       return {
-        startedAt: roundResultSnapshot.resultStartedAt,
-        deadline: roundResultSnapshot.resultDeadline,
+        startedAt: currentSnapshot.resultStartedAt,
+        deadline: currentSnapshot.resultDeadline,
       };
 
-    case 'LOBBY':
-    case 'ENDED':
+    case 'LOBBY_SNAPSHOT':
+    case 'GAME_RESULT_SNAPSHOT':
       return null;
   }
 }
