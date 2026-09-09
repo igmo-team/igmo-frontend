@@ -1,30 +1,12 @@
 import type {
   FinalRankingEntry,
   GameResultSnapshot,
-  RoomMessage,
   RoomPlayer,
 } from '../../../domain/room/types';
 
-export function parseGameResultSnapshot(
-  body: string,
-): GameResultSnapshot | null {
-  try {
-    const data = JSON.parse(body) as RoomMessage<GameResultSnapshot>;
-
-    if (
-      data.type === 'GAME_RESULT_SNAPSHOT' &&
-      isGameResultSnapshot(data.payload)
-    ) {
-      return data.payload;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function isGameResultSnapshot(value: unknown): value is GameResultSnapshot {
+export function isGameResultSnapshot(
+  value: unknown,
+): value is GameResultSnapshot {
   if (!value || typeof value !== 'object') {
     return false;
   }
