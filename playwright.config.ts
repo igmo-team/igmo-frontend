@@ -34,6 +34,8 @@ export default defineConfig({
     env: {
       VITE_API_BASE_URL: 'http://localhost',
       VITE_MIN_PLAYERS_TO_START: '1',
+      VITE_POSTHOG_PROJECT_TOKEN: 'test-token',
+      VITE_POSTHOG_HOST: 'http://localhost',
     },
   },
 });
