@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { captureAnalyticsEvent } from '../../../common/analytics';
 import { createStompClient } from '../../../common/socket/createStompClient';
@@ -59,10 +59,17 @@ export function useRoomSocket({
   roomSession,
   initialSnapshot,
 }: UseRoomSocketParams): UseRoomSocketResult {
-  const [currentSnapshot, setCurrentSnapshot] =
-    useState<RoomTopicSnapshot | null>(() =>
+  const [receivedSnapshot, setReceivedSnapshot] =
+    useState<RoomTopicSnapshot | null>(null);
+  // 직접 링크로 들어와 모달에서 참여하면 같은 경로로 navigate되어 RoomPage가
+  // 리마운트되지 않는다. 소켓 스냅샷을 아직 받지 못한 동안은 initialSnapshot을
+  // fallback으로 사용해, 뒤늦게 도착한 입장 스냅샷도 반영되게 한다.
+  const initialTopicSnapshot = useMemo<RoomTopicSnapshot | null>(
+    () =>
       initialSnapshot ? { type: 'LOBBY_SNAPSHOT', ...initialSnapshot } : null,
-    );
+    [initialSnapshot],
+  );
+  const currentSnapshot = receivedSnapshot ?? initialTopicSnapshot;
   const phase = currentSnapshot?.phase ?? 'LOBBY';
   const [guessSubmissionSnapshot, setGuessSubmissionSnapshot] =
     useState<GuessSubmissionSnapshot | null>(null);
@@ -157,7 +164,7 @@ export function useRoomSocket({
           return;
         }
 
-        setCurrentSnapshot(nextSnapshot);
+        setReceivedSnapshot(nextSnapshot);
         setErrorMessage('');
 
         switch (nextSnapshot.type) {
