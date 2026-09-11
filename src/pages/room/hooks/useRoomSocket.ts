@@ -18,7 +18,6 @@ import type {
   ImageGenerationSnapshot,
   OwnVoteOptionNotice,
   PromptSubmissionPayload,
-  RoomPhase,
   RoomSnapshot,
   RoomTopicSnapshot,
 } from '../../../domain/room/types';
@@ -38,7 +37,6 @@ type OwnVoteOptionNoticeByRoundState = {
 
 type UseRoomSocketResult = {
   currentSnapshot: RoomTopicSnapshot | null;
-  phase: RoomPhase;
   guessSubmissionSnapshot: GuessSubmissionSnapshot | null;
   // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
   isCountdownTriggered: boolean;
@@ -404,7 +402,6 @@ export function useRoomSocket({
 
   return {
     currentSnapshot,
-    phase,
     guessSubmissionSnapshot: activeGuessSubmissionSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
