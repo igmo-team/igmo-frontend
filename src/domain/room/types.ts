@@ -168,12 +168,12 @@ export type GameResultSnapshot = {
 
 // /topic/rooms/{roomCode}로 오는 6종 스냅샷을 서버 type을 discriminant로 붙여 통일
 export type RoomTopicSnapshot =
-  | ({ type: 'LOBBY_SNAPSHOT' } & RoomSnapshot)
-  | ({ type: 'ROUND_SNAPSHOT' } & RoundSnapshot)
-  | ({ type: 'PROMPT_SUBMISSION_SNAPSHOT' } & PromptSubmissionSnapshot)
-  | ({ type: 'VOTE_SNAPSHOT' } & VoteSnapshot)
-  | ({ type: 'ROUND_RESULT_SNAPSHOT' } & RoundResultSnapshot)
-  | ({ type: 'GAME_RESULT_SNAPSHOT' } & GameResultSnapshot);
+  | ({ type: 'LOBBY_SNAPSHOT'; phase: 'LOBBY' } & RoomSnapshot)
+  | ({ type: 'ROUND_SNAPSHOT'; phase: 'PLAYING' } & RoundSnapshot)
+  | ({ type: 'PROMPT_SUBMISSION_SNAPSHOT'; phase: 'GENERATING' } & PromptSubmissionSnapshot)
+  | ({ type: 'VOTE_SNAPSHOT'; phase: 'VOTING' } & VoteSnapshot)
+  | ({ type: 'ROUND_RESULT_SNAPSHOT'; phase: 'RESULTS' } & RoundResultSnapshot)
+  | ({ type: 'GAME_RESULT_SNAPSHOT'; phase: 'ENDED' } & GameResultSnapshot);
 
 // 개인 이미지 큐(/user/queue/image-generation)에서 받는 내 이미지 생성 상태
 export type ImageGenerationStatus = Exclude<PromptEntryStatus, 'WAITING'>;

@@ -66,7 +66,9 @@ export function useRoomSocket({
   // fallback으로 사용해, 뒤늦게 도착한 입장 스냅샷도 반영되게 한다.
   const initialTopicSnapshot = useMemo<RoomTopicSnapshot | null>(
     () =>
-      initialSnapshot ? { type: 'LOBBY_SNAPSHOT', ...initialSnapshot } : null,
+      initialSnapshot
+        ? { ...initialSnapshot, type: 'LOBBY_SNAPSHOT', phase: 'LOBBY' }
+        : null,
     [initialSnapshot],
   );
   const currentSnapshot = receivedSnapshot ?? initialTopicSnapshot;

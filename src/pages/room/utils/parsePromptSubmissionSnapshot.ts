@@ -22,7 +22,7 @@ export function isPromptSubmissionSnapshot(
 
   return (
     typeof snapshot.roomCode === 'string' &&
-    typeof snapshot.phase === 'string' &&
+    snapshot.phase === 'GENERATING' &&
     typeof snapshot.promptStartedAt === 'string' &&
     typeof snapshot.promptDeadline === 'string' &&
     Array.isArray(snapshot.promptEntries) &&

@@ -17,27 +17,27 @@ export function parseRoomTopicSnapshot(body: string): RoomTopicSnapshot | null {
     switch (data.type) {
       case 'LOBBY_SNAPSHOT':
         return isRoomSnapshot(data.payload)
-          ? { type: data.type, ...data.payload }
+          ? { ...data.payload, type: data.type, phase: 'LOBBY' }
           : null;
       case 'ROUND_SNAPSHOT':
         return isRoundSnapshot(data.payload)
-          ? { type: data.type, ...data.payload }
+          ? { ...data.payload, type: data.type, phase: 'PLAYING' }
           : null;
       case 'PROMPT_SUBMISSION_SNAPSHOT':
         return isPromptSubmissionSnapshot(data.payload)
-          ? { type: data.type, ...data.payload }
+          ? { ...data.payload, type: data.type, phase: 'GENERATING' }
           : null;
       case 'VOTE_SNAPSHOT':
         return isVoteSnapshot(data.payload)
-          ? { type: data.type, ...data.payload }
+          ? { ...data.payload, type: data.type, phase: 'VOTING' }
           : null;
       case 'ROUND_RESULT_SNAPSHOT':
         return isRoundResultSnapshot(data.payload)
-          ? { type: data.type, ...data.payload }
+          ? { ...data.payload, type: data.type, phase: 'RESULTS' }
           : null;
       case 'GAME_RESULT_SNAPSHOT':
         return isGameResultSnapshot(data.payload)
-          ? { type: data.type, ...data.payload }
+          ? { ...data.payload, type: data.type, phase: 'ENDED' }
           : null;
       default:
         return null;
