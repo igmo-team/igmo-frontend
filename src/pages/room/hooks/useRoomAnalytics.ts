@@ -35,10 +35,7 @@ export function useRoomAnalytics({
         currentSnapshot?.type === 'LOBBY_SNAPSHOT'
           ? currentSnapshot.hostId === currentPlayerId
           : undefined,
-      player_count:
-        currentSnapshot && 'players' in currentSnapshot
-          ? currentSnapshot.players.length
-          : undefined,
+      player_count: getPlayerCount(currentSnapshot),
       phase,
       is_questioner:
         currentSnapshot && 'questioner' in currentSnapshot
@@ -92,10 +89,7 @@ export function useRoomAnalytics({
     }
 
     trackedGameCompletedRoomCodeRef.current = roomCode;
-    captureAnalyticsEvent('game_completed', {
-      ...roomAnalyticsProperties,
-      player_count: currentSnapshot.finalRanking.length,
-    });
+    captureAnalyticsEvent('game_completed', roomAnalyticsProperties);
   }, [currentSnapshot, phase, roomAnalyticsProperties, roomCode]);
 
   const trackGameStarted = useCallback(() => {
@@ -142,4 +136,28 @@ export function useRoomAnalytics({
       trackVoteSubmitted,
     ],
   );
+}
+
+// 현재 단계 스냅샷 기준 실제 인원. 각 단계가 담고 있는 참가자 목록으로 계산하며,
+// 참가자 배열이 없는 투표 단계는 totalVoteCount로 근사한다.
+function getPlayerCount(
+  snapshot: RoomTopicSnapshot | null,
+): number | undefined {
+  if (!snapshot) {
+    return undefined;
+  }
+
+  switch (snapshot.type) {
+    case 'LOBBY_SNAPSHOT':
+    case 'ROUND_RESULT_SNAPSHOT':
+      return snapshot.players.length;
+    case 'PROMPT_SUBMISSION_SNAPSHOT':
+      return snapshot.promptEntries.length;
+    case 'ROUND_SNAPSHOT':
+      return snapshot.guessEntries.length + 1; // 출제자 포함
+    case 'VOTE_SNAPSHOT':
+      return snapshot.totalVoteCount;
+    case 'GAME_RESULT_SNAPSHOT':
+      return snapshot.finalRanking.length;
+  }
 }
