@@ -126,8 +126,14 @@ export class FakeStompBroker {
 
     // 하트비트 송신 시작(안 보내면 클라가 tolerance 초과로 끊김 판정).
     connection.heartbeat = setInterval(() => {
-      if (!connection.closed) {
+      if (connection.closed) {
+        return;
+      }
+      try {
         connection.route.send(HEARTBEAT);
+      } catch {
+        // route.close()와 onClose(closed=true) 사이 틈에 interval이 돌면
+        // 이미 닫힌 route로 send하게 되어 throw할 수 있다. 무시한다.
       }
     }, SERVER_HEARTBEAT_INTERVAL_MS);
   }
@@ -173,19 +179,23 @@ export class FakeStompBroker {
     }
 
     this.messageIdCounter += 1;
-    connection.route.send(
-      encodeFrame({
-        command: 'MESSAGE',
-        headers: {
-          subscription: subscriptionId,
-          'message-id': `msg-${this.messageIdCounter}`,
-          destination,
-          'content-type': 'application/json',
-          'content-length': String(byteLength(body)),
-        },
-        body,
-      }),
-    );
+    try {
+      connection.route.send(
+        encodeFrame({
+          command: 'MESSAGE',
+          headers: {
+            subscription: subscriptionId,
+            'message-id': `msg-${this.messageIdCounter}`,
+            destination,
+            'content-type': 'application/json',
+            'content-length': String(byteLength(body)),
+          },
+          body,
+        }),
+      );
+    } catch {
+      // 닫히는 중인 route면 send가 throw할 수 있어 무시한다.
+    }
   }
 
   private cleanupConnection(connection: Connection): void {
