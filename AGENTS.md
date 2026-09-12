@@ -6,12 +6,13 @@ igmo — "이 그림, 모지?" AI가 그린 그림 추리 파티게임의 프론
 
 | 기술                             | 주의                                                                                    |
 | -------------------------------- | --------------------------------------------------------------------------------------- |
-| React 19 + TypeScript + Vite     | 테스트 러너 없음 — **테스트 파일을 만들지 않는다**                                      |
+| React 19 + TypeScript + Vite     | 단위 테스트 러너 없음 — 단위 테스트 파일은 만들지 않는다 (e2e는 Playwright 사용)        |
 | Emotion (`@emotion/styled`)      | **styled-components 아님.** import 경로를 틀리지 않는다                                 |
 | TanStack Query v5                | 모든 HTTP 요청이 이걸 통한다 ([.codex/instructions/api.md](.codex/instructions/api.md)) |
 | react-router-dom v7              | TanStack Router 아님                                                                    |
 | axios (`common/api/client` 래퍼) | axios 직접 import 금지 (`isAxiosError` 제외)                                            |
 | @stomp/stompjs                   | 실시간 통신 (WebSocket/STOMP)                                                           |
+| @playwright/test                 | e2e 테스트 전용 (`e2e/`, `npm run test:e2e`). 앱 코드엔 import하지 않는다               |
 
 경로 alias 없음 — 전부 상대경로 import.
 
@@ -59,11 +60,11 @@ igmo — "이 그림, 모지?" AI가 그린 그림 추리 파티게임의 프론
 2. **TanStack Query를 우회한 HTTP 요청을 하지 않는다.** STOMP publish/subscribe는 제외한다. HTTP 예외가 필요하면 구현 전에 사용자에게 물어본다.
 3. **THEME 밖의 색상값·폰트 속성을 하드코딩하지 않는다.** 새 토큰 정책이 필요하면 사용자에게 물어본다.
 4. **한 파일에 컴포넌트를 2개 이상 두지 않는다.** (`S_` styled는 제외)
-5. **테스트 파일을 만들지 않는다.** (테스트 러너 미도입)
+5. **단위 테스트 파일을 만들지 않는다.** (단위 테스트 러너 미도입) — e2e는 예외: `e2e/`의 Playwright 테스트는 허용한다.
 
 ## 커밋 컨벤션
 
-- 커밋 메시지: `타입: 한국어 설명` — 타입은 `feat` / `fix` / `refactor` / `style` (예: `feat: 프롬프트 입력 화면 구현`)
+- 커밋 메시지: `타입: 한국어 설명` — 타입은 `feat` / `fix` / `refactor` / `style` / `test` / `chore` (예: `feat: 프롬프트 입력 화면 구현`)
 - 브랜치: `feature/<이슈번호>-<설명>` (예: `feature/31-prompt-input-view-ui`)
 
 ## 리뷰 가이드라인
@@ -72,7 +73,7 @@ igmo — "이 그림, 모지?" AI가 그린 그림 추리 파티게임의 프론
 - 완료 판단 전에 4단계로 확인한다: 정확성 → 프로젝트 규칙 → React 상태/effect → UX 상태.
 - 모든 코멘트 앞에 심각도 라벨을 붙인다: `🔴` 필수 수정, `🟡` 선택 제안, `💬` 질문·가정 확인.
 - `.codex/instructions/*.md` 위반은 객관적 지적 대상이며, "개인 취향"으로 취급하지 않는다.
-- 이 프로젝트에는 테스트 러너가 없으므로 테스트 파일을 요청하지 않는다. 대신 검증 증거를 요청한다.
+- 단위 테스트 러너가 없으므로 단위 테스트 파일을 요청하지 않는다(대신 검증 증거 요청). e2e 변경은 `e2e/`의 Playwright 테스트로 검증한다.
 - ESLint/Prettier/tsc가 실제로 보고하는 포맷·import 순서·미사용 import는 코멘트하지 않는다.
 - 변경 내용이 100줄을 넘는데 구체적인 코멘트가 2개 미만이면 다시 확인하되, 약한 코멘트를 억지로 만들지 않는다.
 - 자세한 리뷰 기준은 `.codex/code_review.md`를 읽는다.
