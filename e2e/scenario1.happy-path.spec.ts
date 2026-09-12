@@ -280,7 +280,7 @@ test('시나리오 1 — 해피패스: 입장→준비→시작→프롬프트�
       roundMessage({
         roundNumber: 1,
         questioner: player('p1'),
-        imageUrl: 'https://example.test/round-1.png',
+        imageUrl: 'https://example.test/p1.png',
         guessEntries: [
           { player: player('p2'), submitted: false },
           { player: player('p3'), submitted: false },
@@ -337,7 +337,7 @@ test('시나리오 1 — 해피패스: 입장→준비→시작→프롬프트�
       roundMessage({
         roundNumber: 1,
         questioner: player('p1'),
-        imageUrl: 'https://example.test/round-1.png',
+        imageUrl: 'https://example.test/p1.png',
         guessEntries: [
           { player: player('p2'), submitted: true },
           { player: player('p3'), submitted: false },
@@ -363,7 +363,7 @@ test('시나리오 1 — 해피패스: 입장→준비→시작→프롬프트�
       roundMessage({
         roundNumber: 1,
         questioner: player('p1'),
-        imageUrl: 'https://example.test/round-1.png',
+        imageUrl: 'https://example.test/p1.png',
         guessEntries: [
           { player: player('p2'), submitted: true },
           { player: player('p3'), submitted: true },
@@ -529,15 +529,15 @@ test('시나리오 1 — 해피패스: 입장→준비→시작→프롬프트�
   // -------------------------------------------------------------------------
   // 8) 다음 문제: roundNumber 2 → 이전 라운드 guess가 새 라운드에 새지 않음
   // -------------------------------------------------------------------------
-  await test.step('다음 라운드: 라운드2 전환 + stale guess 격리', async () => {
+  await test.step('다음 라운드: 라운드2 전환(출제자 로테이션) + stale guess 격리', async () => {
     broker.pushTopic(
       ROOM_CODE,
       roundMessage({
         roundNumber: 2,
-        questioner: player('p1'),
-        imageUrl: 'https://example.test/round-2.png',
+        questioner: player('p2'), // 로테이션: 라운드2 출제자 = 영희
+        imageUrl: 'https://example.test/p2.png', // 영희가 게임 시작에 만든 고정 이미지
         guessEntries: [
-          { player: player('p2'), submitted: false },
+          { player: player('p1'), submitted: false }, // 출제자 뺀 나머지
           { player: player('p3'), submitted: false },
         ],
       }),
@@ -553,10 +553,14 @@ test('시나리오 1 — 해피패스: 입장→준비→시작→프롬프트�
     for (const page of pages) {
       await expect.poll(() => completedAvatarCount(page)).toBe(0);
     }
-    // 핵심: B의 라운드2 입력창은 라운드1 guess가 새지 않아 비어 있어야 함.
-    await expect(B.page.getByRole('textbox')).toHaveValue('');
+    // 로테이션 확인: 라운드2 출제자 영희(B)는 추측 입력이 아니라 출제자 대기 안내.
     await expect(
-      B.page.getByRole('button', { name: '제출하기' }),
+      B.page.getByText('다른 참가자들이 가짜 프롬프트를 작성 중이에요.'),
+    ).toBeVisible();
+    // 핵심: 민수(C)는 라운드1·2 모두 추측자 → 라운드1 guess가 새지 않아 입력창이 비어 있어야 함.
+    await expect(C.page.getByRole('textbox')).toHaveValue('');
+    await expect(
+      C.page.getByRole('button', { name: '제출하기' }),
     ).toBeVisible();
   });
 
