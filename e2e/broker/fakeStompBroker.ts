@@ -236,6 +236,21 @@ export class FakeStompBroker {
     }
   }
 
+  /**
+   * topic 구독자에게 "가공하지 않은" 임의 body를 그대로 보낸다.
+   * 잘못된 JSON 등 견고성(robustness) 테스트용 — 현재 스냅샷으로 저장하지 않는다.
+   */
+  pushRawTopic(roomCode: string, rawBody: string): void {
+    const destination = `/topic/rooms/${roomCode}`;
+    for (const connection of this.allConnections) {
+      for (const [subId, dest] of connection.subscriptions) {
+        if (dest === destination) {
+          this.sendMessage(connection, subId, destination, rawBody);
+        }
+      }
+    }
+  }
+
   /** 특정 playerId 연결의 user-queue 구독에만 bare 객체를 보낸다. */
   pushUserQueue(
     playerId: string,
