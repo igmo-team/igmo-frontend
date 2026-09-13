@@ -1,0 +1,49 @@
+name: E2E Tests
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    # 브라우저·OS 의존성이 미리 설치된 공식 Playwright 이미지.
+    # 태그 버전은 package.json의 @playwright/test 버전과 반드시 일치시킨다(올릴 때 함께 올릴 것).
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-jammy
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 브라우저는 이미지에 이미 있으므로 playwright install 불필요.
+      # 내부에서 build(tsc -b && vite build) → preview → 테스트까지 수행한다(= PR 시점 빌드 검증 겸함).
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      # 실패 시 trace(retain-on-failure)만 올려 리뷰어가 원인을 재생할 수 있게 한다.
+      - name: Upload Playwright traces
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: ignore
