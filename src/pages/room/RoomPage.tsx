@@ -77,14 +77,8 @@ export function RoomPage() {
 
   const roomSocket = useRoomSocket({ roomCode, roomSession, initialSnapshot });
   const {
-    phase,
-    receivedSnapshot,
-    promptSubmissionSnapshot,
+    currentSnapshot,
     guessSubmissionSnapshot,
-    roundSnapshot,
-    voteSnapshot,
-    roundResultSnapshot,
-    gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     isConnected,
@@ -97,8 +91,7 @@ export function RoomPage() {
     sendRestart,
   } = roomSocket;
 
-  const snapshot = receivedSnapshot ?? initialSnapshot;
-  const displayRoomCode = snapshot?.roomCode ?? roomCode ?? '';
+  const displayRoomCode = currentSnapshot?.roomCode ?? roomCode ?? '';
 
   const activeImageGenerationSnapshot =
     imageGenerationSnapshot?.roomCode === displayRoomCode
@@ -113,7 +106,6 @@ export function RoomPage() {
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
-  const isPlayingViewVisible = phase === 'PLAYING' && !isCountdownPlaying;
   const timerRange = getRoomTimerRange({
     roomSocket,
     activeImageGenerationSnapshot,
@@ -126,12 +118,8 @@ export function RoomPage() {
   const roomAnalytics = useRoomAnalytics({
     roomCode: displayRoomCode,
     currentPlayerId,
-    roomSnapshot: snapshot,
-    phase,
-    roundSnapshot,
-    voteSnapshot,
-    roundResultSnapshot,
-    gameResultSnapshot,
+    currentSnapshot,
+    phase: currentSnapshot?.phase ?? 'LOBBY',
   });
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
@@ -156,15 +144,15 @@ export function RoomPage() {
   };
 
   const handleStart = () => {
-    if (!snapshot) {
+    if (currentSnapshot?.phase !== 'LOBBY') {
       return;
     }
 
-    if (snapshot.phase !== 'LOBBY' || currentPlayerId !== snapshot.hostId) {
+    if (currentPlayerId !== currentSnapshot.hostId) {
       return;
     }
 
-    if (!areAllGuestsReady(snapshot)) {
+    if (!areAllGuestsReady(currentSnapshot)) {
       return;
     }
 
@@ -229,7 +217,7 @@ export function RoomPage() {
     );
   }
 
-  if (!snapshot) {
+  if (!currentSnapshot) {
     return (
       <S_Page>
         <S_RoomCard padding="lg" shadow>
@@ -239,11 +227,13 @@ export function RoomPage() {
     );
   }
 
+  const { phase } = currentSnapshot;
+
   if (phase === 'LOBBY') {
     return (
       <S_Page>
         <RoomLobbyView
-          snapshot={snapshot}
+          snapshot={currentSnapshot}
           currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
@@ -262,10 +252,10 @@ export function RoomPage() {
   const headerRound = getRoomHeaderRound(roomSocket);
   const headerStatus = getRoomHeaderStatus({
     roomSocket,
-    roomSnapshot: snapshot,
     currentPlayerId,
     isCountdownPlaying,
   });
+  const isGameEnded = phase === 'ENDED';
 
   return (
     <S_GameContainer>
@@ -277,27 +267,29 @@ export function RoomPage() {
       />
 
       <S_GameMain>
-        {phase === 'ENDED' ? (
+        {isGameEnded && (
           <S_GameResultContent>
-            {gameResultSnapshot ? (
-              <RoomGameResultView
-                snapshot={gameResultSnapshot}
-                currentPlayerId={currentPlayerId}
-                onRestart={sendRestart}
-                onHomeButtonClick={handleLeaveButtonClick}
-              />
-            ) : (
-              <S_EmptyState>최종 결과를 불러오는 중이에요.</S_EmptyState>
-            )}
+            <RoomGameResultView
+              snapshot={currentSnapshot}
+              currentPlayerId={currentPlayerId}
+              onRestart={sendRestart}
+              onHomeButtonClick={handleLeaveButtonClick}
+            />
           </S_GameResultContent>
-        ) : (
+        )}
+
+        {!isGameEnded && (
           <S_GameContentFrame>
             <S_GameContent>
               {(phase === 'GENERATING' || isCountdownPlaying) && (
                 <>
                   {!activeImageGenerationSnapshot && (
                     <RoomPromptingView
-                      deadline={promptSubmissionSnapshot?.promptDeadline ?? ''}
+                      deadline={
+                        phase === 'GENERATING'
+                          ? currentSnapshot.promptDeadline
+                          : ''
+                      }
                       isSocketConnected={isConnected}
                       socketErrorMessage={errorMessage}
                       onSubmit={handlePromptSubmit}
@@ -327,29 +319,22 @@ export function RoomPage() {
                 </>
               )}
 
-              {isPlayingViewVisible &&
-                (roundSnapshot ? (
-                  <RoomPlayingView
-                    snapshot={roundSnapshot}
-                    currentPlayerId={currentPlayerId}
-                    guessSubmissionSnapshot={guessSubmissionSnapshot}
-                    isSocketConnected={isConnected}
-                    socketErrorMessage={errorMessage}
-                    onSubmit={handleGuessSubmit}
-                  />
-                ) : (
-                  <S_EmptyState>
-                    프롬프트 추측 정보를 불러오는 중이에요.
-                  </S_EmptyState>
-                ))}
+              {phase === 'PLAYING' && !isCountdownPlaying && (
+                <RoomPlayingView
+                  snapshot={currentSnapshot}
+                  currentPlayerId={currentPlayerId}
+                  guessSubmissionSnapshot={guessSubmissionSnapshot}
+                  isSocketConnected={isConnected}
+                  socketErrorMessage={errorMessage}
+                  onSubmit={handleGuessSubmit}
+                />
+              )}
 
-              {phase === 'VOTING' && voteSnapshot && (
+              {phase === 'VOTING' && (
                 <RoomVotingView
-                  key={voteSnapshot.roundNumber}
-                  snapshot={voteSnapshot}
-                  ownVoteOptionNotice={
-                    votePermissionState.ownVoteOptionNotice
-                  }
+                  key={currentSnapshot.roundNumber}
+                  snapshot={currentSnapshot}
+                  ownVoteOptionNotice={votePermissionState.ownVoteOptionNotice}
                   isOwnVoteOptionNoticePending={
                     votePermissionState.isOwnVoteOptionNoticePending
                   }
@@ -359,16 +344,13 @@ export function RoomPage() {
                 />
               )}
 
-              {phase === 'RESULTS' &&
-                (roundResultSnapshot ? (
-                  <RoomRoundResultView
-                    key={roundResultSnapshot.roundNumber}
-                    snapshot={roundResultSnapshot}
-                    currentPlayerId={currentPlayerId}
-                  />
-                ) : (
-                  <S_EmptyState>결과 정보를 불러오는 중이에요.</S_EmptyState>
-                ))}
+              {phase === 'RESULTS' && (
+                <RoomRoundResultView
+                  key={currentSnapshot.roundNumber}
+                  snapshot={currentSnapshot}
+                  currentPlayerId={currentPlayerId}
+                />
+              )}
             </S_GameContent>
           </S_GameContentFrame>
         )}

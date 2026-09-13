@@ -1,5 +1,4 @@
 import type {
-  RoomMessage,
   RoomPlayer,
   RoundResult,
   RoundResultSnapshot,
@@ -14,26 +13,9 @@ const ROUND_SCORE_REASONS = [
   'QUESTIONER',
 ] as const satisfies readonly RoundScoreReason[];
 
-export function parseRoundResultSnapshot(
-  body: string,
-): RoundResultSnapshot | null {
-  try {
-    const data = JSON.parse(body) as RoomMessage<RoundResultSnapshot>;
-
-    if (
-      data.type === 'ROUND_RESULT_SNAPSHOT' &&
-      isRoundResultSnapshot(data.payload)
-    ) {
-      return data.payload;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function isRoundResultSnapshot(value: unknown): value is RoundResultSnapshot {
+export function isRoundResultSnapshot(
+  value: unknown,
+): value is RoundResultSnapshot {
   if (!value || typeof value !== 'object') {
     return false;
   }

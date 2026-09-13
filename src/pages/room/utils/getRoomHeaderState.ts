@@ -1,4 +1,4 @@
-import type { RoomPlayer, RoomSnapshot } from '../../../domain/room/types';
+import type { RoomPlayer } from '../../../domain/room/types';
 import type { RoomGameHeaderStatus } from '../components/RoomGameHeader';
 import type { useRoomSocket } from '../hooks/useRoomSocket';
 
@@ -6,54 +6,48 @@ type RoomSocket = ReturnType<typeof useRoomSocket>;
 
 type GetRoomHeaderStatusParams = {
   roomSocket: RoomSocket;
-  roomSnapshot: RoomSnapshot;
   currentPlayerId?: string;
   isCountdownPlaying: boolean;
 };
 
 export function getRoomHeaderRound(roomSocket: RoomSocket) {
-  const { phase, roundSnapshot, voteSnapshot, roundResultSnapshot } =
-    roomSocket;
+  const { currentSnapshot } = roomSocket;
 
-  switch (phase) {
-    case 'PLAYING':
-      return roundSnapshot?.roundNumber;
+  if (!currentSnapshot) {
+    return undefined;
+  }
 
-    case 'VOTING':
-      return voteSnapshot?.roundNumber;
+  switch (currentSnapshot.type) {
+    case 'ROUND_SNAPSHOT':
+    case 'VOTE_SNAPSHOT':
+    case 'ROUND_RESULT_SNAPSHOT':
+      return currentSnapshot.roundNumber;
 
-    case 'RESULTS':
-      return roundResultSnapshot?.roundNumber;
-
-    case 'LOBBY':
-    case 'GENERATING':
-    case 'ENDED':
+    case 'LOBBY_SNAPSHOT':
+    case 'PROMPT_SUBMISSION_SNAPSHOT':
+    case 'GAME_RESULT_SNAPSHOT':
       return undefined;
   }
 }
 
 export function getRoomHeaderStatus({
   roomSocket,
-  roomSnapshot,
   currentPlayerId,
   isCountdownPlaying,
 }: GetRoomHeaderStatusParams): RoomGameHeaderStatus {
-  const { phase, voteSnapshot } = roomSocket;
+  const { currentSnapshot } = roomSocket;
 
-  if (phase === 'VOTING' && voteSnapshot) {
+  if (currentSnapshot?.type === 'VOTE_SNAPSHOT') {
     return {
       type: 'voteProgress',
-      completedCount: voteSnapshot.completedVoteCount,
-      totalCount: voteSnapshot.totalVoteCount,
+      completedCount: currentSnapshot.completedVoteCount,
+      totalCount: currentSnapshot.totalVoteCount,
     };
   }
 
   return {
     type: 'avatars',
-    players: getRoomHeaderPlayers({
-      roomSocket,
-      roomSnapshot,
-    }),
+    players: getRoomHeaderPlayers(roomSocket),
     currentPlayerId,
     completedPlayerIds: getRoomHeaderCompletedPlayerIds({
       roomSocket,
@@ -62,29 +56,35 @@ export function getRoomHeaderStatus({
   };
 }
 
-function getRoomHeaderPlayers({
-  roomSocket,
-  roomSnapshot,
-}: {
-  roomSocket: RoomSocket;
-  roomSnapshot: RoomSnapshot;
-}): RoomPlayer[] {
-  const { phase, roundSnapshot, roundResultSnapshot, gameResultSnapshot } =
-    roomSocket;
+function getRoomHeaderPlayers(roomSocket: RoomSocket): RoomPlayer[] {
+  const { currentSnapshot } = roomSocket;
 
-  if (phase === 'PLAYING' && roundSnapshot) {
-    return getRoundPlayers(roundSnapshot);
+  if (!currentSnapshot) {
+    return [];
   }
 
-  if (phase === 'RESULTS' && roundResultSnapshot) {
-    return roundResultSnapshot.players;
-  }
+  switch (currentSnapshot.type) {
+    case 'ROUND_SNAPSHOT':
+      return [
+        currentSnapshot.questioner,
+        ...currentSnapshot.guessEntries.map((entry) => entry.player),
+      ];
 
-  if (phase === 'ENDED' && gameResultSnapshot) {
-    return gameResultSnapshot.finalRanking.map((entry) => entry.player);
-  }
+    case 'ROUND_RESULT_SNAPSHOT':
+      return currentSnapshot.players;
 
-  return roomSnapshot.players;
+    case 'GAME_RESULT_SNAPSHOT':
+      return currentSnapshot.finalRanking.map((entry) => entry.player);
+
+    case 'PROMPT_SUBMISSION_SNAPSHOT':
+      return currentSnapshot.promptEntries.map((entry) => entry.player);
+
+    case 'LOBBY_SNAPSHOT':
+      return currentSnapshot.players;
+
+    case 'VOTE_SNAPSHOT':
+      return [];
+  }
 }
 
 function getRoomHeaderCompletedPlayerIds({
@@ -94,34 +94,27 @@ function getRoomHeaderCompletedPlayerIds({
   roomSocket: RoomSocket;
   isCountdownPlaying: boolean;
 }) {
-  const { phase, roundSnapshot } = roomSocket;
+  const { currentSnapshot } = roomSocket;
 
-  if (phase === 'GENERATING' || isCountdownPlaying) {
-    return getPromptReadyPlayerIds(roomSocket);
+  if (currentSnapshot?.type === 'PROMPT_SUBMISSION_SNAPSHOT') {
+    return currentSnapshot.promptEntries
+      .filter((entry) => entry.status === 'READY')
+      .map((entry) => entry.player.id);
   }
 
-  if (phase === 'PLAYING' && roundSnapshot) {
-    return roundSnapshot.guessEntries
+  if (currentSnapshot?.type === 'ROUND_SNAPSHOT') {
+    // 카운트다운 중엔 생성이 끝나 전원 준비 완료이므로 참가자 전원을 완료로 표시
+    if (isCountdownPlaying) {
+      return [
+        currentSnapshot.questioner.id,
+        ...currentSnapshot.guessEntries.map((entry) => entry.player.id),
+      ];
+    }
+
+    return currentSnapshot.guessEntries
       .filter((entry) => entry.submitted)
       .map((entry) => entry.player.id);
   }
 
   return [];
-}
-
-function getPromptReadyPlayerIds({
-  promptSubmissionSnapshot,
-}: Pick<RoomSocket, 'promptSubmissionSnapshot'>) {
-  return (
-    promptSubmissionSnapshot?.promptEntries
-      .filter((entry) => entry.status === 'READY')
-      .map((entry) => entry.player.id) ?? []
-  );
-}
-
-function getRoundPlayers({
-  questioner,
-  guessEntries,
-}: NonNullable<RoomSocket['roundSnapshot']>): RoomPlayer[] {
-  return [questioner, ...guessEntries.map((entry) => entry.player)];
 }

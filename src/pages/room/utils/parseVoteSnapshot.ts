@@ -1,24 +1,6 @@
-import type {
-  RoomMessage,
-  VoteOption,
-  VoteSnapshot,
-} from '../../../domain/room/types';
+import type { VoteOption, VoteSnapshot } from '../../../domain/room/types';
 
-export function parseVoteSnapshot(body: string): VoteSnapshot | null {
-  try {
-    const data = JSON.parse(body) as RoomMessage<VoteSnapshot>;
-
-    if (data.type === 'VOTE_SNAPSHOT' && isVoteSnapshot(data.payload)) {
-      return data.payload;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function isVoteSnapshot(value: unknown): value is VoteSnapshot {
+export function isVoteSnapshot(value: unknown): value is VoteSnapshot {
   if (!value || typeof value !== 'object') {
     return false;
   }

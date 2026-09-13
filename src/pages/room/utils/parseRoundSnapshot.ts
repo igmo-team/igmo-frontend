@@ -1,25 +1,10 @@
 import type {
-  RoomMessage,
   RoomPlayer,
   RoundGuessEntry,
   RoundSnapshot,
 } from '../../../domain/room/types';
 
-export function parseRoundSnapshot(body: string): RoundSnapshot | null {
-  try {
-    const data = JSON.parse(body) as RoomMessage<RoundSnapshot>;
-
-    if (data.type === 'ROUND_SNAPSHOT' && isRoundSnapshot(data.payload)) {
-      return data.payload;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function isRoundSnapshot(value: unknown): value is RoundSnapshot {
+export function isRoundSnapshot(value: unknown): value is RoundSnapshot {
   if (!value || typeof value !== 'object') {
     return false;
   }

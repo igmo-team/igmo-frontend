@@ -166,6 +166,14 @@ export type GameResultSnapshot = {
   finalRanking: FinalRankingEntry[];
 };
 
+export type RoomTopicSnapshot =
+  | ({ type: 'LOBBY_SNAPSHOT'; phase: 'LOBBY' } & RoomSnapshot)
+  | ({ type: 'ROUND_SNAPSHOT'; phase: 'PLAYING' } & RoundSnapshot)
+  | ({ type: 'PROMPT_SUBMISSION_SNAPSHOT'; phase: 'GENERATING' } & PromptSubmissionSnapshot)
+  | ({ type: 'VOTE_SNAPSHOT'; phase: 'VOTING' } & VoteSnapshot)
+  | ({ type: 'ROUND_RESULT_SNAPSHOT'; phase: 'RESULTS' } & RoundResultSnapshot)
+  | ({ type: 'GAME_RESULT_SNAPSHOT'; phase: 'ENDED' } & GameResultSnapshot);
+
 // 개인 이미지 큐(/user/queue/image-generation)에서 받는 내 이미지 생성 상태
 export type ImageGenerationStatus = Exclude<PromptEntryStatus, 'WAITING'>;
 

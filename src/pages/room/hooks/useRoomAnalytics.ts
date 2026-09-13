@@ -6,36 +6,24 @@ import {
 } from '../../../common/analytics';
 
 import type {
-  GameResultSnapshot,
   GuessSubmissionPayload,
   PromptSubmissionPayload,
   RoomPhase,
-  RoomSnapshot,
-  RoundResultSnapshot,
-  RoundSnapshot,
-  VoteSnapshot,
+  RoomTopicSnapshot,
 } from '../../../domain/room/types';
 
 type UseRoomAnalyticsParams = {
   roomCode: string;
   currentPlayerId?: string;
-  roomSnapshot: RoomSnapshot | null;
+  currentSnapshot: RoomTopicSnapshot | null;
   phase: RoomPhase;
-  roundSnapshot: RoundSnapshot | null;
-  voteSnapshot: VoteSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-  gameResultSnapshot: GameResultSnapshot | null;
 };
 
 export function useRoomAnalytics({
   roomCode,
   currentPlayerId,
-  roomSnapshot,
+  currentSnapshot,
   phase,
-  roundSnapshot,
-  voteSnapshot,
-  roundResultSnapshot,
-  gameResultSnapshot,
 }: UseRoomAnalyticsParams) {
   const trackedPhaseKeyRef = useRef('');
   const trackedGameCompletedRoomCodeRef = useRef('');
@@ -43,33 +31,26 @@ export function useRoomAnalytics({
     () => ({
       room_code: roomCode,
       player_id: currentPlayerId,
-      is_host: roomSnapshot
-        ? roomSnapshot.hostId === currentPlayerId
-        : undefined,
-      player_count: roomSnapshot?.players.length,
+      is_host:
+        currentSnapshot?.type === 'LOBBY_SNAPSHOT'
+          ? currentSnapshot.hostId === currentPlayerId
+          : undefined,
+      player_count: getPlayerCount(currentSnapshot),
       phase,
-      is_questioner: roundSnapshot
-        ? roundSnapshot.questioner.id === currentPlayerId
-        : undefined,
-      round_number: getCurrentRoundNumber({
-        roundSnapshot,
-        voteSnapshot,
-        roundResultSnapshot,
-      }),
-      total_round_count: getCurrentTotalRoundCount({
-        roundSnapshot,
-        roundResultSnapshot,
-      }),
+      is_questioner:
+        currentSnapshot && 'questioner' in currentSnapshot
+          ? currentSnapshot.questioner.id === currentPlayerId
+          : undefined,
+      round_number:
+        currentSnapshot && 'roundNumber' in currentSnapshot
+          ? currentSnapshot.roundNumber
+          : undefined,
+      total_round_count:
+        currentSnapshot && 'totalRoundCount' in currentSnapshot
+          ? currentSnapshot.totalRoundCount
+          : undefined,
     }),
-    [
-      currentPlayerId,
-      phase,
-      roomCode,
-      roomSnapshot,
-      roundResultSnapshot,
-      roundSnapshot,
-      voteSnapshot,
-    ],
+    [currentPlayerId, currentSnapshot, phase, roomCode],
   );
 
   useEffect(() => {
@@ -79,7 +60,7 @@ export function useRoomAnalytics({
   }, [currentPlayerId]);
 
   useEffect(() => {
-    if (!roomSnapshot || !roomCode) {
+    if (!currentSnapshot || !roomCode) {
       return;
     }
 
@@ -95,24 +76,21 @@ export function useRoomAnalytics({
 
     trackedPhaseKeyRef.current = phaseKey;
     captureAnalyticsEvent('game_phase_entered', roomAnalyticsProperties);
-  }, [phase, roomAnalyticsProperties, roomCode, roomSnapshot]);
+  }, [currentSnapshot, phase, roomAnalyticsProperties, roomCode]);
 
   useEffect(() => {
     if (
       phase !== 'ENDED' ||
       !roomCode ||
-      !gameResultSnapshot ||
+      currentSnapshot?.type !== 'GAME_RESULT_SNAPSHOT' ||
       trackedGameCompletedRoomCodeRef.current === roomCode
     ) {
       return;
     }
 
     trackedGameCompletedRoomCodeRef.current = roomCode;
-    captureAnalyticsEvent('game_completed', {
-      ...roomAnalyticsProperties,
-      player_count: gameResultSnapshot.finalRanking.length,
-    });
-  }, [gameResultSnapshot, phase, roomAnalyticsProperties, roomCode]);
+    captureAnalyticsEvent('game_completed', roomAnalyticsProperties);
+  }, [currentSnapshot, phase, roomAnalyticsProperties, roomCode]);
 
   const trackGameStarted = useCallback(() => {
     captureAnalyticsEvent('game_started', roomAnalyticsProperties);
@@ -160,28 +138,25 @@ export function useRoomAnalytics({
   );
 }
 
-function getCurrentRoundNumber({
-  roundSnapshot,
-  voteSnapshot,
-  roundResultSnapshot,
-}: {
-  roundSnapshot: RoundSnapshot | null;
-  voteSnapshot: VoteSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-}) {
-  return (
-    roundSnapshot?.roundNumber ??
-    voteSnapshot?.roundNumber ??
-    roundResultSnapshot?.roundNumber
-  );
-}
+// 참가자 배열이 없는 투표 단계는 totalVoteCount로 근사한다.
+function getPlayerCount(
+  snapshot: RoomTopicSnapshot | null,
+): number | undefined {
+  if (!snapshot) {
+    return undefined;
+  }
 
-function getCurrentTotalRoundCount({
-  roundSnapshot,
-  roundResultSnapshot,
-}: {
-  roundSnapshot: RoundSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-}) {
-  return roundSnapshot?.totalRoundCount ?? roundResultSnapshot?.totalRoundCount;
+  switch (snapshot.type) {
+    case 'LOBBY_SNAPSHOT':
+    case 'ROUND_RESULT_SNAPSHOT':
+      return snapshot.players.length;
+    case 'PROMPT_SUBMISSION_SNAPSHOT':
+      return snapshot.promptEntries.length;
+    case 'ROUND_SNAPSHOT':
+      return snapshot.guessEntries.length + 1; // 출제자 포함
+    case 'VOTE_SNAPSHOT':
+      return snapshot.totalVoteCount;
+    case 'GAME_RESULT_SNAPSHOT':
+      return snapshot.finalRanking.length;
+  }
 }

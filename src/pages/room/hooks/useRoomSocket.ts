@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { captureAnalyticsEvent } from '../../../common/analytics';
 import { createStompClient } from '../../../common/socket/createStompClient';
@@ -6,30 +6,20 @@ import {
   readHasPlayedCountdown,
   writeHasPlayedCountdown,
 } from '../utils/countdownPlayedStorage';
-import { parseGameResultSnapshot } from '../utils/parseGameResultSnapshot';
 import { parseGuessSubmissionSnapshot } from '../utils/parseGuessSubmissionSnapshot';
 import { parseImageGenerationSnapshot } from '../utils/parseImageGenerationSnapshot';
 import { parseOwnVoteOptionNotice } from '../utils/parseOwnVoteOptionNotice';
-import { parsePromptSubmissionSnapshot } from '../utils/parsePromptSubmissionSnapshot';
-import { parseRoomSnapshot } from '../utils/parseRoomSnapshot';
-import { parseRoundResultSnapshot } from '../utils/parseRoundResultSnapshot';
-import { parseRoundSnapshot } from '../utils/parseRoundSnapshot';
+import { parseRoomTopicSnapshot } from '../utils/parseRoomTopicSnapshot';
 import { parseSocketError } from '../utils/parseSocketError';
-import { parseVoteSnapshot } from '../utils/parseVoteSnapshot';
 
 import type {
-  GameResultSnapshot,
   GuessSubmissionPayload,
   GuessSubmissionSnapshot,
   ImageGenerationSnapshot,
   OwnVoteOptionNotice,
   PromptSubmissionPayload,
-  PromptSubmissionSnapshot,
-  RoomPhase,
   RoomSnapshot,
-  RoundResultSnapshot,
-  RoundSnapshot,
-  VoteSnapshot,
+  RoomTopicSnapshot,
 } from '../../../domain/room/types';
 import type { RoomSession } from '../utils/roomSessionStorage';
 import type { Client } from '@stomp/stompjs';
@@ -46,14 +36,8 @@ type OwnVoteOptionNoticeByRoundState = {
 };
 
 type UseRoomSocketResult = {
-  phase: RoomPhase;
-  receivedSnapshot: RoomSnapshot | null;
-  promptSubmissionSnapshot: PromptSubmissionSnapshot | null;
+  currentSnapshot: RoomTopicSnapshot | null;
   guessSubmissionSnapshot: GuessSubmissionSnapshot | null;
-  roundSnapshot: RoundSnapshot | null;
-  voteSnapshot: VoteSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-  gameResultSnapshot: GameResultSnapshot | null;
   // 최초 ROUND_SNAPSHOT 수신 + 이번 탭에서 미재생일 때만 true
   isCountdownTriggered: boolean;
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
@@ -73,24 +57,19 @@ export function useRoomSocket({
   roomSession,
   initialSnapshot,
 }: UseRoomSocketParams): UseRoomSocketResult {
-  const [phase, setPhase] = useState<RoomPhase>(
-    () => initialSnapshot?.phase ?? 'LOBBY',
+  const [receivedSnapshot, setReceivedSnapshot] =
+    useState<RoomTopicSnapshot | null>(null);
+  const initialTopicSnapshot = useMemo<RoomTopicSnapshot | null>(
+    () =>
+      initialSnapshot
+        ? { ...initialSnapshot, type: 'LOBBY_SNAPSHOT', phase: 'LOBBY' }
+        : null,
+    [initialSnapshot],
   );
-  const [receivedSnapshot, setReceivedSnapshot] = useState<RoomSnapshot | null>(
-    null,
-  );
-  const [promptSubmissionSnapshot, setPromptSubmissionSnapshot] =
-    useState<PromptSubmissionSnapshot | null>(null);
+  const currentSnapshot = receivedSnapshot ?? initialTopicSnapshot;
+  const phase = currentSnapshot?.phase ?? 'LOBBY';
   const [guessSubmissionSnapshot, setGuessSubmissionSnapshot] =
     useState<GuessSubmissionSnapshot | null>(null);
-  const [roundSnapshot, setRoundSnapshot] = useState<RoundSnapshot | null>(
-    null,
-  );
-  const [voteSnapshot, setVoteSnapshot] = useState<VoteSnapshot | null>(null);
-  const [roundResultSnapshot, setRoundResultSnapshot] =
-    useState<RoundResultSnapshot | null>(null);
-  const [gameResultSnapshot, setGameResultSnapshot] =
-    useState<GameResultSnapshot | null>(null);
   const [isCountdownTriggered, setIsCountdownTriggered] = useState(false);
   const hasHandledFirstRoundSnapshotRef = useRef(false);
   const [imageGenerationSnapshot, setImageGenerationSnapshot] =
@@ -113,28 +92,23 @@ export function useRoomSocket({
   });
 
   useEffect(() => {
+    const roundNumber =
+      currentSnapshot && 'roundNumber' in currentSnapshot
+        ? currentSnapshot.roundNumber
+        : undefined;
+    const totalRoundCount =
+      currentSnapshot && 'totalRoundCount' in currentSnapshot
+        ? currentSnapshot.totalRoundCount
+        : undefined;
+
     socketAnalyticsPropertiesRef.current = {
       room_code: roomCode,
       player_id: roomSession?.playerId,
       phase,
-      round_number: getCurrentRoundNumber({
-        roundSnapshot,
-        voteSnapshot,
-        roundResultSnapshot,
-      }),
-      total_round_count: getCurrentTotalRoundCount({
-        roundSnapshot,
-        roundResultSnapshot,
-      }),
+      round_number: roundNumber,
+      total_round_count: totalRoundCount,
     };
-  }, [
-    phase,
-    roomCode,
-    roomSession?.playerId,
-    roundResultSnapshot,
-    roundSnapshot,
-    voteSnapshot,
-  ]);
+  }, [currentSnapshot, phase, roomCode, roomSession?.playerId]);
 
   useEffect(() => {
     if (!roomCode || !roomSession) {
@@ -181,75 +155,41 @@ export function useRoomSocket({
 
         lastMessageReceivedAtRef.current = Date.now();
 
-        const nextSnapshot = parseRoomSnapshot(message.body);
+        const nextSnapshot = parseRoomTopicSnapshot(message.body);
 
-        if (nextSnapshot) {
-          setReceivedSnapshot(nextSnapshot);
-          setPhase(nextSnapshot.phase);
-          if (nextSnapshot.phase === 'LOBBY') {
-            setImageGenerationSnapshot(null);
+        if (!nextSnapshot) {
+          return;
+        }
+
+        setReceivedSnapshot(nextSnapshot);
+        setErrorMessage('');
+
+        switch (nextSnapshot.type) {
+          case 'LOBBY_SNAPSHOT':
+            if (nextSnapshot.phase === 'LOBBY') {
+              setImageGenerationSnapshot(null);
+              setGuessSubmissionSnapshot(null);
+            }
+            break;
+
+          case 'ROUND_SNAPSHOT':
+            if (!hasHandledFirstRoundSnapshotRef.current) {
+              hasHandledFirstRoundSnapshotRef.current = true;
+              setIsCountdownTriggered(!readHasPlayedCountdown(roomCode));
+              writeHasPlayedCountdown(roomCode);
+            }
+            break;
+
+          case 'PROMPT_SUBMISSION_SNAPSHOT':
             setGuessSubmissionSnapshot(null);
-          }
-          setErrorMessage('');
-          return;
-        }
-
-        const nextRoundSnapshot = parseRoundSnapshot(message.body);
-
-        if (nextRoundSnapshot) {
-          if (!hasHandledFirstRoundSnapshotRef.current) {
-            hasHandledFirstRoundSnapshotRef.current = true;
-            setIsCountdownTriggered(!readHasPlayedCountdown(roomCode));
-            writeHasPlayedCountdown(roomCode);
-          }
-
-          setRoundSnapshot(nextRoundSnapshot);
-          setPhase(nextRoundSnapshot.phase);
-          setErrorMessage('');
-          return;
-        }
-
-        const nextPromptSnapshot = parsePromptSubmissionSnapshot(message.body);
-
-        if (nextPromptSnapshot) {
-          setPromptSubmissionSnapshot(nextPromptSnapshot);
-          setGuessSubmissionSnapshot(null);
-          setPhase(nextPromptSnapshot.phase);
-          if (
-            nextPromptSnapshot.promptEntries.find(
-              (entry) => entry.player.id === currentPlayerId,
-            )?.status === 'WAITING'
-          ) {
-            setImageGenerationSnapshot(null);
-          }
-          setErrorMessage('');
-          return;
-        }
-
-        const nextVoteSnapshot = parseVoteSnapshot(message.body);
-
-        if (nextVoteSnapshot) {
-          setVoteSnapshot(nextVoteSnapshot);
-          setPhase(nextVoteSnapshot.phase);
-          setErrorMessage('');
-          return;
-        }
-
-        const nextRoundResultSnapshot = parseRoundResultSnapshot(message.body);
-
-        if (nextRoundResultSnapshot) {
-          setRoundResultSnapshot(nextRoundResultSnapshot);
-          setPhase(nextRoundResultSnapshot.phase);
-          setErrorMessage('');
-          return;
-        }
-
-        const nextGameResultSnapshot = parseGameResultSnapshot(message.body);
-
-        if (nextGameResultSnapshot) {
-          setGameResultSnapshot(nextGameResultSnapshot);
-          setPhase(nextGameResultSnapshot.phase);
-          setErrorMessage('');
+            if (
+              nextSnapshot.promptEntries.find(
+                (entry) => entry.player.id === currentPlayerId,
+              )?.status === 'WAITING'
+            ) {
+              setImageGenerationSnapshot(null);
+            }
+            break;
         }
       });
 
@@ -455,14 +395,8 @@ export function useRoomSocket({
       : null;
 
   return {
-    phase,
-    receivedSnapshot,
-    promptSubmissionSnapshot,
+    currentSnapshot,
     guessSubmissionSnapshot: activeGuessSubmissionSnapshot,
-    roundSnapshot,
-    voteSnapshot,
-    roundResultSnapshot,
-    gameResultSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
     ownVoteOptionNoticeByRound: activeOwnVoteOptionNoticeByRound,
@@ -475,32 +409,6 @@ export function useRoomSocket({
     sendVote,
     sendRestart,
   };
-}
-
-function getCurrentRoundNumber({
-  roundSnapshot,
-  voteSnapshot,
-  roundResultSnapshot,
-}: {
-  roundSnapshot: RoundSnapshot | null;
-  voteSnapshot: VoteSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-}) {
-  return (
-    roundSnapshot?.roundNumber ??
-    voteSnapshot?.roundNumber ??
-    roundResultSnapshot?.roundNumber
-  );
-}
-
-function getCurrentTotalRoundCount({
-  roundSnapshot,
-  roundResultSnapshot,
-}: {
-  roundSnapshot: RoundSnapshot | null;
-  roundResultSnapshot: RoundResultSnapshot | null;
-}) {
-  return roundSnapshot?.totalRoundCount ?? roundResultSnapshot?.totalRoundCount;
 }
 
 function getLastMessageAgeMs(lastMessageReceivedAt: number | null) {

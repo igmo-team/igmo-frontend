@@ -1,7 +1,6 @@
 import type {
   PromptEntry,
   PromptSubmissionSnapshot,
-  RoomMessage,
   RoomPlayer,
 } from '../../../domain/room/types';
 
@@ -12,26 +11,7 @@ const PROMPT_ENTRY_STATUSES = [
   'FAILED',
 ] as const;
 
-export function parsePromptSubmissionSnapshot(
-  body: string,
-): PromptSubmissionSnapshot | null {
-  try {
-    const data = JSON.parse(body) as RoomMessage<PromptSubmissionSnapshot>;
-
-    if (
-      data.type === 'PROMPT_SUBMISSION_SNAPSHOT' &&
-      isPromptSubmissionSnapshot(data.payload)
-    ) {
-      return data.payload;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
-}
-
-function isPromptSubmissionSnapshot(
+export function isPromptSubmissionSnapshot(
   value: unknown,
 ): value is PromptSubmissionSnapshot {
   if (!value || typeof value !== 'object') {
@@ -42,7 +22,7 @@ function isPromptSubmissionSnapshot(
 
   return (
     typeof snapshot.roomCode === 'string' &&
-    typeof snapshot.phase === 'string' &&
+    snapshot.phase === 'GENERATING' &&
     typeof snapshot.promptStartedAt === 'string' &&
     typeof snapshot.promptDeadline === 'string' &&
     Array.isArray(snapshot.promptEntries) &&
