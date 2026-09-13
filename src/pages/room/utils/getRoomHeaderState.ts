@@ -103,8 +103,7 @@ function getRoomHeaderCompletedPlayerIds({
   }
 
   if (currentSnapshot?.type === 'ROUND_SNAPSHOT') {
-    // 카운트다운 중엔 프롬프트 생성이 끝나 전원 준비 완료 상태이므로,
-    // 이전 동작과 동일하게 라운드 참가자 전원을 완료로 표시한다.
+    // 카운트다운 중엔 생성이 끝나 전원 준비 완료이므로 참가자 전원을 완료로 표시
     if (isCountdownPlaying) {
       return [
         currentSnapshot.questioner.id,

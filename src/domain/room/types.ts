@@ -166,7 +166,6 @@ export type GameResultSnapshot = {
   finalRanking: FinalRankingEntry[];
 };
 
-// /topic/rooms/{roomCode}로 오는 6종 스냅샷을 서버 type을 discriminant로 붙여 통일
 export type RoomTopicSnapshot =
   | ({ type: 'LOBBY_SNAPSHOT'; phase: 'LOBBY' } & RoomSnapshot)
   | ({ type: 'ROUND_SNAPSHOT'; phase: 'PLAYING' } & RoundSnapshot)

@@ -138,7 +138,6 @@ export function useRoomAnalytics({
   );
 }
 
-// 현재 단계 스냅샷 기준 실제 인원. 각 단계가 담고 있는 참가자 목록으로 계산하며,
 // 참가자 배열이 없는 투표 단계는 totalVoteCount로 근사한다.
 function getPlayerCount(
   snapshot: RoomTopicSnapshot | null,

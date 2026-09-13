@@ -59,9 +59,6 @@ export function useRoomSocket({
 }: UseRoomSocketParams): UseRoomSocketResult {
   const [receivedSnapshot, setReceivedSnapshot] =
     useState<RoomTopicSnapshot | null>(null);
-  // 직접 링크로 들어와 모달에서 참여하면 같은 경로로 navigate되어 RoomPage가
-  // 리마운트되지 않는다. 소켓 스냅샷을 아직 받지 못한 동안은 initialSnapshot을
-  // fallback으로 사용해, 뒤늦게 도착한 입장 스냅샷도 반영되게 한다.
   const initialTopicSnapshot = useMemo<RoomTopicSnapshot | null>(
     () =>
       initialSnapshot
@@ -168,7 +165,6 @@ export function useRoomSocket({
         setErrorMessage('');
 
         switch (nextSnapshot.type) {
-          // 게임 사이클 리셋 — 호출 지점은 restart 서버 정책 확정 시 재검토(현재 위치 보존)
           case 'LOBBY_SNAPSHOT':
             if (nextSnapshot.phase === 'LOBBY') {
               setImageGenerationSnapshot(null);
@@ -176,7 +172,6 @@ export function useRoomSocket({
             }
             break;
 
-          // 최초 ROUND_SNAPSHOT 1회 카운트다운
           case 'ROUND_SNAPSHOT':
             if (!hasHandledFirstRoundSnapshotRef.current) {
               hasHandledFirstRoundSnapshotRef.current = true;
@@ -185,7 +180,6 @@ export function useRoomSocket({
             }
             break;
 
-          // 게임 사이클 리셋 — 호출 지점은 restart 서버 정책 확정 시 재검토(현재 위치 보존)
           case 'PROMPT_SUBMISSION_SNAPSHOT':
             setGuessSubmissionSnapshot(null);
             if (
