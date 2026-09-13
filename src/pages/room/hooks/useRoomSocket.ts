@@ -190,6 +190,10 @@ export function useRoomSocket({
               setImageGenerationSnapshot(null);
             }
             break;
+
+          case 'VOTE_SKIPPED_SNAPSHOT':
+            setGuessSubmissionSnapshot(null);
+            break;
         }
       });
 

@@ -19,6 +19,7 @@ import { RoomPromptFailedView } from './components/RoomPromptFailedView';
 import { RoomPromptingView } from './components/RoomPromptingView';
 import { RoomPromptResultView } from './components/RoomPromptResultView';
 import { RoomRoundResultView } from './components/RoomRoundResultView';
+import RoomVoteSkippedView from './components/RoomVoteSkippedView';
 import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomAnalytics } from './hooks/useRoomAnalytics';
@@ -343,6 +344,8 @@ export function RoomPage() {
                   onSubmit={handleVoteSubmit}
                 />
               )}
+
+              {phase === 'VOTE_SKIPPED' && <RoomVoteSkippedView />}
 
               {phase === 'RESULTS' && (
                 <RoomRoundResultView
