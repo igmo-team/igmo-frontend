@@ -20,6 +20,7 @@ export function getRoomHeaderRound(roomSocket: RoomSocket) {
   switch (currentSnapshot.type) {
     case 'ROUND_SNAPSHOT':
     case 'VOTE_SNAPSHOT':
+    case 'VOTE_SKIPPED_SNAPSHOT':
     case 'ROUND_RESULT_SNAPSHOT':
       return currentSnapshot.roundNumber;
 
@@ -83,6 +84,9 @@ function getRoomHeaderPlayers(roomSocket: RoomSocket): RoomPlayer[] {
       return currentSnapshot.players;
 
     case 'VOTE_SNAPSHOT':
+      return [];
+
+    case 'VOTE_SKIPPED_SNAPSHOT':
       return [];
   }
 }

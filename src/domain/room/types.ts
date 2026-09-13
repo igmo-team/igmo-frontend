@@ -10,6 +10,7 @@ export type RoomPhase =
   | 'GENERATING'
   | 'PLAYING'
   | 'VOTING'
+  | 'VOTE_SKIPPED'
   | 'RESULTS'
   | 'ENDED';
 
@@ -30,6 +31,7 @@ export type RoomMessageType =
   | 'PROMPT_SUBMISSION_SNAPSHOT'
   | 'ROUND_SNAPSHOT'
   | 'VOTE_SNAPSHOT'
+  | 'VOTE_SKIPPED_SNAPSHOT'
   | 'ROUND_RESULT_SNAPSHOT'
   | 'GAME_RESULT_SNAPSHOT';
 
@@ -109,6 +111,17 @@ export type VoteSnapshot = {
   perfectGuessExists: boolean;
 };
 
+export type VoteSkippedReason = 'ALL_PERFECT';
+
+export type VoteSkippedSnapshot = {
+  roomCode: string;
+  phase: 'VOTE_SKIPPED';
+  roundNumber: number;
+  startedAt: string;
+  deadline: string;
+  reason: VoteSkippedReason;
+};
+
 export type VoteDisabledReason = 'QUESTIONER' | 'PERFECT_GUESS';
 
 export type OwnVoteOptionNotice = {
@@ -150,6 +163,7 @@ export type RoundResultSnapshot = {
   answerText: string;
   resultStartedAt: string;
   resultDeadline: string;
+  voteSkippedReason?: VoteSkippedReason | null;
   results: RoundResult[];
   players: RoomPlayer[];
 };
@@ -171,6 +185,7 @@ export type RoomTopicSnapshot =
   | ({ type: 'ROUND_SNAPSHOT'; phase: 'PLAYING' } & RoundSnapshot)
   | ({ type: 'PROMPT_SUBMISSION_SNAPSHOT'; phase: 'GENERATING' } & PromptSubmissionSnapshot)
   | ({ type: 'VOTE_SNAPSHOT'; phase: 'VOTING' } & VoteSnapshot)
+  | ({ type: 'VOTE_SKIPPED_SNAPSHOT'; phase: 'VOTE_SKIPPED' } & VoteSkippedSnapshot)
   | ({ type: 'ROUND_RESULT_SNAPSHOT'; phase: 'RESULTS' } & RoundResultSnapshot)
   | ({ type: 'GAME_RESULT_SNAPSHOT'; phase: 'ENDED' } & GameResultSnapshot);
 

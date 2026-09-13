@@ -156,6 +156,8 @@ function getPlayerCount(
       return snapshot.guessEntries.length + 1; // 출제자 포함
     case 'VOTE_SNAPSHOT':
       return snapshot.totalVoteCount;
+    case 'VOTE_SKIPPED_SNAPSHOT':
+      return undefined;
     case 'GAME_RESULT_SNAPSHOT':
       return snapshot.finalRanking.length;
   }
