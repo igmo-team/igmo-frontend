@@ -46,7 +46,13 @@ import type { RoomEntryState } from './utils/getRoomEntryState';
 import type {
   GuessSubmissionPayload,
   PromptSubmissionPayload,
+  RoomPhase,
 } from '../../domain/room/types';
+
+const FULL_HEIGHT_CONTENT_PHASES: readonly RoomPhase[] = [
+  'ENDED',
+  'VOTE_SKIPPED',
+];
 
 export function RoomPage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -256,7 +262,7 @@ export function RoomPage() {
     currentPlayerId,
     isCountdownPlaying,
   });
-  const isGameEnded = phase === 'ENDED';
+  const isFullHeightContent = FULL_HEIGHT_CONTENT_PHASES.includes(phase);
 
   return (
     <S_GameContainer>
@@ -268,18 +274,22 @@ export function RoomPage() {
       />
 
       <S_GameMain>
-        {isGameEnded && (
-          <S_GameResultContent>
-            <RoomGameResultView
-              snapshot={currentSnapshot}
-              currentPlayerId={currentPlayerId}
-              onRestart={sendRestart}
-              onHomeButtonClick={handleLeaveButtonClick}
-            />
-          </S_GameResultContent>
+        {isFullHeightContent && (
+          <S_GameContentStage>
+            {phase === 'ENDED' && (
+              <RoomGameResultView
+                snapshot={currentSnapshot}
+                currentPlayerId={currentPlayerId}
+                onRestart={sendRestart}
+                onHomeButtonClick={handleLeaveButtonClick}
+              />
+            )}
+
+            {phase === 'VOTE_SKIPPED' && <RoomVoteSkippedView />}
+          </S_GameContentStage>
         )}
 
-        {!isGameEnded && (
+        {!isFullHeightContent && (
           <S_GameContentFrame>
             <S_GameContent>
               {(phase === 'GENERATING' || isCountdownPlaying) && (
@@ -345,8 +355,6 @@ export function RoomPage() {
                 />
               )}
 
-              {phase === 'VOTE_SKIPPED' && <RoomVoteSkippedView />}
-
               {phase === 'RESULTS' && (
                 <RoomRoundResultView
                   key={currentSnapshot.roundNumber}
@@ -398,7 +406,7 @@ const S_GameContent = styled.div`
   padding-top: 1.8rem;
 `;
 
-const S_GameResultContent = styled.div`
+const S_GameContentStage = styled.div`
   display: flex;
   flex: 1;
   width: 100%;
