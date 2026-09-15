@@ -6,6 +6,7 @@ import type {
   RoomSnapshot,
   RoundResultSnapshot,
   RoundSnapshot,
+  VoteSkippedSnapshot,
   VoteSnapshot,
 } from '../../src/domain/room/types';
 import type { TopicMessage } from '../broker/fakeStompBroker';
@@ -118,6 +119,20 @@ export function buildVoteSnapshot(
   };
 }
 
+export function buildVoteSkippedSnapshot(
+  overrides: Partial<VoteSkippedSnapshot> = {},
+): VoteSkippedSnapshot {
+  return {
+    roomCode: DEFAULT_ROOM_CODE,
+    phase: 'VOTE_SKIPPED',
+    roundNumber: 1,
+    startedAt: isoFromNow(0),
+    deadline: isoFromNow(100),
+    reason: 'ALL_PERFECT',
+    ...overrides,
+  };
+}
+
 export function buildRoundResultSnapshot(
   overrides: Partial<RoundResultSnapshot> = {},
 ): RoundResultSnapshot {
@@ -130,6 +145,7 @@ export function buildRoundResultSnapshot(
     answerText: '한강 고양이',
     resultStartedAt: isoFromNow(0),
     resultDeadline: isoFromNow(60_000),
+    voteSkippedReason: null,
     // p1=철수(출제자), p2=영희·p3=민수(추측자). 예시 라운드:
     // 영희 → 정답 투표(맞힘 +2) + 민수를 속임(+1) = 3점,
     // 철수(출제자) → 정답자 발생으로 +2, 민수 → 0점.
@@ -227,6 +243,15 @@ export function roundMessage(
 
 export function voteMessage(overrides?: Partial<VoteSnapshot>): TopicMessage {
   return { type: 'VOTE_SNAPSHOT', payload: buildVoteSnapshot(overrides) };
+}
+
+export function voteSkippedMessage(
+  overrides?: Partial<VoteSkippedSnapshot>,
+): TopicMessage {
+  return {
+    type: 'VOTE_SKIPPED_SNAPSHOT',
+    payload: buildVoteSkippedSnapshot(overrides),
+  };
 }
 
 export function roundResultMessage(
