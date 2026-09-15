@@ -34,6 +34,19 @@ igmo — "이 그림, 모지?" AI가 그린 그림 추리 파티게임의 프론
 | `npm run format:check` | 문서·스타일·포맷 영향 변경 시      |
 | `npm run dev`          | UI 변경 확인                       |
 
+## 방 게임 도메인 규칙
+
+다음 경로의 파일을 수정하거나 생성할 때는 먼저 아래 문서를 읽는다.
+
+- 대상 경로: `src/pages/room/**`
+- 대상 경로: `src/domain/room/**`
+- 대상 경로: `e2e/**`
+
+참조 문서:
+
+- [docs/room/game-rules.md](docs/room/game-rules.md)
+- [docs/room/scoring-rules.md](docs/room/scoring-rules.md)
+
 ## 필수 워크플로우
 
 1. 코드 동작을 수정한 의미 있는 단위마다 `npm run typecheck`를 실행한다.
