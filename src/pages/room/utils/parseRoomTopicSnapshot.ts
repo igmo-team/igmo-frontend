@@ -3,6 +3,7 @@ import { isPromptSubmissionSnapshot } from './parsePromptSubmissionSnapshot';
 import { isRoomSnapshot } from './parseRoomSnapshot';
 import { isRoundResultSnapshot } from './parseRoundResultSnapshot';
 import { isRoundSnapshot } from './parseRoundSnapshot';
+import { isVoteSkippedSnapshot } from './parseVoteSkippedSnapshot';
 import { isVoteSnapshot } from './parseVoteSnapshot';
 
 import type {
@@ -30,6 +31,10 @@ export function parseRoomTopicSnapshot(body: string): RoomTopicSnapshot | null {
       case 'VOTE_SNAPSHOT':
         return isVoteSnapshot(data.payload)
           ? { ...data.payload, type: data.type, phase: 'VOTING' }
+          : null;
+      case 'VOTE_SKIPPED_SNAPSHOT':
+        return isVoteSkippedSnapshot(data.payload)
+          ? { ...data.payload, type: data.type, phase: 'VOTE_SKIPPED' }
           : null;
       case 'ROUND_RESULT_SNAPSHOT':
         return isRoundResultSnapshot(data.payload)

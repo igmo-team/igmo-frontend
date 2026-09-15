@@ -5,6 +5,7 @@ const ROOM_PHASE_LABELS: Record<RoomPhase, string> = {
   GENERATING: '이미지 생성',
   PLAYING: '프롬프트 추측',
   VOTING: '투표',
+  VOTE_SKIPPED: '투표 생략',
   RESULTS: '결과',
   ENDED: '종료',
 };

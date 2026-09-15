@@ -4,6 +4,7 @@ import type {
   RoundResultSnapshot,
   RoundScoreDetail,
   RoundScoreReason,
+  VoteSkippedReason,
 } from '../../../domain/room/types';
 
 const ROUND_SCORE_REASONS = [
@@ -31,11 +32,18 @@ export function isRoundResultSnapshot(
     typeof snapshot.answerText === 'string' &&
     typeof snapshot.resultStartedAt === 'string' &&
     typeof snapshot.resultDeadline === 'string' &&
+    isVoteSkippedReasonOrNull(snapshot.voteSkippedReason) &&
     Array.isArray(snapshot.results) &&
     snapshot.results.every(isRoundResult) &&
     Array.isArray(snapshot.players) &&
     snapshot.players.every(isRoomPlayer)
   );
+}
+
+function isVoteSkippedReasonOrNull(
+  value: unknown,
+): value is VoteSkippedReason | null {
+  return value === undefined || value === null || value === 'ALL_PERFECT';
 }
 
 function isRoundResult(value: unknown): value is RoundResult {
