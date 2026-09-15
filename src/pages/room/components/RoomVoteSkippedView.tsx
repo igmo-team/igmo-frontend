@@ -16,7 +16,8 @@ export default function RoomVoteSkippedView() {
 
 const S_Section = styled.section`
   display: flex;
-  min-height: 100dvh;
+  flex: 1;
+  min-height: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
