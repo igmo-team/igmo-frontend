@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import styled from '@emotion/styled';
 import Autoplay from 'embla-carousel-autoplay';
 import useEmblaCarousel from 'embla-carousel-react';
-import styled from '@emotion/styled';
 
 import PlayGuideSlide from './PlayGuideSlide';
 
@@ -25,10 +25,9 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
       }),
     [],
   );
-  const [emblaRef, emblaApi] = useEmblaCarousel(
-    { loop: slides.length > 1 },
-    [autoplay],
-  );
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: slides.length > 1 }, [
+    autoplay,
+  ]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isReducedMotion, setIsReducedMotion] = useState(
     () =>
