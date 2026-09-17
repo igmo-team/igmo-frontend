@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import styled from '@emotion/styled';
 import Autoplay from 'embla-carousel-autoplay';
 import useEmblaCarousel from 'embla-carousel-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { PLAY_GUIDE_COMPACT_MEDIA_QUERY } from '../constants/playGuideSlides';
 
@@ -140,7 +141,7 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
           aria-label="이전 플레이 방법"
           onClick={handlePreviousButtonClick}
         >
-          <S_Arrow aria-hidden="true">‹</S_Arrow>
+          <S_ArrowIcon aria-hidden="true" />
         </S_ArrowButton>
         <S_DotList aria-label="플레이 방법 단계">
           {slides.map((slide, index) => (
@@ -159,7 +160,7 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
           aria-label="다음 플레이 방법"
           onClick={handleNextButtonClick}
         >
-          <S_Arrow aria-hidden="true">›</S_Arrow>
+          <S_ArrowRightIcon aria-hidden="true" />
         </S_ArrowButton>
       </S_Controls>
     </S_Carousel>
@@ -229,11 +230,23 @@ const S_ArrowButton = styled.button`
   }
 `;
 
-const S_Arrow = styled.span`
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
+const S_ArrowIcon = styled(ChevronLeft)`
+  width: 2.4rem;
+  height: 2.4rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
-    ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+`;
+
+const S_ArrowRightIcon = styled(ChevronRight)`
+  width: 2.4rem;
+  height: 2.4rem;
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    width: 3.2rem;
+    height: 3.2rem;
   }
 `;
 
