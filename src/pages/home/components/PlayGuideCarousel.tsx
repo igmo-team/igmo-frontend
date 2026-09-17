@@ -246,13 +246,13 @@ const S_DotList = styled.div`
 const S_DotButton = styled('button', {
   shouldForwardProp: (prop) => prop !== 'active',
 })<{ active: boolean }>`
-  width: 1.2rem;
-  height: 1.2rem;
+  width: ${({ active }) => (active ? '1rem' : '0.7rem')};
+  height: ${({ active }) => (active ? '1rem' : '0.7rem')};
   padding: 0;
   border: 0;
   border-radius: ${({ theme }) => theme.RADIUS.PILL};
   background: ${({ active, theme }) =>
-    active ? theme.COLOR.PRIMARY500 : theme.COLOR.PRIMARY200};
+    active ? theme.COLOR.PRIMARY500 : '#dfdde1'};
   cursor: pointer;
 
   &:focus-visible {
