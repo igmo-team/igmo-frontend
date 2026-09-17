@@ -141,7 +141,7 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
           aria-label="이전 플레이 방법"
           onClick={handlePreviousButtonClick}
         >
-          <S_ArrowIcon aria-hidden="true" />
+          <S_ArrowIcon aria-hidden="true" strokeWidth={2.5} />
         </S_ArrowButton>
         <S_DotList aria-label="플레이 방법 단계">
           {slides.map((slide, index) => (
@@ -160,7 +160,7 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
           aria-label="다음 플레이 방법"
           onClick={handleNextButtonClick}
         >
-          <S_ArrowRightIcon aria-hidden="true" />
+          <S_ArrowRightIcon aria-hidden="true" strokeWidth={2.5} />
         </S_ArrowButton>
       </S_Controls>
     </S_Carousel>
@@ -198,7 +198,7 @@ const S_Controls = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.8rem;
+  gap: 0.4rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
     gap: 1rem;
@@ -231,22 +231,22 @@ const S_ArrowButton = styled.button`
 `;
 
 const S_ArrowIcon = styled(ChevronLeft)`
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2rem;
+  height: 2rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
-    width: 3.2rem;
-    height: 3.2rem;
+    width: 3rem;
+    height: 3rem;
   }
 `;
 
 const S_ArrowRightIcon = styled(ChevronRight)`
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 2rem;
+  height: 2rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
-    width: 3.2rem;
-    height: 3.2rem;
+    width: 3rem;
+    height: 3rem;
   }
 `;
 
