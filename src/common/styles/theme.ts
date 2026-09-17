@@ -8,6 +8,7 @@ export const THEME = {
 
     TEXT: '#1B1130',
     TEXT_SUBTLE: '#7A6A92',
+    ICON: '#5E5E5E',
     LINE: '#1B1130',
 
     PRIMARY100: '#FFF0FA',

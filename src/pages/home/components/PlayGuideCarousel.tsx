@@ -212,7 +212,7 @@ const S_ArrowButton = styled.button`
   padding: 0.2rem;
   border: 0;
   background: transparent;
-  color: ${({ theme }) => theme.COLOR.TEXT};
+  color: ${({ theme }) => theme.COLOR.ICON};
   cursor: pointer;
 
   &:focus-visible {
