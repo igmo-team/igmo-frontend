@@ -5,7 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useNavigate } from 'react-router-dom';
 
-import { Button, Input, Surface } from '../../../common/components';
+import { Button, Input } from '../../../common/components';
 import { PAGE_URL } from '../../../common/constants/pageUrl';
 import {
   trackRoomJoined,
@@ -207,11 +207,12 @@ export function RoomEntryForm() {
   };
 
   return (
-    <S_Form onSubmit={handleSubmit}>
-      <S_FormCard padding="lg">
+    <S_FormScale>
+      <S_Form onSubmit={handleSubmit}>
         <S_FieldLabel htmlFor="nickname">닉네임</S_FieldLabel>
         <Input
           id="nickname"
+          size="lg"
           maxLength={10}
           placeholder="예: 그림탐정"
           value={nickname}
@@ -226,6 +227,7 @@ export function RoomEntryForm() {
             <Input
               ref={roomCodeInputRef}
               id="room-code"
+              size="lg"
               maxLength={4}
               placeholder="예: ABCD"
               value={roomCode}
@@ -243,13 +245,13 @@ export function RoomEntryForm() {
         )}
         {isJoinMode ? (
           <>
-            <Button type="submit" disabled={isEntryPending}>
+            <Button type="submit" size="lg" disabled={isEntryPending}>
               {isJoinGamePending ? '참여 중...' : '참여하기'}
             </Button>
             <Button
               type="button"
               variant="secondary"
-              size="md"
+              size="lg"
               disabled={isEntryPending}
               onClick={handleCancelJoinButtonClick}
             >
@@ -258,13 +260,13 @@ export function RoomEntryForm() {
           </>
         ) : (
           <>
-            <Button type="submit" disabled={isEntryPending}>
+            <Button type="submit" size="lg" disabled={isEntryPending}>
               {isCreateGamePending ? '방 만드는 중...' : '새 방 만들기'}
             </Button>
             <Button
               type="button"
               variant="secondary"
-              size="md"
+              size="lg"
               disabled={isEntryPending}
               onClick={handleJoinModeButtonClick}
             >
@@ -272,24 +274,29 @@ export function RoomEntryForm() {
             </Button>
           </>
         )}
-      </S_FormCard>
-    </S_Form>
+      </S_Form>
+    </S_FormScale>
   );
 }
 
-const S_Form = styled.form`
+const S_FormScale = styled.div`
   width: 100%;
-  max-width: 40rem;
 `;
 
-const S_FormCard = styled(Surface)`
+const S_Form = styled.form`
   display: flex;
+  width: 100%;
   flex-direction: column;
-  gap: 1.2rem;
+  gap: 1.6rem;
+  padding: 2rem;
+  background: ${({ theme }) => theme.COLOR.WHITE};
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-radius: ${({ theme }) => theme.RADIUS.LG};
+  box-shadow: none;
 `;
 
 const S_FieldLabel = styled.label`
-  ${({ theme }) => theme.TYPOGRAPHY.LABEL1}
+  ${({ theme }) => theme.TYPOGRAPHY.B3_B}
   color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
 `;
 

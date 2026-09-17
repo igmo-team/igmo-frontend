@@ -4,11 +4,14 @@ import styled from '@emotion/styled';
 import Autoplay from 'embla-carousel-autoplay';
 import useEmblaCarousel from 'embla-carousel-react';
 
+import { PLAY_GUIDE_COMPACT_MEDIA_QUERY } from '../constants/playGuideSlides';
+
 import PlayGuideSlide from './PlayGuideSlide';
 
 import type { PlayGuideSlideData } from '../types/playGuide';
 
 const PLAY_GUIDE_AUTOPLAY_DELAY = 5000;
+const PLAY_GUIDE_AUTOPLAY_ENABLED = false;
 const REDUCED_MOTION_MEDIA_QUERY = '(prefers-reduced-motion: reduce)';
 
 type PlayGuideCarouselProps = {
@@ -25,9 +28,10 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
       }),
     [],
   );
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: slides.length > 1 }, [
-    autoplay,
-  ]);
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    { loop: slides.length > 1 },
+    PLAY_GUIDE_AUTOPLAY_ENABLED ? [autoplay] : [],
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isReducedMotion, setIsReducedMotion] = useState(
     () =>
@@ -96,7 +100,7 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
   useEffect(() => {
     const autoplayApi = emblaApi?.plugins().autoplay;
 
-    if (!autoplayApi) {
+    if (!autoplayApi || !PLAY_GUIDE_AUTOPLAY_ENABLED) {
       return;
     }
 
@@ -167,6 +171,10 @@ const S_Carousel = styled.section`
   width: 100%;
   flex-direction: column;
   gap: 1.6rem;
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    gap: 1.6rem;
+  }
 `;
 
 const S_Viewport = styled.div`
@@ -189,14 +197,18 @@ const S_Controls = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
+  gap: 0.8rem;
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    gap: 1rem;
+  }
 `;
 
 const S_ArrowButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.4rem;
+  padding: 0.2rem;
   border: 0;
   background: transparent;
   color: ${({ theme }) => theme.COLOR.TEXT};
@@ -211,10 +223,18 @@ const S_ArrowButton = styled.button`
     color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
     cursor: not-allowed;
   }
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    padding: 0.4rem;
+  }
 `;
 
 const S_Arrow = styled.span`
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    ${({ theme }) => theme.TYPOGRAPHY.TITLE1}
+  }
 `;
 
 const S_DotList = styled.div`

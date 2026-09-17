@@ -60,7 +60,6 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
         isOpen={isOpen}
         role={isOpen ? 'dialog' : undefined}
         aria-modal={isOpen ? true : undefined}
-        padding="lg"
       >
         <S_PanelHeader>
           <S_Title id="play-guide-title">플레이 방법</S_Title>
@@ -117,8 +116,12 @@ const S_Panel = styled(Surface, {
   display: flex;
   max-width: 38rem;
   flex-direction: column;
-  gap: 1.6rem;
-  background: ${({ theme }) => theme.COLOR.PINK50};
+  gap: 0.6rem;
+  /* 4c: 반투명 흰 패널이 핑크 배경에 녹아들고, 로그인 카드가 도드라짐 */
+  background: rgba(255, 255, 255, 0.55);
+  border: none;
+  box-shadow: 0 1rem 2.4rem rgba(27, 17, 48, 0.06);
+  padding: 1.5rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
     display: ${({ isOpen }) => (isOpen ? 'flex' : 'none')};
@@ -127,9 +130,12 @@ const S_Panel = styled(Surface, {
     inset: 0;
     max-width: none;
     height: 100dvh;
+    padding: 1.5rem;
+    background: ${({ theme }) => theme.COLOR.PINK50};
     border: 0;
     border-radius: 0;
     box-shadow: none;
+    gap: 0.6rem;
   }
 `;
 
@@ -137,11 +143,15 @@ const S_PanelHeader = styled.header`
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 3.2rem;
+  min-height: 2.4rem;
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    min-height: 3.2rem;
+  }
 `;
 
 const S_Title = styled.h2`
-  ${({ theme }) => theme.TYPOGRAPHY.TITLE2}
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
   color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
   text-align: center;
 `;
