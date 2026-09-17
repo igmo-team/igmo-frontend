@@ -5,10 +5,14 @@ import styled from '@emotion/styled';
 
 import type { Theme } from '@emotion/react';
 
-type InputProps = ComponentPropsWithRef<'input'>;
+type InputSize = 'md' | 'lg';
 
-function Input(props: InputProps) {
-  return <S_Input {...props} />;
+type InputProps = Omit<ComponentPropsWithRef<'input'>, 'size'> & {
+  size?: InputSize;
+};
+
+function Input({ size = 'md', ...rest }: InputProps) {
+  return <S_Input inputSize={size} {...rest} />;
 }
 
 export default Input;
@@ -21,7 +25,6 @@ const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
   background: ${theme.COLOR.PINK50};
   color: ${theme.COLOR.TEXT};
   font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
-  font-size: 1.6rem;
   font-weight: 600;
   line-height: 1.5;
   outline: none;
@@ -42,8 +45,22 @@ const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
   }
 `;
 
-const S_Input = styled.input`
+const sizeStyles = (theme: Theme) => ({
+  md: css`
+    padding: 1.5rem 1.8rem;
+    font-size: 1.6rem;
+    border-radius: ${theme.RADIUS.MD};
+  `,
+  lg: css`
+    padding: 1.9rem 2rem;
+    font-size: 1.9rem;
+    border-radius: ${theme.RADIUS.MD};
+  `,
+});
+
+const S_Input = styled('input', {
+  shouldForwardProp: (prop) => prop !== 'inputSize',
+})<{ inputSize: InputSize }>`
   ${fieldBaseStyle}
-  padding: 1.5rem 1.8rem;
-  border-radius: ${({ theme }) => theme.RADIUS.MD};
+  ${({ theme, inputSize }) => sizeStyles(theme)[inputSize]}
 `;
