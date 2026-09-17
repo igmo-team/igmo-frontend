@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import styled from '@emotion/styled';
+import { X } from 'lucide-react';
 
 import Surface from '../../../common/components/Surface';
 import { PLAY_GUIDE_COMPACT_MEDIA_QUERY } from '../constants/playGuideSlides';
@@ -68,7 +69,7 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
             aria-label="플레이 방법 닫기"
             onClick={handleCloseButtonClick}
           >
-            ×
+            <S_CloseIcon aria-hidden="true" />
           </S_CloseButton>
         </S_PanelHeader>
         <S_PanelBody>
@@ -178,6 +179,11 @@ const S_CloseButton = styled.button`
     outline: 0.2rem solid ${({ theme }) => theme.COLOR.PRIMARY500};
     outline-offset: 0.2rem;
   }
+`;
+
+const S_CloseIcon = styled(X)`
+  width: 2.4rem;
+  height: 2.4rem;
 `;
 
 const S_PanelBody = styled.div`

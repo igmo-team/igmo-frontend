@@ -12,7 +12,7 @@ import PlayGuideSlide from './PlayGuideSlide';
 import type { PlayGuideSlideData } from '../types/playGuide';
 
 const PLAY_GUIDE_AUTOPLAY_DELAY = 5000;
-const PLAY_GUIDE_AUTOPLAY_ENABLED = false;
+const PLAY_GUIDE_AUTOPLAY_ENABLED = true;
 const REDUCED_MOTION_MEDIA_QUERY = '(prefers-reduced-motion: reduce)';
 
 type PlayGuideCarouselProps = {
