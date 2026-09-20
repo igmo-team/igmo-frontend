@@ -39,7 +39,7 @@ const S_Slide = styled.article`
 
 const S_ImageFrame = styled.div`
   display: flex;
-  height: 12rem;
+  height: 13rem;
   align-items: center;
   justify-content: center;
   overflow: hidden;
