@@ -5,9 +5,12 @@ export const THEME = {
     BACKGROUND: '#FBE9FF',
     WHITE: '#FFFFFF',
     PINK50: '#FFF3FC',
+    PLAY_GUIDE_PANEL: 'rgba(255, 255, 255, 0.55)',
+    CAROUSEL_DOT_INACTIVE: '#DFDDE1',
 
     TEXT: '#1B1130',
     TEXT_SUBTLE: '#7A6A92',
+    ICON: '#5E5E5E',
     LINE: '#1B1130',
 
     PRIMARY100: '#FFF0FA',
@@ -62,6 +65,20 @@ export const THEME = {
       font-family: 'Jua', 'Pretendard', 'Pretendard Variable', sans-serif;
       font-size: 1.8rem;
       line-height: 1.2;
+    `,
+
+    INPUT_MD: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 600;
+      line-height: 1.5;
+    `,
+
+    INPUT_LG: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.9rem;
+      font-weight: 600;
+      line-height: 1.5;
     `,
 
     B1_R: css`
@@ -205,5 +222,6 @@ export const THEME = {
   SHADOW: {
     BUTTON: '0 0.5rem 0 #1B1130',
     SURFACE: '0 0.6rem 0 #1B1130',
+    PLAY_GUIDE_PANEL: '0 1rem 2.4rem rgba(27, 17, 48, 0.06)',
   },
 } as const;
