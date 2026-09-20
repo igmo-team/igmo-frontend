@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import { X } from 'lucide-react';
@@ -16,6 +16,7 @@ type PlayGuideProps = {
 
 export default function PlayGuide({ slides }: PlayGuideProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const handleOpenButtonClick = () => {
     setIsOpen(true);
@@ -23,6 +24,10 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
 
   const handleCloseButtonClick = () => {
     setIsOpen(false);
+
+    requestAnimationFrame(() => {
+      triggerRef.current?.focus();
+    });
   };
 
   useEffect(() => {
@@ -32,7 +37,7 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setIsOpen(false);
+        handleCloseButtonClick();
       }
     };
     const previousBodyOverflow = document.body.style.overflow;
@@ -49,6 +54,7 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
   return (
     <>
       <S_Trigger
+        ref={triggerRef}
         type="button"
         aria-label="플레이 방법 열기"
         isOpen={isOpen}
