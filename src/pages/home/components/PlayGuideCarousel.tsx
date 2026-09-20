@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import styled from '@emotion/styled';
 import Autoplay from 'embla-carousel-autoplay';
@@ -34,6 +34,8 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
     PLAY_GUIDE_AUTOPLAY_ENABLED ? [autoplay] : [],
   );
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const carouselRef = useRef<HTMLElement | null>(null);
+  const [isVisible, setIsVisible] = useState(false);
   const [isReducedMotion, setIsReducedMotion] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -86,6 +88,25 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
   }, [emblaApi]);
 
   useEffect(() => {
+    const element = carouselRef.current;
+
+    if (!element || typeof IntersectionObserver === 'undefined') {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry?.isIntersecting ?? false);
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
     const mediaQuery = window.matchMedia(REDUCED_MOTION_MEDIA_QUERY);
     const handleMediaQueryChange = (e: MediaQueryListEvent) => {
       setIsReducedMotion(e.matches);
@@ -105,18 +126,19 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
       return;
     }
 
-    if (isReducedMotion) {
+    if (isReducedMotion || !isVisible) {
       autoplayApi.stop();
       return;
     }
 
     autoplayApi.play();
-  }, [emblaApi, isReducedMotion]);
+  }, [emblaApi, isReducedMotion, isVisible]);
 
   return (
     <S_Carousel
       aria-label="플레이 방법"
       aria-roledescription="carousel"
+      ref={carouselRef}
       onBlurCapture={handleBlurCapture}
       onFocusCapture={handleFocusCapture}
     >
