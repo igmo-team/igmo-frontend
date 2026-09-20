@@ -76,11 +76,11 @@ test('시나리오 2 — 중도 퇴장: 방장 나가기 → 연결 해제 → �
 
     await A.page.getByRole('button', { name: '나가기' }).click();
 
-    // 홈으로 이동(홈 전용 문구), 방 UI 사라짐.
-    await expect(
-      A.page.getByText('🔓 로그인 없이 닉네임만으로 바로 시작'),
-    ).toBeVisible();
+    // 홈으로 이동, 방 UI 사라짐.
     await expect(A.page).toHaveURL(/\/$/);
+    await expect(
+      A.page.getByRole('button', { name: '새 방 만들기' }),
+    ).toBeVisible();
     await expect(A.page.getByText('플레이어 3명')).toHaveCount(0);
     await expect(A.page.getByRole('button', { name: '나가기' })).toHaveCount(0);
 
