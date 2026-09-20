@@ -129,7 +129,7 @@ export function RoomPage() {
         deleteRoomSession(roomCode);
       }
 
-      navigate(PAGE_URL.HOME);
+      navigate(PAGE_URL.HOME, { replace: true });
     },
     onError: (error) => {
       if (isAxiosError<ErrorResponse>(error)) {
@@ -195,8 +195,16 @@ export function RoomPage() {
     navigate(PAGE_URL.HOME);
   };
 
+  const handleReadyButtonClick = (nextReady: boolean) => {
+    if (isLeavePending) {
+      return;
+    }
+
+    sendReady(nextReady);
+  };
+
   const handleStart = () => {
-    if (currentSnapshot?.phase !== 'LOBBY') {
+    if (isLeavePending || currentSnapshot?.phase !== 'LOBBY') {
       return;
     }
 
@@ -293,7 +301,7 @@ export function RoomPage() {
           isSocketConnected={isConnected}
           socketErrorMessage={leaveErrorMessage || errorMessage}
           onCopyButtonClick={copyUrl}
-          onReadyButtonClick={sendReady}
+          onReadyButtonClick={handleReadyButtonClick}
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
           isLeavePending={isLeavePending}

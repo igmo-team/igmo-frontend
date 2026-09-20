@@ -104,6 +104,7 @@ export function RoomLobbyView({
             <Button
               type="button"
               disabled={
+                isLeavePending ||
                 !allGuestsReady ||
                 snapshot.players.length < minPlayersToStart ||
                 !isSocketConnected
@@ -126,7 +127,9 @@ export function RoomLobbyView({
             )}
             <Button
               type="button"
-              disabled={!currentPlayer || !isSocketConnected}
+              disabled={
+                isLeavePending || !currentPlayer || !isSocketConnected
+              }
               onClick={() => {
                 if (currentPlayer) {
                   onReadyButtonClick(!currentPlayer.ready);
