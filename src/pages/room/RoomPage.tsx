@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import styled from '@emotion/styled';
+import { useMutation } from '@tanstack/react-query';
+import { isAxiosError } from 'axios';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Surface } from '../../common/components';
@@ -8,6 +10,7 @@ import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { isRoomCodeValid } from '../../domain/room/roomCode';
 
+import deleteGamePlayer from './apis/deleteGamePlayer';
 import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGameResultView } from './components/RoomGameResultView';
@@ -48,6 +51,12 @@ import type {
   PromptSubmissionPayload,
   RoomPhase,
 } from '../../domain/room/types';
+
+type ErrorResponse = {
+  message?: string;
+};
+
+const LEAVE_ERROR_MESSAGE = '방에서 나가지 못했어요. 다시 시도해주세요.';
 
 const FULL_HEIGHT_CONTENT_PHASES: readonly RoomPhase[] = [
   'ENDED',
@@ -111,6 +120,29 @@ export function RoomPage() {
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
 
   const [isCountdownDone, setIsCountdownDone] = useState(false);
+  const [leaveErrorMessage, setLeaveErrorMessage] = useState('');
+
+  const { mutate: leaveGamePlayer, isPending: isLeavePending } = useMutation({
+    mutationFn: deleteGamePlayer,
+    onSuccess: () => {
+      if (roomCode) {
+        deleteRoomSession(roomCode);
+      }
+
+      navigate(PAGE_URL.HOME, { replace: true });
+    },
+    onError: (error) => {
+      if (isAxiosError<ErrorResponse>(error)) {
+        setLeaveErrorMessage(
+          error.response?.data.message ?? LEAVE_ERROR_MESSAGE,
+        );
+        return;
+      }
+
+      setLeaveErrorMessage(LEAVE_ERROR_MESSAGE);
+    },
+  });
+
   const handleCountdownEnd = useCallback(() => setIsCountdownDone(true), []);
   const isCountdownPlaying = isCountdownTriggered && !isCountdownDone;
   const timerRange = getRoomTimerRange({
@@ -143,6 +175,19 @@ export function RoomPage() {
   };
 
   const handleLeaveButtonClick = () => {
+    if (!roomCode || !roomSession || isLeavePending) {
+      return;
+    }
+
+    setLeaveErrorMessage('');
+    leaveGamePlayer({
+      code: roomCode,
+      playerId: roomSession.playerId,
+      secret: roomSession.secret,
+    });
+  };
+
+  const handleHomeButtonClick = () => {
     if (roomCode) {
       deleteRoomSession(roomCode);
     }
@@ -150,8 +195,16 @@ export function RoomPage() {
     navigate(PAGE_URL.HOME);
   };
 
+  const handleReadyButtonClick = (nextReady: boolean) => {
+    if (isLeavePending) {
+      return;
+    }
+
+    sendReady(nextReady);
+  };
+
   const handleStart = () => {
-    if (currentSnapshot?.phase !== 'LOBBY') {
+    if (isLeavePending || currentSnapshot?.phase !== 'LOBBY') {
       return;
     }
 
@@ -246,11 +299,12 @@ export function RoomPage() {
           inviteLink={inviteLink}
           isCopied={isCopied}
           isSocketConnected={isConnected}
-          socketErrorMessage={errorMessage}
+          socketErrorMessage={leaveErrorMessage || errorMessage}
           onCopyButtonClick={copyUrl}
-          onReadyButtonClick={sendReady}
+          onReadyButtonClick={handleReadyButtonClick}
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
+          isLeavePending={isLeavePending}
         />
       </S_Page>
     );
@@ -281,7 +335,7 @@ export function RoomPage() {
                 snapshot={currentSnapshot}
                 currentPlayerId={currentPlayerId}
                 onRestart={sendRestart}
-                onHomeButtonClick={handleLeaveButtonClick}
+                onHomeButtonClick={handleHomeButtonClick}
               />
             )}
 

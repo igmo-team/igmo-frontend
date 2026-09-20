@@ -19,6 +19,7 @@ type RoomLobbyViewProps = {
   onReadyButtonClick: (nextReady: boolean) => void;
   onStart: () => void;
   onLeaveButtonClick: () => void;
+  isLeavePending: boolean;
 };
 
 export function RoomLobbyView({
@@ -33,6 +34,7 @@ export function RoomLobbyView({
   onReadyButtonClick,
   onStart,
   onLeaveButtonClick,
+  isLeavePending,
 }: RoomLobbyViewProps) {
   const currentPlayer = snapshot.players.find(
     (player) => player.id === currentPlayerId,
@@ -102,6 +104,7 @@ export function RoomLobbyView({
             <Button
               type="button"
               disabled={
+                isLeavePending ||
                 !allGuestsReady ||
                 snapshot.players.length < minPlayersToStart ||
                 !isSocketConnected
@@ -124,7 +127,9 @@ export function RoomLobbyView({
             )}
             <Button
               type="button"
-              disabled={!currentPlayer || !isSocketConnected}
+              disabled={
+                isLeavePending || !currentPlayer || !isSocketConnected
+              }
               onClick={() => {
                 if (currentPlayer) {
                   onReadyButtonClick(!currentPlayer.ready);
@@ -139,9 +144,10 @@ export function RoomLobbyView({
           type="button"
           variant="secondary"
           size="md"
+          disabled={isLeavePending}
           onClick={onLeaveButtonClick}
         >
-          나가기
+          {isLeavePending ? '나가는 중...' : '나가기'}
         </Button>
       </S_ActionGroup>
     </S_RoomCard>

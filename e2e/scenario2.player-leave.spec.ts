@@ -38,6 +38,10 @@ test('시나리오 2 — 중도 퇴장: 방장 나가기 → 연결 해제 → �
   const [A, B, C] = clients; // A=철수(방장), B=영희, C=민수
   const pages = clients.map((client) => client.page);
 
+  await A.page.route(`**/games/${ROOM_CODE}/players/p1`, async (route) => {
+    await route.fulfill({ status: 204 });
+  });
+
   // -------------------------------------------------------------------------
   // 1) 사전: 3명 로비 (hostId=p1)
   // -------------------------------------------------------------------------
@@ -74,7 +78,17 @@ test('시나리오 2 — 중도 퇴장: 방장 나가기 → 연결 해제 → �
       await A.page.evaluate((key) => window.sessionStorage.getItem(key), SESSION_KEY),
     ).not.toBeNull();
 
+    const deleteRequestPromise = A.page.waitForRequest(
+      (request) =>
+        request.method() === 'DELETE' &&
+        request.url() === `http://localhost/games/${ROOM_CODE}/players/p1`,
+    );
+
     await A.page.getByRole('button', { name: '나가기' }).click();
+    const deleteRequest = await deleteRequestPromise;
+
+    expect(deleteRequest.headers()['x-player-secret']).toBe('p1-secret');
+    expect(deleteRequest.postData()).toBeNull();
 
     // 홈으로 이동, 방 UI 사라짐.
     await expect(A.page).toHaveURL(/\/$/);
@@ -146,4 +160,50 @@ test('시나리오 2 — 중도 퇴장: 방장 나가기 → 연결 해제 → �
   });
 
   await Promise.all(clients.map((client) => client.context.close()));
+});
+
+test('시나리오 2-2 — 중도 퇴장 API 실패: 방 유지·오류 표시·재시도 가능', async ({
+  browser,
+}) => {
+  const broker = new FakeStompBroker();
+  const context = await browser.newContext();
+  await broker.attach(context);
+  const page = await context.newPage();
+
+  await seedRoomSession(page, {
+    roomCode: ROOM_CODE,
+    playerId: 'p1',
+    secret: 'p1-secret',
+  });
+
+  await page.route(`**/games/${ROOM_CODE}/players/p1`, async (route) => {
+    await route.fulfill({
+      status: 403,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: '본인만 퇴장할 수 있습니다.' }),
+    });
+  });
+
+  broker.pushTopic(
+    ROOM_CODE,
+    lobbyMessage({ players: [player('p1'), player('p2')], hostId: 'p1' }),
+  );
+  await page.goto(`/room/${ROOM_CODE}`);
+
+  await expect(page.getByText('플레이어 2명')).toBeVisible();
+  await expect(page.getByRole('button', { name: '나가기' })).toBeVisible();
+
+  await page.getByRole('button', { name: '나가기' }).click();
+
+  await expect(page.getByRole('alert')).toHaveText(
+    '본인만 퇴장할 수 있습니다.',
+  );
+  await expect(page).toHaveURL(new RegExp(`/room/${ROOM_CODE}$`));
+  await expect(page.getByRole('button', { name: '나가기' })).toBeVisible();
+  expect(
+    await page.evaluate((key) => window.sessionStorage.getItem(key), SESSION_KEY),
+  ).not.toBeNull();
+  expect(broker.connections()).toEqual(['p1']);
+
+  await context.close();
 });
