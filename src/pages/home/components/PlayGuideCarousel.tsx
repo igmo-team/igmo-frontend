@@ -138,6 +138,7 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
     <S_Carousel
       aria-label="플레이 방법"
       aria-roledescription="carousel"
+      role="region"
       ref={carouselRef}
       onBlurCapture={handleBlurCapture}
       onFocusCapture={handleFocusCapture}
@@ -147,9 +148,10 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
           {slides.map((slide, index) => (
             <S_Slide
               aria-hidden={selectedIndex !== index}
-              aria-label={`플레이 방법 ${index + 1}`}
+              aria-label={`플레이 방법 ${index + 1} / ${slides.length}`}
               aria-roledescription="slide"
               key={slide.image}
+              role="group"
             >
               <PlayGuideSlide {...slide} />
             </S_Slide>
