@@ -65,6 +65,20 @@ export const THEME = {
       line-height: 1.2;
     `,
 
+    INPUT_MD: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.6rem;
+      font-weight: 600;
+      line-height: 1.5;
+    `,
+
+    INPUT_LG: css`
+      font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
+      font-size: 1.9rem;
+      font-weight: 600;
+      line-height: 1.5;
+    `,
+
     B1_R: css`
       font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
       font-size: 1.8rem;

@@ -24,9 +24,6 @@ const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
   border: ${theme.BORDER.DEFAULT};
   background: ${theme.COLOR.PINK50};
   color: ${theme.COLOR.TEXT};
-  font-family: 'Pretendard', 'Pretendard Variable', sans-serif;
-  font-weight: 600;
-  line-height: 1.5;
   outline: none;
 
   &::placeholder {
@@ -47,13 +44,13 @@ const fieldBaseStyle = ({ theme }: { theme: Theme }) => css`
 
 const sizeStyles = (theme: Theme) => ({
   md: css`
+    ${theme.TYPOGRAPHY.INPUT_MD}
     padding: 1.5rem 1.8rem;
-    font-size: 1.6rem;
     border-radius: ${theme.RADIUS.MD};
   `,
   lg: css`
+    ${theme.TYPOGRAPHY.INPUT_LG}
     padding: 1.9rem 2rem;
-    font-size: 1.9rem;
     border-radius: ${theme.RADIUS.MD};
   `,
 });
