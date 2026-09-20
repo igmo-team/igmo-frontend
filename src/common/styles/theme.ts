@@ -5,6 +5,8 @@ export const THEME = {
     BACKGROUND: '#FBE9FF',
     WHITE: '#FFFFFF',
     PINK50: '#FFF3FC',
+    PLAY_GUIDE_PANEL: 'rgba(255, 255, 255, 0.55)',
+    CAROUSEL_DOT_INACTIVE: '#DFDDE1',
 
     TEXT: '#1B1130',
     TEXT_SUBTLE: '#7A6A92',
@@ -220,5 +222,6 @@ export const THEME = {
   SHADOW: {
     BUTTON: '0 0.5rem 0 #1B1130',
     SURFACE: '0 0.6rem 0 #1B1130',
+    PLAY_GUIDE_PANEL: '0 1rem 2.4rem rgba(27, 17, 48, 0.06)',
   },
 } as const;

@@ -195,10 +195,10 @@ const S_Carousel = styled.section`
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 1.6rem;
+  gap: 0.6rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
-    gap: 1.6rem;
+    gap: 0.6rem;
   }
 `;
 
@@ -289,7 +289,7 @@ const S_DotButton = styled('button', {
   border: 0;
   border-radius: ${({ theme }) => theme.RADIUS.PILL};
   background: ${({ active, theme }) =>
-    active ? theme.COLOR.PRIMARY500 : '#dfdde1'};
+    active ? theme.COLOR.PRIMARY500 : theme.COLOR.CAROUSEL_DOT_INACTIVE};
   cursor: pointer;
 
   &:focus-visible {

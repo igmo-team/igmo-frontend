@@ -119,9 +119,9 @@ const S_Panel = styled(Surface, {
   flex-direction: column;
   gap: 0.6rem;
   /* 4c: 반투명 흰 패널이 핑크 배경에 녹아들고, 로그인 카드가 도드라짐 */
-  background: rgba(255, 255, 255, 0.55);
+  background: ${({ theme }) => theme.COLOR.PLAY_GUIDE_PANEL};
   border: none;
-  box-shadow: 0 1rem 2.4rem rgba(27, 17, 48, 0.06);
+  box-shadow: ${({ theme }) => theme.SHADOW.PLAY_GUIDE_PANEL};
   padding: 1.5rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
