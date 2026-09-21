@@ -57,7 +57,7 @@ const S_MainContent = styled.div`
   display: flex;
   width: 100%;
   max-width: 88.4rem;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: center;
   gap: 2.4rem;
 

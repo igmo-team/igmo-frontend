@@ -44,7 +44,7 @@ const S_ImageFrame = styled('div', {
   shouldForwardProp: (prop) => prop !== 'isExpanded',
 })<{ isExpanded: boolean }>`
   display: flex;
-  height: ${({ isExpanded }) => (isExpanded ? '26rem' : '13rem')};
+  height: ${({ isExpanded }) => (isExpanded ? '26rem' : '12rem')};
   transition: height 0.3s ease;
   align-items: center;
   justify-content: center;
