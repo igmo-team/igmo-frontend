@@ -271,18 +271,29 @@ const S_ExpandButton = styled.button`
   top: 50%;
   right: 0;
   transform: translateY(-50%);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.4rem;
+  display: grid;
+  place-items: center;
+  width: 2.8rem;
+  height: 2.8rem;
+  padding: 0;
   border: 0;
-  background: transparent;
+  border-radius: 0.8rem;
+  background: ${({ theme }) =>
+    `color-mix(in srgb, ${theme.COLOR.TEXT} 6%, transparent)`};
   color: ${({ theme }) => theme.COLOR.TEXT};
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 
   & > svg {
-    width: 2rem;
-    height: 2rem;
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+
+  &:hover {
+    background: ${({ theme }) => theme.COLOR.PRIMARY200};
+    color: ${({ theme }) => theme.COLOR.PRIMARY700};
   }
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
