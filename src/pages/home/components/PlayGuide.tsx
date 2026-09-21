@@ -189,7 +189,6 @@ const S_Trigger = styled.button`
   border: ${({ theme }) => theme.BORDER.DEFAULT};
   border-radius: ${({ theme }) => theme.RADIUS.MD};
   background: ${({ theme }) => theme.COLOR.PINK50};
-  box-shadow: ${({ theme }) => theme.SHADOW.BUTTON};
   color: ${({ theme }) => theme.COLOR.TEXT};
   ${({ theme }) => theme.TYPOGRAPHY.BUTTON2}
   cursor: pointer;
@@ -225,7 +224,7 @@ const S_Panel = styled(Surface, {
   max-width: ${({ isExpanded }) => (isExpanded ? '48rem' : '38rem')};
   transition: max-width 0.3s ease;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 1.6rem;
   /* 4c: 반투명 흰 패널이 핑크 배경에 녹아들고, 로그인 카드가 도드라짐 */
   background: ${({ theme }) => theme.COLOR.PLAY_GUIDE_PANEL};
   border: none;
@@ -244,7 +243,7 @@ const S_Panel = styled(Surface, {
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    gap: 0.6rem;
+    gap: 1.6rem;
   }
 `;
 
