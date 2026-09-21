@@ -113,6 +113,18 @@ const nudgeX = keyframes`
   }
 `;
 
+const pulseRing = keyframes`
+  0% {
+    box-shadow: 0 0 0 0 var(--play-guide-pulse-ring);
+  }
+  70% {
+    box-shadow: 0 0 0 1.1rem transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+`;
+
 const S_TriggerDock = styled('div', {
   shouldForwardProp: (prop) => prop !== 'isOpen',
 })<{ isOpen: boolean }>`
@@ -148,6 +160,10 @@ const S_HintArrow = styled.svg`
 `;
 
 const S_Trigger = styled.button`
+  --play-guide-pulse-ring: ${({ theme }) =>
+    `color-mix(in srgb, ${theme.COLOR.PRIMARY500} 50%, transparent)`};
+
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -162,9 +178,25 @@ const S_Trigger = styled.button`
   ${({ theme }) => theme.TYPOGRAPHY.BUTTON2}
   cursor: pointer;
 
+  /* 원래 버튼(테두리+하드섀도)은 그대로 두고, 핑크 하이라이트 링만 가상요소로 얹음 */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: ${pulseRing} 1.8s ease-out infinite;
+  }
+
   &:focus-visible {
     outline: 0.2rem solid ${({ theme }) => theme.COLOR.PRIMARY500};
     outline-offset: 0.2rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      animation: none;
+    }
   }
 `;
 
