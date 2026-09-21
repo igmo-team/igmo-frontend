@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
 import { X } from 'lucide-react';
 
@@ -53,15 +54,32 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
 
   return (
     <>
-      <S_Trigger
-        ref={triggerRef}
-        type="button"
-        aria-label="플레이 방법 열기"
-        isOpen={isOpen}
-        onClick={handleOpenButtonClick}
-      >
-        ?
-      </S_Trigger>
+      <S_TriggerDock isOpen={isOpen}>
+        <S_HintText aria-hidden="true">처음이면 여기!</S_HintText>
+        <S_HintArrow aria-hidden="true" viewBox="0 0 46 24" fill="none">
+          <path
+            d="M3 12H38"
+            stroke="currentColor"
+            strokeWidth="3.6"
+            strokeLinecap="round"
+          />
+          <path
+            d="M30 4L40 12L30 20"
+            stroke="currentColor"
+            strokeWidth="3.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </S_HintArrow>
+        <S_Trigger
+          ref={triggerRef}
+          type="button"
+          aria-label="플레이 방법 열기"
+          onClick={handleOpenButtonClick}
+        >
+          ?
+        </S_Trigger>
+      </S_TriggerDock>
       <S_Panel
         aria-labelledby="play-guide-title"
         isOpen={isOpen}
@@ -86,7 +104,16 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
   );
 }
 
-const S_Trigger = styled('button', {
+const nudgeX = keyframes`
+  0%, 100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(0.5rem);
+  }
+`;
+
+const S_TriggerDock = styled('div', {
   shouldForwardProp: (prop) => prop !== 'isOpen',
 })<{ isOpen: boolean }>`
   display: none;
@@ -96,20 +123,44 @@ const S_Trigger = styled('button', {
     z-index: 10;
     top: 2rem;
     right: 2rem;
-    display: ${({ isOpen }) => (isOpen ? 'none' : 'inline-flex')};
+    display: ${({ isOpen }) => (isOpen ? 'none' : 'flex')};
     align-items: center;
-    justify-content: center;
-    width: 4.8rem;
-    height: 4.8rem;
-    padding: 0;
-    border: ${({ theme }) => theme.BORDER.DEFAULT};
-    border-radius: ${({ theme }) => theme.RADIUS.MD};
-    background: ${({ theme }) => theme.COLOR.PINK50};
-    box-shadow: ${({ theme }) => theme.SHADOW.BUTTON};
-    color: ${({ theme }) => theme.COLOR.TEXT};
-    ${({ theme }) => theme.TYPOGRAPHY.BUTTON2}
-    cursor: pointer;
+    gap: 0.8rem;
   }
+`;
+
+const S_HintText = styled.span`
+  ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
+  color: ${({ theme }) => theme.COLOR.PRIMARY500};
+  white-space: nowrap;
+`;
+
+const S_HintArrow = styled.svg`
+  width: 4.6rem;
+  height: 2.4rem;
+  flex: none;
+  color: ${({ theme }) => theme.COLOR.PRIMARY500};
+  animation: ${nudgeX} 1.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const S_Trigger = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.8rem;
+  height: 4.8rem;
+  padding: 0;
+  border: ${({ theme }) => theme.BORDER.DEFAULT};
+  border-radius: ${({ theme }) => theme.RADIUS.MD};
+  background: ${({ theme }) => theme.COLOR.PINK50};
+  box-shadow: ${({ theme }) => theme.SHADOW.BUTTON};
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  ${({ theme }) => theme.TYPOGRAPHY.BUTTON2}
+  cursor: pointer;
 
   &:focus-visible {
     outline: 0.2rem solid ${({ theme }) => theme.COLOR.PRIMARY500};
