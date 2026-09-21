@@ -17,6 +17,7 @@ import type {
 type RoomGameResultViewProps = {
   snapshot: GameResultSnapshot;
   currentPlayerId?: string;
+  isSocketConnected: boolean;
   onRestart: () => void;
   onHomeButtonClick: () => void;
 };
@@ -29,6 +30,7 @@ type FinalRankingDisplayItem = {
 export function RoomGameResultView({
   snapshot,
   currentPlayerId,
+  isSocketConnected,
   onRestart,
   onHomeButtonClick,
 }: RoomGameResultViewProps) {
@@ -93,7 +95,9 @@ export function RoomGameResultView({
         )}
 
         <S_ActionGroup>
-          <Button onClick={onRestart}>한판 더 하기</Button>
+          <Button disabled={!isSocketConnected} onClick={onRestart}>
+            한판 더 하기
+          </Button>
           <Button variant="secondary" onClick={onHomeButtonClick}>
             처음 화면으로
           </Button>

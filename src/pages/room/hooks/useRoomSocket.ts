@@ -24,6 +24,8 @@ import type {
 import type { RoomSession } from '../utils/roomSessionStorage';
 import type { Client } from '@stomp/stompjs';
 
+const ROOM_STATE_QUEUE = '/user/queue/room-state';
+
 type UseRoomSocketParams = {
   roomCode?: string;
   roomSession: RoomSession | null;
@@ -35,6 +37,13 @@ type OwnVoteOptionNoticeByRoundState = {
   noticeByRound: Partial<Record<number, OwnVoteOptionNotice>>;
 };
 
+export type RoomConnectionState =
+  | 'CONNECTING'
+  | 'CONNECTED'
+  | 'RECONNECTING'
+  | 'SYNCING'
+  | 'DISCONNECTED';
+
 type UseRoomSocketResult = {
   currentSnapshot: RoomTopicSnapshot | null;
   guessSubmissionSnapshot: GuessSubmissionSnapshot | null;
@@ -43,6 +52,8 @@ type UseRoomSocketResult = {
   imageGenerationSnapshot: ImageGenerationSnapshot | null;
   ownVoteOptionNoticeByRound: Partial<Record<number, OwnVoteOptionNotice>>;
   isConnected: boolean;
+  isRoomStateReady: boolean;
+  connectionState: RoomConnectionState;
   errorMessage: string;
   sendReady: (nextReady: boolean) => void;
   sendStart: () => boolean;
@@ -77,6 +88,9 @@ export function useRoomSocket({
   const [ownVoteOptionNoticeByRoundState, setOwnVoteOptionNoticeByRoundState] =
     useState<OwnVoteOptionNoticeByRoundState | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isRoomStateReady, setIsRoomStateReady] = useState(false);
+  const [connectionState, setConnectionState] =
+    useState<RoomConnectionState>('CONNECTING');
   const [errorMessage, setErrorMessage] = useState('');
   const stompClientRef = useRef<Client | null>(null);
   const lastMessageReceivedAtRef = useRef<number | null>(null);
@@ -135,10 +149,15 @@ export function useRoomSocket({
         return;
       }
 
+      const isReconnect = hasConnectionLostRef.current;
+      const shouldWaitForSnapshot = isReconnect || !initialSnapshot;
+
       setIsConnected(true);
+      setIsRoomStateReady(!shouldWaitForSnapshot);
+      setConnectionState(shouldWaitForSnapshot ? 'SYNCING' : 'CONNECTED');
       setErrorMessage('');
 
-      if (hasConnectionLostRef.current) {
+      if (isReconnect) {
         captureAnalyticsEvent('socket_reconnected', {
           ...socketAnalyticsPropertiesRef.current,
         });
@@ -148,20 +167,22 @@ export function useRoomSocket({
       hasConnectionLostRef.current = false;
       hasReportedReconnectFailedRef.current = false;
 
-      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+      const handleRoomSnapshot = (body: string) => {
         if (!isActive) {
           return;
         }
 
         lastMessageReceivedAtRef.current = Date.now();
 
-        const nextSnapshot = parseRoomTopicSnapshot(message.body);
+        const nextSnapshot = parseRoomTopicSnapshot(body);
 
         if (!nextSnapshot) {
           return;
         }
 
         setReceivedSnapshot(nextSnapshot);
+        setIsRoomStateReady(true);
+        setConnectionState('CONNECTED');
         setErrorMessage('');
 
         switch (nextSnapshot.type) {
@@ -195,6 +216,14 @@ export function useRoomSocket({
             setGuessSubmissionSnapshot(null);
             break;
         }
+      };
+
+      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+        handleRoomSnapshot(message.body);
+      });
+
+      client.subscribe(ROOM_STATE_QUEUE, (message) => {
+        handleRoomSnapshot(message.body);
       });
 
       client.subscribe('/user/queue/image-generation', (message) => {
@@ -269,17 +298,31 @@ export function useRoomSocket({
         lastMessageReceivedAtRef.current = Date.now();
         setErrorMessage(parseSocketError(message.body));
       });
+
+      if (shouldWaitForSnapshot) {
+        client.publish({
+          destination: `/app/rooms/${roomCode}/sync`,
+        });
+      }
     };
 
     client.onDisconnect = () => {
       if (isActive) {
         setIsConnected(false);
+        setIsRoomStateReady(false);
+        setConnectionState(
+          hasConnectedRef.current ? 'RECONNECTING' : 'DISCONNECTED',
+        );
       }
     };
 
     client.onWebSocketClose = (event) => {
       if (isActive) {
         setIsConnected(false);
+        setIsRoomStateReady(false);
+        setConnectionState(
+          hasConnectedRef.current ? 'RECONNECTING' : 'CONNECTING',
+        );
 
         if (hasConnectedRef.current && !hasConnectionLostRef.current) {
           hasConnectionLostRef.current = true;
@@ -319,13 +362,20 @@ export function useRoomSocket({
         stompClientRef.current = null;
       }
       setIsConnected(false);
+      setIsRoomStateReady(false);
+      setConnectionState('CONNECTING');
+      setReceivedSnapshot(null);
       client.deactivate();
     };
-  }, [roomSession, roomCode]);
+  }, [initialSnapshot, roomSession, roomCode]);
 
   const publish = useCallback(
     (destination: string, body?: string) => {
-      if (!roomCode || !stompClientRef.current?.connected) {
+      if (
+        !roomCode ||
+        !isRoomStateReady ||
+        !stompClientRef.current?.connected
+      ) {
         return false;
       }
 
@@ -338,7 +388,7 @@ export function useRoomSocket({
       });
       return true;
     },
-    [roomCode],
+    [isRoomStateReady, roomCode],
   );
 
   const sendReady = (nextReady: boolean) => {
@@ -405,6 +455,8 @@ export function useRoomSocket({
     imageGenerationSnapshot,
     ownVoteOptionNoticeByRound: activeOwnVoteOptionNoticeByRound,
     isConnected,
+    isRoomStateReady,
+    connectionState,
     errorMessage,
     sendReady,
     sendStart,

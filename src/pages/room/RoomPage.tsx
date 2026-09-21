@@ -8,6 +8,7 @@ import { PAGE_URL } from '../../common/constants/pageUrl';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { isRoomCodeValid } from '../../domain/room/roomCode';
 
+import RoomConnectionStatus from './components/RoomConnectionStatus';
 import { RoomCountdownOverlay } from './components/RoomCountdownOverlay';
 import { RoomGameHeader } from './components/RoomGameHeader';
 import { RoomGameResultView } from './components/RoomGameResultView';
@@ -88,7 +89,8 @@ export function RoomPage() {
     guessSubmissionSnapshot,
     isCountdownTriggered,
     imageGenerationSnapshot,
-    isConnected,
+    isRoomStateReady,
+    connectionState,
     errorMessage,
     sendReady,
     sendStart,
@@ -227,6 +229,7 @@ export function RoomPage() {
   if (!currentSnapshot) {
     return (
       <S_Page>
+        <RoomConnectionStatus state={connectionState} />
         <S_RoomCard padding="lg" shadow>
           <S_EmptyState>방 정보를 불러오는 중이에요.</S_EmptyState>
         </S_RoomCard>
@@ -239,13 +242,14 @@ export function RoomPage() {
   if (phase === 'LOBBY') {
     return (
       <S_Page>
+        <RoomConnectionStatus state={connectionState} />
         <RoomLobbyView
           snapshot={currentSnapshot}
           currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
           isCopied={isCopied}
-          isSocketConnected={isConnected}
+          isSocketConnected={isRoomStateReady}
           socketErrorMessage={errorMessage}
           onCopyButtonClick={copyUrl}
           onReadyButtonClick={sendReady}
@@ -274,12 +278,14 @@ export function RoomPage() {
       />
 
       <S_GameMain>
+        <RoomConnectionStatus state={connectionState} />
         {isFullHeightContent && (
           <S_GameContentStage>
             {phase === 'ENDED' && (
               <RoomGameResultView
                 snapshot={currentSnapshot}
                 currentPlayerId={currentPlayerId}
+                isSocketConnected={isRoomStateReady}
                 onRestart={sendRestart}
                 onHomeButtonClick={handleLeaveButtonClick}
               />
@@ -301,7 +307,7 @@ export function RoomPage() {
                           ? currentSnapshot.promptDeadline
                           : ''
                       }
-                      isSocketConnected={isConnected}
+                      isSocketConnected={isRoomStateReady}
                       socketErrorMessage={errorMessage}
                       onSubmit={handlePromptSubmit}
                     />
@@ -318,7 +324,7 @@ export function RoomPage() {
                   {activeImageGenerationSnapshot?.status === 'FAILED' && (
                     <RoomPromptFailedView
                       prompt={activeImageGenerationSnapshot?.prompt ?? ''}
-                      isSocketConnected={isConnected}
+                      isSocketConnected={isRoomStateReady}
                       socketErrorMessage={
                         errorMessage ||
                         activeImageGenerationSnapshot?.errorMessage ||
@@ -335,7 +341,7 @@ export function RoomPage() {
                   snapshot={currentSnapshot}
                   currentPlayerId={currentPlayerId}
                   guessSubmissionSnapshot={guessSubmissionSnapshot}
-                  isSocketConnected={isConnected}
+                  isSocketConnected={isRoomStateReady}
                   socketErrorMessage={errorMessage}
                   onSubmit={handleGuessSubmit}
                 />
@@ -349,7 +355,7 @@ export function RoomPage() {
                   isOwnVoteOptionNoticePending={
                     votePermissionState.isOwnVoteOptionNoticePending
                   }
-                  isSocketConnected={isConnected}
+                  isSocketConnected={isRoomStateReady}
                   socketErrorMessage={errorMessage}
                   onSubmit={handleVoteSubmit}
                 />
@@ -379,6 +385,8 @@ const S_Page = styled.main`
   min-height: 100dvh;
   align-items: center;
   justify-content: center;
+  flex-direction: column;
+  gap: 1.6rem;
   padding: 4.4rem 2rem 9.6rem;
   background: ${({ theme }) => theme.COLOR.BACKGROUND};
 `;

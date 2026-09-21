@@ -2,7 +2,12 @@ import { expect, test } from '@playwright/test';
 
 import { FakeStompBroker } from './broker/fakeStompBroker';
 import { seedRoomSession } from './fixtures/session';
-import { lobbyMessage, threePlayers, voteMessage } from './fixtures/snapshots';
+import {
+  gameResultMessage,
+  lobbyMessage,
+  threePlayers,
+  voteMessage,
+} from './fixtures/snapshots';
 
 import type { OwnVoteOptionNotice } from '../src/domain/room/types';
 import type { Browser, BrowserContext, Page } from '@playwright/test';
@@ -180,6 +185,9 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 replay 프�
     await expect(
       A.page.getByRole('button', { name: '투표 확정' }),
     ).toBeDisabled();
+    await expect(
+      A.page.getByText('연결이 끊겼어요. 다시 연결하고 있어요'),
+    ).toBeVisible();
 
     // 브로커도 p1 연결 해제 인지(재접속 차단 중이라 안정적으로 끊김 유지).
     await expect.poll(() => broker.connections().sort()).toEqual(['p2', 'p3']);
@@ -224,6 +232,9 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 replay 프�
     await expect(
       A.page.getByRole('button', { name: '투표 확정' }),
     ).toBeEnabled();
+    await expect(
+      A.page.getByText('연결이 끊겼어요. 다시 연결하고 있어요'),
+    ).toHaveCount(0);
   });
 
   await Promise.all(clients.map((client) => client.context.close()));
@@ -269,6 +280,9 @@ test('시나리오 3 — 로비 끊김 UI: 실시간 연결 문구 + 시작 버�
       A.page.getByText('실시간 연결을 확인하고 있어요'),
     ).toBeVisible();
     await expect(
+      A.page.getByText('연결이 끊겼어요. 다시 연결하고 있어요'),
+    ).toBeVisible();
+    await expect(
       A.page.getByRole('button', { name: '시작하기' }),
     ).toBeDisabled();
 
@@ -294,11 +308,56 @@ test('시나리오 3 — 로비 끊김 UI: 실시간 연결 문구 + 시작 버�
     await expect(
       A.page.getByText('실시간 연결을 확인하고 있어요'),
     ).toHaveCount(0);
+    await expect(
+      A.page.getByText('연결이 끊겼어요. 다시 연결하고 있어요'),
+    ).toHaveCount(0);
     await expect(A.page.getByText('플레이어 3명')).toBeVisible();
     await expect(
       A.page.getByRole('button', { name: '시작하기' }),
     ).toBeVisible();
   });
+
+  await Promise.all(clients.map((client) => client.context.close()));
+});
+
+test('시나리오 3 — 종료 화면은 재연결 후 스냅샷 동기화 전 재시작을 막는다', async ({
+  browser,
+}) => {
+  test.slow();
+  const broker = new FakeStompBroker();
+  const clients = await setupClients(browser, broker);
+  const [A] = clients;
+
+  broker.pushTopic(ROOM_CODE, gameResultMessage());
+  await Promise.all(clients.map((client) => client.page.goto(`/room/${ROOM_CODE}`)));
+  await expect(A.page.getByRole('button', { name: '한판 더 하기' })).toBeEnabled();
+
+  broker.close('p1', { blockReconnect: true });
+  broker.reset();
+  await expect(A.page.getByText('연결이 끊겼어요. 다시 연결하고 있어요')).toBeVisible();
+
+  broker.allowReconnect('p1');
+  await expect
+    .poll(() => broker.connections().sort(), { timeout: 15_000 })
+    .toContain('p1');
+  await expect(A.page.getByText('게임 상태를 다시 불러오고 있어요')).toBeVisible();
+  await expect(A.page.getByRole('button', { name: '한판 더 하기' })).toBeDisabled();
+  await expect
+    .poll(() =>
+      broker
+        .inbox('p1')
+        .some((frame) => frame.destination === `/app/rooms/${ROOM_CODE}/sync`),
+    )
+    .toBe(true);
+
+  broker.pushUserQueue('p1', '/user/queue/room-state', gameResultMessage());
+  await expect(A.page.getByText('게임 상태를 다시 불러오고 있어요')).toHaveCount(0);
+  await expect(A.page.getByRole('button', { name: '한판 더 하기' })).toBeEnabled();
+  expect(
+    broker
+      .inbox('p2')
+      .filter((frame) => frame.destination === `/app/rooms/${ROOM_CODE}/sync`),
+  ).toEqual([]);
 
   await Promise.all(clients.map((client) => client.context.close()));
 });
