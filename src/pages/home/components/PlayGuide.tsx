@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
-import { Maximize2, Minimize2, X } from 'lucide-react';
+import { Maximize2, Minimize2, MoveRight, X } from 'lucide-react';
 
 import Surface from '../../../common/components/Surface';
 import { PLAY_GUIDE_COMPACT_MEDIA_QUERY } from '../constants/playGuideSlides';
@@ -62,21 +62,7 @@ export default function PlayGuide({
     <>
       <S_TriggerDock isOpen={isOpen}>
         <S_HintText aria-hidden="true">처음이면 여기!</S_HintText>
-        <S_HintArrow aria-hidden="true" viewBox="0 0 46 24" fill="none">
-          <path
-            d="M3 12H38"
-            stroke="currentColor"
-            strokeWidth="3.6"
-            strokeLinecap="round"
-          />
-          <path
-            d="M30 4L40 12L30 20"
-            stroke="currentColor"
-            strokeWidth="3.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </S_HintArrow>
+        <S_HintArrow aria-hidden="true" strokeWidth={3.6} />
         <S_Trigger
           ref={triggerRef}
           type="button"
@@ -169,7 +155,7 @@ const S_HintText = styled.span`
   white-space: nowrap;
 `;
 
-const S_HintArrow = styled.svg`
+const S_HintArrow = styled(MoveRight)`
   width: 4.6rem;
   height: 2.4rem;
   flex: none;
