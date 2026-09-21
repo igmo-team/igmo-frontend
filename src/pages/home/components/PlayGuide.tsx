@@ -270,7 +270,7 @@ const S_ExpandButton = styled.button`
   height: 2.8rem;
   padding: 0;
   border: 0;
-  border-radius: 0.8rem;
+  border-radius: ${({ theme }) => theme.RADIUS.XS};
   background: ${({ theme }) =>
     `color-mix(in srgb, ${theme.COLOR.TEXT} 6%, transparent)`};
   color: ${({ theme }) => theme.COLOR.TEXT};
