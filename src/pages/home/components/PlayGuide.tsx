@@ -61,8 +61,10 @@ export default function PlayGuide({
   return (
     <>
       <S_TriggerDock isOpen={isOpen}>
-        <S_HintText aria-hidden="true">처음이면 여기!</S_HintText>
-        <S_HintArrow aria-hidden="true" strokeWidth={3.6} />
+        <S_HintGroup>
+          <S_HintText aria-hidden="true">처음이면 여기!</S_HintText>
+          <S_HintArrow aria-hidden="true" strokeWidth={3.6} />
+        </S_HintGroup>
         <S_Trigger
           ref={triggerRef}
           type="button"
@@ -153,6 +155,12 @@ const S_HintText = styled.span`
   ${({ theme }) => theme.TYPOGRAPHY.TITLE4}
   color: ${({ theme }) => theme.COLOR.PRIMARY500};
   white-space: nowrap;
+`;
+
+const S_HintGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
 `;
 
 const S_HintArrow = styled(MoveRight)`
