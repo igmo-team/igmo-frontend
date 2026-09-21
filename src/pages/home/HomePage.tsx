@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -13,16 +13,28 @@ import {
 } from './constants/playGuideSlides';
 
 export function HomePage() {
+  const [isGuideExpanded, setIsGuideExpanded] = useState(false);
+
   useEffect(() => {
     captureAnalyticsEvent('home_viewed');
   }, []);
+
+  const handleToggleGuideExpand = () => {
+    setIsGuideExpanded((prev) => !prev);
+  };
 
   return (
     <S_Page>
       <HomeHero />
       <S_MainContent>
-        <RoomEntryForm />
-        <PlayGuide slides={PLAY_GUIDE_SLIDES} />
+        <S_FormSlot>
+          <RoomEntryForm />
+        </S_FormSlot>
+        <PlayGuide
+          slides={PLAY_GUIDE_SLIDES}
+          isExpanded={isGuideExpanded}
+          onToggleExpand={handleToggleGuideExpand}
+        />
       </S_MainContent>
     </S_Page>
   );
@@ -40,18 +52,24 @@ const S_Page = styled.main`
 `;
 
 const S_MainContent = styled.div`
-  display: grid;
+  display: flex;
   width: 100%;
   max-width: 88.4rem;
-  grid-template-columns: minmax(0, 56rem) minmax(0, 30rem);
-  align-items: stretch;
+  align-items: flex-start;
   justify-content: center;
-  column-gap: 2.4rem;
-  row-gap: 0;
+  gap: 2.4rem;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
-    display: flex;
     flex-direction: column;
     align-items: center;
+  }
+`;
+
+const S_FormSlot = styled.div`
+  flex: none;
+  width: 56rem;
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    width: 100%;
   }
 `;

@@ -17,9 +17,13 @@ const REDUCED_MOTION_MEDIA_QUERY = '(prefers-reduced-motion: reduce)';
 
 type PlayGuideCarouselProps = {
   slides: PlayGuideSlideData[];
+  isExpanded: boolean;
 };
 
-export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
+export default function PlayGuideCarousel({
+  slides,
+  isExpanded,
+}: PlayGuideCarouselProps) {
   const autoplay = useMemo(
     () =>
       Autoplay({
@@ -153,7 +157,7 @@ export default function PlayGuideCarousel({ slides }: PlayGuideCarouselProps) {
               key={slide.image}
               role="group"
             >
-              <PlayGuideSlide {...slide} />
+              <PlayGuideSlide {...slide} isExpanded={isExpanded} />
             </S_Slide>
           ))}
         </S_Slides>

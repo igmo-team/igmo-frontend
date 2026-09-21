@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
-import { X } from 'lucide-react';
+import { Maximize2, Minimize2, X } from 'lucide-react';
 
 import Surface from '../../../common/components/Surface';
 import { PLAY_GUIDE_COMPACT_MEDIA_QUERY } from '../constants/playGuideSlides';
@@ -13,9 +13,15 @@ import type { PlayGuideSlideData } from '../types/playGuide';
 
 type PlayGuideProps = {
   slides: PlayGuideSlideData[];
+  isExpanded: boolean;
+  onToggleExpand: () => void;
 };
 
-export default function PlayGuide({ slides }: PlayGuideProps) {
+export default function PlayGuide({
+  slides,
+  isExpanded,
+  onToggleExpand,
+}: PlayGuideProps) {
   const [isOpen, setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
@@ -83,11 +89,23 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
       <S_Panel
         aria-labelledby="play-guide-title"
         isOpen={isOpen}
+        isExpanded={isExpanded}
         role={isOpen ? 'dialog' : undefined}
         aria-modal={isOpen ? true : undefined}
       >
         <S_PanelHeader>
           <S_Title id="play-guide-title">플레이 방법</S_Title>
+          <S_ExpandButton
+            type="button"
+            aria-label={isExpanded ? '안내 축소' : '안내 확대'}
+            onClick={onToggleExpand}
+          >
+            {isExpanded ? (
+              <Minimize2 aria-hidden="true" />
+            ) : (
+              <Maximize2 aria-hidden="true" />
+            )}
+          </S_ExpandButton>
           <S_CloseButton
             type="button"
             aria-label="플레이 방법 닫기"
@@ -97,7 +115,11 @@ export default function PlayGuide({ slides }: PlayGuideProps) {
           </S_CloseButton>
         </S_PanelHeader>
         <S_PanelBody>
-          <PlayGuideCarousel key={isOpen ? 'open' : 'closed'} slides={slides} />
+          <PlayGuideCarousel
+            key={isOpen ? 'open' : 'closed'}
+            slides={slides}
+            isExpanded={isExpanded}
+          />
         </S_PanelBody>
       </S_Panel>
     </>
@@ -201,10 +223,13 @@ const S_Trigger = styled.button`
 `;
 
 const S_Panel = styled(Surface, {
-  shouldForwardProp: (prop) => prop !== 'isOpen',
-})<{ isOpen: boolean }>`
+  shouldForwardProp: (prop) => prop !== 'isOpen' && prop !== 'isExpanded',
+})<{ isOpen: boolean; isExpanded: boolean }>`
   display: flex;
-  max-width: 38rem;
+  flex: 1;
+  min-width: 0;
+  max-width: ${({ isExpanded }) => (isExpanded ? '48rem' : '38rem')};
+  transition: max-width 0.3s ease;
   flex-direction: column;
   gap: 0.6rem;
   /* 4c: 반투명 흰 패널이 핑크 배경에 녹아들고, 로그인 카드가 도드라짐 */
@@ -230,6 +255,7 @@ const S_Panel = styled(Surface, {
 `;
 
 const S_PanelHeader = styled.header`
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -237,6 +263,35 @@ const S_PanelHeader = styled.header`
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
     min-height: 3.2rem;
+  }
+`;
+
+const S_ExpandButton = styled.button`
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  border: 0;
+  background: transparent;
+  color: ${({ theme }) => theme.COLOR.TEXT};
+  cursor: pointer;
+
+  & > svg {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    display: none;
+  }
+
+  &:focus-visible {
+    outline: 0.2rem solid ${({ theme }) => theme.COLOR.PRIMARY500};
+    outline-offset: 0.2rem;
   }
 `;
 
