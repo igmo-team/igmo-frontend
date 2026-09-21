@@ -4,17 +4,20 @@ import { PLAY_GUIDE_COMPACT_MEDIA_QUERY } from '../constants/playGuideSlides';
 
 import type { PlayGuideSlideData } from '../types/playGuide';
 
-type PlayGuideSlideProps = PlayGuideSlideData;
+type PlayGuideSlideProps = PlayGuideSlideData & {
+  isExpanded: boolean;
+};
 
 export default function PlayGuideSlide({
   image,
   imageAlt,
   mainText,
   subText,
+  isExpanded,
 }: PlayGuideSlideProps) {
   return (
     <S_Slide>
-      <S_ImageFrame>
+      <S_ImageFrame isExpanded={isExpanded}>
         <S_Image src={image} alt={imageAlt} />
       </S_ImageFrame>
       <S_TextGroup>
@@ -37,9 +40,12 @@ const S_Slide = styled.article`
   }
 `;
 
-const S_ImageFrame = styled.div`
+const S_ImageFrame = styled('div', {
+  shouldForwardProp: (prop) => prop !== 'isExpanded',
+})<{ isExpanded: boolean }>`
   display: flex;
-  height: 13rem;
+  height: ${({ isExpanded }) => (isExpanded ? '26rem' : '12rem')};
+  transition: height 0.3s ease;
   align-items: center;
   justify-content: center;
   overflow: hidden;

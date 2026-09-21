@@ -212,6 +212,7 @@ export const THEME = {
   },
 
   RADIUS: {
+    XS: '0.8rem',
     SM: '1.1rem',
     MD: '1.6rem',
     LG: '1.8rem',
