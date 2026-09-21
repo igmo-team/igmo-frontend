@@ -27,8 +27,10 @@ export function HomePage() {
     <S_Page>
       <HomeHero />
       <S_MainContent>
-        <S_FormSlot>
-          <RoomEntryForm />
+        <S_FormSlot isExpanded={isGuideExpanded}>
+          <S_FormScale isExpanded={isGuideExpanded}>
+            <RoomEntryForm />
+          </S_FormScale>
         </S_FormSlot>
         <PlayGuide
           slides={PLAY_GUIDE_SLIDES}
@@ -65,11 +67,31 @@ const S_MainContent = styled.div`
   }
 `;
 
-const S_FormSlot = styled.div`
+/* 확대 시 폼을 제자리에서 축소: 바깥 폭은 축소된 크기로 줄이고(빈 공간 방지),
+   안쪽은 원래 폭을 유지한 채 scale로 줄여 안내와의 간격은 그대로 둔다. */
+const S_FormSlot = styled('div', {
+  shouldForwardProp: (prop) => prop !== 'isExpanded',
+})<{ isExpanded: boolean }>`
   flex: none;
-  width: 56rem;
+  overflow: hidden;
+  width: ${({ isExpanded }) => (isExpanded ? '44.8rem' : '56rem')};
+  transition: width 0.3s ease;
 
   @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
     width: 100%;
+  }
+`;
+
+const S_FormScale = styled('div', {
+  shouldForwardProp: (prop) => prop !== 'isExpanded',
+})<{ isExpanded: boolean }>`
+  width: 56rem;
+  transform-origin: top left;
+  transform: ${({ isExpanded }) => (isExpanded ? 'scale(0.8)' : 'none')};
+  transition: transform 0.3s ease;
+
+  @media ${PLAY_GUIDE_COMPACT_MEDIA_QUERY} {
+    width: 100%;
+    transform: none;
   }
 `;
