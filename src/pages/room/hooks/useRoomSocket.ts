@@ -202,94 +202,116 @@ export function useRoomSocket({
         }
       };
 
-      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
-        handleRoomSnapshot(message.body);
-      });
+      let subscriptionIndex = 0;
+      const subscribeWithReceipt = (
+        destination: string,
+        callback: Parameters<Client['subscribe']>[1],
+      ) => {
+        const receiptId = `room-subscription-${Date.now()}-${subscriptionIndex++}`;
 
-      client.subscribe('/user/queue/room-state', (message) => {
-        handleRoomSnapshot(message.body);
-      });
-
-      client.subscribe('/user/queue/image-generation', (message) => {
-        if (!isActive) {
-          return;
-        }
-
-        lastMessageReceivedAtRef.current = Date.now();
-
-        const nextImageGenerationSnapshot = parseImageGenerationSnapshot(
-          message.body,
-        );
-
-        if (nextImageGenerationSnapshot?.roomCode === roomCode) {
-          setImageGenerationSnapshot(nextImageGenerationSnapshot);
-        }
-      });
-
-      client.subscribe('/user/queue/guess-submission', (message) => {
-        if (!isActive) {
-          return;
-        }
-
-        lastMessageReceivedAtRef.current = Date.now();
-
-        const nextGuessSubmissionSnapshot = parseGuessSubmissionSnapshot(
-          message.body,
-        );
-
-        if (nextGuessSubmissionSnapshot?.roomCode !== roomCode) {
-          return;
-        }
-
-        setGuessSubmissionSnapshot(nextGuessSubmissionSnapshot);
-
-        if (nextGuessSubmissionSnapshot.status === 'REJECTED') {
-          setErrorMessage(
-            nextGuessSubmissionSnapshot.message ||
-              '추측 프롬프트를 다시 확인해주세요.',
-          );
-          return;
-        }
-
-        setErrorMessage('');
-      });
-
-      client.subscribe('/user/queue/vote-own-option', (message) => {
-        if (!isActive) {
-          return;
-        }
-
-        lastMessageReceivedAtRef.current = Date.now();
-
-        const nextOwnVoteOptionNotice = parseOwnVoteOptionNotice(message.body);
-
-        if (nextOwnVoteOptionNotice?.roomCode === roomCode) {
-          setOwnVoteOptionNoticeByRoundState((prev) => ({
-            roomCode,
-            noticeByRound: {
-              ...(prev?.roomCode === roomCode ? prev.noticeByRound : {}),
-              [nextOwnVoteOptionNotice.roundNumber]: nextOwnVoteOptionNotice,
-            },
-          }));
-        }
-      });
-
-      client.subscribe('/user/queue/errors', (message) => {
-        if (!isActive) {
-          return;
-        }
-
-        lastMessageReceivedAtRef.current = Date.now();
-        setErrorMessage(parseSocketError(message.body));
-      });
-
-      if (isReconnect) {
-        client.publish({
-          destination: `/app/rooms/${roomCode}/sync`,
+        const receiptPromise = new Promise<void>((resolve) => {
+          client.watchForReceipt(receiptId, () => resolve());
         });
-      }
 
-      hasConnectionLostRef.current = false;
+        client.subscribe(destination, callback, { receipt: receiptId });
+
+        return receiptPromise;
+      };
+
+      const subscriptionReceipts = [
+        subscribeWithReceipt(`/topic/rooms/${roomCode}`, (message) => {
+          handleRoomSnapshot(message.body);
+        }),
+        subscribeWithReceipt('/user/queue/room-state', (message) => {
+          handleRoomSnapshot(message.body);
+        }),
+        subscribeWithReceipt('/user/queue/image-generation', (message) => {
+          if (!isActive) {
+            return;
+          }
+
+          lastMessageReceivedAtRef.current = Date.now();
+
+          const nextImageGenerationSnapshot = parseImageGenerationSnapshot(
+            message.body,
+          );
+
+          if (nextImageGenerationSnapshot?.roomCode === roomCode) {
+            setImageGenerationSnapshot(nextImageGenerationSnapshot);
+          }
+        }),
+        subscribeWithReceipt('/user/queue/guess-submission', (message) => {
+          if (!isActive) {
+            return;
+          }
+
+          lastMessageReceivedAtRef.current = Date.now();
+
+          const nextGuessSubmissionSnapshot = parseGuessSubmissionSnapshot(
+            message.body,
+          );
+
+          if (nextGuessSubmissionSnapshot?.roomCode !== roomCode) {
+            return;
+          }
+
+          setGuessSubmissionSnapshot(nextGuessSubmissionSnapshot);
+
+          if (nextGuessSubmissionSnapshot.status === 'REJECTED') {
+            setErrorMessage(
+              nextGuessSubmissionSnapshot.message ||
+                '추측 프롬프트를 다시 확인해주세요.',
+            );
+            return;
+          }
+
+          setErrorMessage('');
+        }),
+        subscribeWithReceipt('/user/queue/vote-own-option', (message) => {
+          if (!isActive) {
+            return;
+          }
+
+          lastMessageReceivedAtRef.current = Date.now();
+
+          const nextOwnVoteOptionNotice = parseOwnVoteOptionNotice(
+            message.body,
+          );
+
+          if (nextOwnVoteOptionNotice?.roomCode === roomCode) {
+            setOwnVoteOptionNoticeByRoundState((prev) => ({
+              roomCode,
+              noticeByRound: {
+                ...(prev?.roomCode === roomCode ? prev.noticeByRound : {}),
+                [nextOwnVoteOptionNotice.roundNumber]: nextOwnVoteOptionNotice,
+              },
+            }));
+          }
+        }),
+        subscribeWithReceipt('/user/queue/errors', (message) => {
+          if (!isActive) {
+            return;
+          }
+
+          lastMessageReceivedAtRef.current = Date.now();
+          setErrorMessage(parseSocketError(message.body));
+        }),
+      ];
+
+      Promise.all(subscriptionReceipts).then(() => {
+        if (!isActive || !client.connected) {
+          return;
+        }
+
+        if (isReconnect) {
+          client.publish({
+            destination: `/app/rooms/${roomCode}/sync`,
+          });
+
+        }
+
+        hasConnectionLostRef.current = false;
+      });
     };
 
     client.onDisconnect = () => {
@@ -381,9 +403,10 @@ export function useRoomSocket({
           }
         };
 
-        client
-          .deactivate({ force: true })
-          .then(activateIfNotDisposed, activateIfNotDisposed);
+        client.deactivate({ force: true }).then(
+          activateIfNotDisposed,
+          activateIfNotDisposed,
+        );
       }, 100);
     };
 
