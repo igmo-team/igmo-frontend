@@ -50,7 +50,7 @@ async function setupClients(browser: Browser, broker: FakeStompBroker) {
 // ===========================================================================
 // 시나리오 3 (핵심) — VOTING 중 끊김 → 재접속 → 프레임 하나로 뷰 완전 재구성
 // ===========================================================================
-test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 replay 프레임으로 정확히 복원(서버 진실 무손실)', async ({
+test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 room-state 응답으로 정확히 복원(서버 진실 무손실)', async ({
   browser,
 }) => {
   test.slow(); // 실제 reconnectDelay(5s) 재연결 대기를 포함하므로 타임아웃 여유.
@@ -168,9 +168,10 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 replay 프�
 
   // -------------------------------------------------------------------------
   // 3) 끊김: broker.close(p1) → A만 끊김(제출 컨트롤 비활성). B·C 무영향.
-  //    (짧은 reconnectDelay 때문에 자동재연결이 곧바로 성공하지 않도록 blockReconnect)
+  //    재연결 시 topic replay가 아닌 room-state 응답을 검증하기 위해 replay를 끈다.
   // -------------------------------------------------------------------------
   await test.step('끊김: A 제출 컨트롤 비활성, B·C 무영향', async () => {
+    broker.setTopicReplayEnabled(false);
     broker.close('p1', { blockReconnect: true });
 
     // A: 끊김의 관찰 가능한 결과 — 확정 버튼이 '투표 완료'→'투표 확정'으로 되돌아가고 비활성.
@@ -197,15 +198,30 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 replay 프�
   });
 
   // -------------------------------------------------------------------------
-  // 4) 재접속: 재구독 → 브로커가 현재 VOTE_SNAPSHOT replay → 뷰 완전 재구성
+  // 4) 재접속: visible 복귀 → sync 요청 → room-state 응답으로 뷰 완전 재구성
   // -------------------------------------------------------------------------
   await test.step('재접속: phase 투표로 정확 복원 + 서버 진실 무손실', async () => {
     broker.allowReconnect('p1'); // 다음 재연결 시도가 성공.
 
-    // 브로커가 p1 재연결 인지 — 실제 reconnectDelay(5s)만큼 걸릴 수 있어 넉넉히 대기.
+    await A.page.evaluate(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // visible 복귀 재연결은 reconnectDelay(5s)를 기다리지 않고 빠르게 성공해야 한다.
     await expect
-      .poll(() => broker.connections().sort(), { timeout: 15_000 })
+      .poll(() => broker.connections().sort(), { timeout: 3_000 })
       .toEqual(['p1', 'p2', 'p3']);
+
+    await expect
+      .poll(() =>
+        broker
+          .inbox('p1')
+          .some(
+            (frame) =>
+              frame.destination === `/app/rooms/${ROOM_CODE}/sync`,
+          ),
+      )
+      .toBe(true);
 
     // A: phase가 LOBBY로 리셋되지 않고 '투표'로 정확 복원.
     await expect(A.page.getByRole('heading', { name: '투표' })).toBeVisible();
