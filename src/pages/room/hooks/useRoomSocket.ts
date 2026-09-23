@@ -138,27 +138,29 @@ export function useRoomSocket({
         return;
       }
 
+      const isReconnect =
+        hasConnectedRef.current && hasConnectionLostRef.current;
+
       setIsConnected(true);
       setErrorMessage('');
 
-      if (hasConnectionLostRef.current) {
+      if (isReconnect) {
         captureAnalyticsEvent('socket_reconnected', {
           ...socketAnalyticsPropertiesRef.current,
         });
       }
 
       hasConnectedRef.current = true;
-      hasConnectionLostRef.current = false;
       hasReportedReconnectFailedRef.current = false;
 
-      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+      const handleRoomSnapshot = (messageBody: string) => {
         if (!isActive) {
           return;
         }
 
         lastMessageReceivedAtRef.current = Date.now();
 
-        const nextSnapshot = parseRoomTopicSnapshot(message.body);
+        const nextSnapshot = parseRoomTopicSnapshot(messageBody);
 
         if (!nextSnapshot) {
           return;
@@ -198,6 +200,14 @@ export function useRoomSocket({
             setGuessSubmissionSnapshot(null);
             break;
         }
+      };
+
+      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+        handleRoomSnapshot(message.body);
+      });
+
+      client.subscribe('/user/queue/room-state', (message) => {
+        handleRoomSnapshot(message.body);
       });
 
       client.subscribe('/user/queue/image-generation', (message) => {
@@ -272,6 +282,14 @@ export function useRoomSocket({
         lastMessageReceivedAtRef.current = Date.now();
         setErrorMessage(parseSocketError(message.body));
       });
+
+      if (isReconnect) {
+        client.publish({
+          destination: `/app/rooms/${roomCode}/sync`,
+        });
+      }
+
+      hasConnectionLostRef.current = false;
     };
 
     client.onDisconnect = () => {
