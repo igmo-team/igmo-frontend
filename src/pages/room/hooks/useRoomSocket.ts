@@ -83,6 +83,9 @@ export function useRoomSocket({
   const hasConnectedRef = useRef(false);
   const hasConnectionLostRef = useRef(false);
   const hasReportedReconnectFailedRef = useRef(false);
+  const visibilityReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const socketAnalyticsPropertiesRef = useRef({
     room_code: roomCode,
     player_id: roomSession?.playerId,
@@ -322,6 +325,62 @@ export function useRoomSocket({
       client.deactivate();
     };
   }, [roomSession, roomCode]);
+
+  useEffect(() => {
+    let isDisposed = false;
+
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        !roomCode ||
+        !roomSession ||
+        visibilityReconnectTimerRef.current !== null
+      ) {
+        return;
+      }
+
+      const client = stompClientRef.current;
+
+      if (!client || client.connected) {
+        return;
+      }
+
+      visibilityReconnectTimerRef.current = setTimeout(() => {
+        visibilityReconnectTimerRef.current = null;
+
+        if (isDisposed || client.connected) {
+          return;
+        }
+
+        if (!client.active) {
+          client.activate();
+          return;
+        }
+
+        const activateIfNotDisposed = () => {
+          if (!isDisposed) {
+            client.activate();
+          }
+        };
+
+        client
+          .deactivate({ force: true })
+          .then(activateIfNotDisposed, activateIfNotDisposed);
+      }, 100);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isDisposed = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      if (visibilityReconnectTimerRef.current !== null) {
+        clearTimeout(visibilityReconnectTimerRef.current);
+        visibilityReconnectTimerRef.current = null;
+      }
+    };
+  }, [roomCode, roomSession]);
 
   const publish = useCallback(
     (destination: string, body?: string) => {
