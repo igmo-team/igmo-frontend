@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -39,21 +39,18 @@ export function RoomLobbyView({
   onDeadlineExpired,
 }: RoomLobbyViewProps) {
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-  const [isDeadlineExpired, setIsDeadlineExpired] = useState(false);
+  const [expiredDeadline, setExpiredDeadline] = useState<string | null>(null);
   const currentPlayer = snapshot.players.find(
     (player) => player.id === currentPlayerId,
   );
+  const isDeadlineExpired = expiredDeadline === snapshot.lobbyDeadline;
   const isHost = currentPlayer?.id === snapshot.hostId;
   const allGuestsReady = areAllGuestsReady(snapshot);
   const minPlayersToStart = Number(import.meta.env.VITE_MIN_PLAYERS_TO_START);
   const handleDeadlineExpired = useCallback(() => {
-    setIsDeadlineExpired(true);
+    setExpiredDeadline(snapshot.lobbyDeadline);
     onDeadlineExpired();
-  }, [onDeadlineExpired]);
-
-  useEffect(() => {
-    setIsDeadlineExpired(false);
-  }, [snapshot.lobbyDeadline]);
+  }, [onDeadlineExpired, snapshot.lobbyDeadline]);
 
   return (
     <S_LobbyContent>
