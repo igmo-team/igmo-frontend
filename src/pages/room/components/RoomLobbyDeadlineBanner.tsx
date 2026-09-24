@@ -1,22 +1,43 @@
+import { useEffect } from 'react';
+
 import styled from '@emotion/styled';
 
 import { useCountdownSeconds } from '../hooks/useCountdownSeconds';
 
 type RoomLobbyDeadlineBannerProps = {
   deadline: string;
-  onDeadlineExpired?: () => void;
+  onDeadlineExpired: () => void;
 };
 
 export function RoomLobbyDeadlineBanner({
   deadline,
+  onDeadlineExpired,
 }: RoomLobbyDeadlineBannerProps) {
   const remainingSeconds = useCountdownSeconds(deadline);
+  const deadlineTime = getDeadlineTime(deadline);
   const displayTime = formatDisplayTime(remainingSeconds);
+
+  useEffect(() => {
+    if (deadlineTime === null) {
+      return;
+    }
+
+    const timeoutId = setTimeout(
+      onDeadlineExpired,
+      Math.max(0, deadlineTime - Date.now()),
+    );
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [deadlineTime, onDeadlineExpired]);
 
   return (
     <S_Banner role="status">
       <S_Message>시간 안에 시작하지 않으면 방이 사라져요</S_Message>
-      <S_Time aria-label={`남은 시간 ${formatAccessibleTime(remainingSeconds)}`}>
+      <S_Time
+        aria-label={`남은 시간 ${formatAccessibleTime(remainingSeconds)}`}
+      >
         {displayTime}
       </S_Time>
     </S_Banner>
@@ -35,6 +56,12 @@ function formatAccessibleTime(totalSeconds: number) {
   const seconds = totalSeconds % 60;
 
   return `${minutes}분 ${seconds}초`;
+}
+
+function getDeadlineTime(deadline: string) {
+  const deadlineTime = new Date(deadline).getTime();
+
+  return Number.isNaN(deadlineTime) ? null : deadlineTime;
 }
 
 const S_Banner = styled.div`

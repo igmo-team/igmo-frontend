@@ -21,7 +21,7 @@ type RoomLobbyViewProps = {
   onStart: () => void;
   onLeaveButtonClick: () => void;
   isLeavePending: boolean;
-  onDeadlineExpired?: () => void;
+  onDeadlineExpired: () => void;
 };
 
 export function RoomLobbyView({

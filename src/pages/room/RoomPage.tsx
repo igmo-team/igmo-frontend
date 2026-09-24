@@ -7,6 +7,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
+import { showGameToast } from '../../common/lib/toast';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { isRoomCodeValid } from '../../domain/room/roomCode';
 
@@ -174,6 +175,21 @@ export function RoomPage() {
     });
   };
 
+  const handleLobbyDeadlineExpired = useCallback(() => {
+    showGameToast({
+      variant: 'info',
+      title: '입장 시간이 끝났어요',
+      body: '방이 사라져 홈으로 이동해요.',
+      onAutoClose: () => {
+        if (roomCode) {
+          deleteRoomSession(roomCode);
+        }
+
+        navigate(PAGE_URL.HOME, { replace: true });
+      },
+    });
+  }, [navigate, roomCode]);
+
   const handleLeaveButtonClick = () => {
     if (!roomCode || !roomSession || isLeavePending) {
       return;
@@ -305,6 +321,7 @@ export function RoomPage() {
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
           isLeavePending={isLeavePending}
+          onDeadlineExpired={handleLobbyDeadlineExpired}
         />
       </S_Page>
     );
