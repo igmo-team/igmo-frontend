@@ -228,11 +228,27 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 room-state �
   await test.step('재접속: 공유·개인 투표 상태를 함께 복원', async () => {
     broker.allowReconnect('p1'); // 다음 재연결 시도가 성공.
 
+    // 숨김 상태에서는 visibilitychange가 와도 즉시 재연결하지 않는다.
     await A.page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'hidden',
+      });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    // reconnectDelay(5s)보다 짧게 대기해 STOMP 자동 재연결과 무관하게 관찰한다.
+    await A.page.waitForTimeout(500);
+    expect(broker.connections().sort()).toEqual(['p2', 'p3']);
+
+    // visible로 복귀하면 reconnectDelay(5s)를 기다리지 않고 빠르게 재연결한다.
+    await A.page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', {
+        configurable: true,
+        get: () => 'visible',
+      });
       document.dispatchEvent(new Event('visibilitychange'));
     });
 
-    // visible 복귀 재연결은 reconnectDelay(5s)를 기다리지 않고 빠르게 성공해야 한다.
     await expect
       .poll(() => broker.connections().sort(), { timeout: 3_000 })
       .toEqual(['p1', 'p2', 'p3']);
