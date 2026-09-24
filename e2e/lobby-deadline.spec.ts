@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 import { FakeStompBroker } from './broker/fakeStompBroker';
 import { seedRoomSession } from './fixtures/session';
-import { lobbyMessage } from './fixtures/snapshots';
+import { lobbyMessage, player } from './fixtures/snapshots';
 
 const ROOM_CODE = 'TEST01';
 const PLAYER_ID = 'p1';
@@ -28,6 +28,7 @@ test('로비 마감기한 만료 후 토스트 자동 종료 시 홈으로 이�
     ROOM_CODE,
     lobbyMessage({
       lobbyDeadline: new Date(fixedNow.getTime() + 10_000).toISOString(),
+      players: [player('p1'), player('p2', { ready: true })],
     }),
   );
 
@@ -36,11 +37,16 @@ test('로비 마감기한 만료 후 토스트 자동 종료 시 홈으로 이�
   await expect(
     page.getByText('시간 안에 시작하지 않으면 방이 사라져요'),
   ).toBeVisible();
-  await expect(page.locator('time')).toHaveText(/00:(09|10)/);
+  await expect(page.locator('time')).toHaveText(/^00:0\d$/);
 
   await page.clock.fastForward(10_000);
 
-  await expect(page.getByText('입장 시간이 끝났어요')).toBeVisible();
+  await expect(
+    page
+      .getByRole('region', { name: /Notifications/ })
+      .getByText('입장 시간이 끝났어요'),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: '시작하기' })).toBeDisabled();
   await page.clock.fastForward(2_400);
 
   await expect(page).toHaveURL(/\/$/);
