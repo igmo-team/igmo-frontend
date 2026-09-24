@@ -9,7 +9,7 @@ type RoomLobbyDeadlineBannerProps = {
   onDeadlineExpired: () => void;
 };
 
-export function RoomLobbyDeadlineBanner({
+export default function RoomLobbyDeadlineBanner({
   deadline,
   onDeadlineExpired,
 }: RoomLobbyDeadlineBannerProps) {

@@ -6,7 +6,7 @@ import { Button, Surface } from '../../../common/components';
 import { areAllGuestsReady } from '../../../domain/room/gameStart';
 import { useUrlCopy } from '../hooks/useUrlCopy';
 
-import { RoomLobbyDeadlineBanner } from './RoomLobbyDeadlineBanner';
+import RoomLobbyDeadlineBanner from './RoomLobbyDeadlineBanner';
 import { RoomPlayerList } from './RoomPlayerList';
 
 import type { RoomSnapshot } from '../../../domain/room/types';
