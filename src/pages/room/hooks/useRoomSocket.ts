@@ -83,6 +83,9 @@ export function useRoomSocket({
   const hasConnectedRef = useRef(false);
   const hasConnectionLostRef = useRef(false);
   const hasReportedReconnectFailedRef = useRef(false);
+  const visibilityReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const socketAnalyticsPropertiesRef = useRef({
     room_code: roomCode,
     player_id: roomSession?.playerId,
@@ -135,10 +138,13 @@ export function useRoomSocket({
         return;
       }
 
+      const isReconnect =
+        hasConnectedRef.current && hasConnectionLostRef.current;
+
       setIsConnected(true);
       setErrorMessage('');
 
-      if (hasConnectionLostRef.current) {
+      if (isReconnect) {
         captureAnalyticsEvent('socket_reconnected', {
           ...socketAnalyticsPropertiesRef.current,
         });
@@ -148,14 +154,14 @@ export function useRoomSocket({
       hasConnectionLostRef.current = false;
       hasReportedReconnectFailedRef.current = false;
 
-      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+      const handleRoomSnapshot = (messageBody: string) => {
         if (!isActive) {
           return;
         }
 
         lastMessageReceivedAtRef.current = Date.now();
 
-        const nextSnapshot = parseRoomTopicSnapshot(message.body);
+        const nextSnapshot = parseRoomTopicSnapshot(messageBody);
 
         if (!nextSnapshot) {
           return;
@@ -195,79 +201,114 @@ export function useRoomSocket({
             setGuessSubmissionSnapshot(null);
             break;
         }
-      });
+      };
 
-      client.subscribe('/user/queue/image-generation', (message) => {
-        if (!isActive) {
-          return;
-        }
+      let subscriptionIndex = 0;
+      const subscribeWithReceipt = (
+        destination: string,
+        callback: Parameters<Client['subscribe']>[1],
+      ) => {
+        const receiptId = `room-subscription-${Date.now()}-${subscriptionIndex++}`;
 
-        lastMessageReceivedAtRef.current = Date.now();
+        const receiptPromise = new Promise<void>((resolve) => {
+          client.watchForReceipt(receiptId, () => resolve());
+        });
 
-        const nextImageGenerationSnapshot = parseImageGenerationSnapshot(
-          message.body,
-        );
+        client.subscribe(destination, callback, { receipt: receiptId });
 
-        if (nextImageGenerationSnapshot?.roomCode === roomCode) {
-          setImageGenerationSnapshot(nextImageGenerationSnapshot);
-        }
-      });
+        return receiptPromise;
+      };
 
-      client.subscribe('/user/queue/guess-submission', (message) => {
-        if (!isActive) {
-          return;
-        }
+      const subscriptionReceipts = [
+        subscribeWithReceipt(`/topic/rooms/${roomCode}`, (message) => {
+          handleRoomSnapshot(message.body);
+        }),
+        subscribeWithReceipt('/user/queue/room-state', (message) => {
+          handleRoomSnapshot(message.body);
+        }),
+        subscribeWithReceipt('/user/queue/image-generation', (message) => {
+          if (!isActive) {
+            return;
+          }
 
-        lastMessageReceivedAtRef.current = Date.now();
+          lastMessageReceivedAtRef.current = Date.now();
 
-        const nextGuessSubmissionSnapshot = parseGuessSubmissionSnapshot(
-          message.body,
-        );
-
-        if (nextGuessSubmissionSnapshot?.roomCode !== roomCode) {
-          return;
-        }
-
-        setGuessSubmissionSnapshot(nextGuessSubmissionSnapshot);
-
-        if (nextGuessSubmissionSnapshot.status === 'REJECTED') {
-          setErrorMessage(
-            nextGuessSubmissionSnapshot.message ||
-              '추측 프롬프트를 다시 확인해주세요.',
+          const nextImageGenerationSnapshot = parseImageGenerationSnapshot(
+            message.body,
           );
+
+          if (nextImageGenerationSnapshot?.roomCode === roomCode) {
+            setImageGenerationSnapshot(nextImageGenerationSnapshot);
+          }
+        }),
+        subscribeWithReceipt('/user/queue/guess-submission', (message) => {
+          if (!isActive) {
+            return;
+          }
+
+          lastMessageReceivedAtRef.current = Date.now();
+
+          const nextGuessSubmissionSnapshot = parseGuessSubmissionSnapshot(
+            message.body,
+          );
+
+          if (nextGuessSubmissionSnapshot?.roomCode !== roomCode) {
+            return;
+          }
+
+          setGuessSubmissionSnapshot(nextGuessSubmissionSnapshot);
+
+          if (nextGuessSubmissionSnapshot.status === 'REJECTED') {
+            setErrorMessage(
+              nextGuessSubmissionSnapshot.message ||
+                '추측 프롬프트를 다시 확인해주세요.',
+            );
+            return;
+          }
+
+          setErrorMessage('');
+        }),
+        subscribeWithReceipt('/user/queue/vote-own-option', (message) => {
+          if (!isActive) {
+            return;
+          }
+
+          lastMessageReceivedAtRef.current = Date.now();
+
+          const nextOwnVoteOptionNotice = parseOwnVoteOptionNotice(
+            message.body,
+          );
+
+          if (nextOwnVoteOptionNotice?.roomCode === roomCode) {
+            setOwnVoteOptionNoticeByRoundState((prev) => ({
+              roomCode,
+              noticeByRound: {
+                ...(prev?.roomCode === roomCode ? prev.noticeByRound : {}),
+                [nextOwnVoteOptionNotice.roundNumber]: nextOwnVoteOptionNotice,
+              },
+            }));
+          }
+        }),
+        subscribeWithReceipt('/user/queue/errors', (message) => {
+          if (!isActive) {
+            return;
+          }
+
+          lastMessageReceivedAtRef.current = Date.now();
+          setErrorMessage(parseSocketError(message.body));
+        }),
+      ];
+
+      Promise.all(subscriptionReceipts).then(() => {
+        if (!isActive || !client.connected) {
           return;
         }
 
-        setErrorMessage('');
-      });
-
-      client.subscribe('/user/queue/vote-own-option', (message) => {
-        if (!isActive) {
-          return;
+        if (isReconnect) {
+          client.publish({
+            destination: `/app/rooms/${roomCode}/sync`,
+          });
         }
-
-        lastMessageReceivedAtRef.current = Date.now();
-
-        const nextOwnVoteOptionNotice = parseOwnVoteOptionNotice(message.body);
-
-        if (nextOwnVoteOptionNotice?.roomCode === roomCode) {
-          setOwnVoteOptionNoticeByRoundState((prev) => ({
-            roomCode,
-            noticeByRound: {
-              ...(prev?.roomCode === roomCode ? prev.noticeByRound : {}),
-              [nextOwnVoteOptionNotice.roundNumber]: nextOwnVoteOptionNotice,
-            },
-          }));
-        }
-      });
-
-      client.subscribe('/user/queue/errors', (message) => {
-        if (!isActive) {
-          return;
-        }
-
-        lastMessageReceivedAtRef.current = Date.now();
-        setErrorMessage(parseSocketError(message.body));
       });
     };
 
@@ -322,6 +363,63 @@ export function useRoomSocket({
       client.deactivate();
     };
   }, [roomSession, roomCode]);
+
+  useEffect(() => {
+    let isDisposed = false;
+
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        !roomCode ||
+        !roomSession ||
+        visibilityReconnectTimerRef.current !== null
+      ) {
+        return;
+      }
+
+      const client = stompClientRef.current;
+
+      if (!client || client.connected) {
+        return;
+      }
+
+      visibilityReconnectTimerRef.current = setTimeout(() => {
+        visibilityReconnectTimerRef.current = null;
+
+        if (isDisposed || client.connected) {
+          return;
+        }
+
+        if (!client.active) {
+          client.activate();
+          return;
+        }
+
+        const activateIfNotDisposed = () => {
+          if (!isDisposed) {
+            client.activate();
+          }
+        };
+
+        client.deactivate({ force: true }).then(
+          activateIfNotDisposed,
+          activateIfNotDisposed,
+        );
+      }, 100);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isDisposed = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      if (visibilityReconnectTimerRef.current !== null) {
+        clearTimeout(visibilityReconnectTimerRef.current);
+        visibilityReconnectTimerRef.current = null;
+      }
+    };
+  }, [roomCode, roomSession]);
 
   const publish = useCallback(
     (destination: string, body?: string) => {

@@ -1,6 +1,7 @@
 import { byteLength, decodeFrames, encodeFrame, HEARTBEAT } from './stompFrames';
 
 import type { StompFrame } from './stompFrames';
+import type { OwnVoteOptionNotice } from '../../src/domain/room/types';
 import type { BrowserContext, Page, WebSocketRoute } from '@playwright/test';
 
 /** 클라가 보낸 SEND 프레임 기록(assertion용). */
@@ -37,6 +38,13 @@ export class FakeStompBroker {
   private readonly connectionsByPlayer = new Map<string, Connection>();
   /** roomCode -> 마지막으로 push된 topic 스냅샷(재구독 시 replay). */
   private readonly topicSnapshots = new Map<string, TopicMessage>();
+  /** playerId -> roomCode:roundNumber -> 마지막 투표 개인 상태(sync 재전달용). */
+  private readonly ownVoteOptionNoticesByPlayer = new Map<
+    string,
+    Map<string, OwnVoteOptionNotice>
+  >();
+  /** 재연결 테스트에서 room-state 응답 경로만 검증할 수 있도록 제어한다. */
+  private topicReplayEnabled = true;
   private readonly inboxByPlayer = new Map<string, SentFrame[]>();
   /** 재접속을 막을 playerId 집합(끊김 상태를 안정적으로 관찰하기 위함). */
   private readonly blockedPlayers = new Set<string>();
@@ -149,11 +157,21 @@ export class FakeStompBroker {
 
     // topic 재구독 시 저장된 현재 스냅샷을 즉시 replay(재접속 복원 메커니즘).
     const roomCode = parseTopicRoomCode(destination);
-    if (roomCode) {
+    if (roomCode && this.topicReplayEnabled) {
       const snapshot = this.topicSnapshots.get(roomCode);
       if (snapshot) {
         this.sendMessage(connection, id, destination, JSON.stringify(snapshot));
       }
+    }
+
+    const receiptId = frame.headers.receipt;
+    if (receiptId) {
+      connection.route.send(
+        encodeFrame({
+          command: 'RECEIPT',
+          headers: { 'receipt-id': receiptId },
+        }),
+      );
     }
   }
 
@@ -166,6 +184,31 @@ export class FakeStompBroker {
     const inbox = this.inboxByPlayer.get(connection.playerId) ?? [];
     inbox.push({ destination, body: frame.body, headers: frame.headers });
     this.inboxByPlayer.set(connection.playerId, inbox);
+
+    const roomCode = parseSyncRoomCode(destination);
+    if (roomCode) {
+      const snapshot = this.topicSnapshots.get(roomCode);
+      if (snapshot) {
+        this.pushUserQueue(
+          connection.playerId,
+          '/user/queue/room-state',
+          snapshot,
+        );
+
+        const ownVoteOptionNotice = this.getOwnVoteOptionNotice(
+          connection.playerId,
+          snapshot,
+        );
+
+        if (ownVoteOptionNotice) {
+          this.pushUserQueue(
+            connection.playerId,
+            '/user/queue/vote-own-option',
+            ownVoteOptionNotice,
+          );
+        }
+      }
+    }
   }
 
   private sendMessage(
@@ -257,6 +300,16 @@ export class FakeStompBroker {
     destination: string,
     body: unknown,
   ): void {
+    if (
+      destination === '/user/queue/vote-own-option' &&
+      isOwnVoteOptionNotice(body)
+    ) {
+      const notices =
+        this.ownVoteOptionNoticesByPlayer.get(playerId) ?? new Map();
+      notices.set(getOwnVoteOptionNoticeKey(body), body);
+      this.ownVoteOptionNoticesByPlayer.set(playerId, notices);
+    }
+
     const connection = this.connectionsByPlayer.get(playerId);
     if (!connection) {
       return;
@@ -290,6 +343,11 @@ export class FakeStompBroker {
     this.blockedPlayers.delete(playerId);
   }
 
+  /** topic 재구독 replay를 끄거나 켠다. */
+  setTopicReplayEnabled(enabled: boolean): void {
+    this.topicReplayEnabled = enabled;
+  }
+
   /** 현재 CONNECT된 playerId 목록. */
   connections(): string[] {
     return [...this.connectionsByPlayer.keys()];
@@ -303,12 +361,66 @@ export class FakeStompBroker {
   /** 저장된 topic 스냅샷/인박스 등 상태 초기화(테스트 간 격리). 연결은 건드리지 않는다. */
   reset(): void {
     this.topicSnapshots.clear();
+    this.ownVoteOptionNoticesByPlayer.clear();
     this.inboxByPlayer.clear();
     this.messageIdCounter = 0;
+    this.topicReplayEnabled = true;
+  }
+
+  private getOwnVoteOptionNotice(
+    playerId: string,
+    snapshot: TopicMessage,
+  ): OwnVoteOptionNotice | null {
+    if (snapshot.type !== 'VOTE_SNAPSHOT' || !isRecord(snapshot.payload)) {
+      return null;
+    }
+
+    const { roomCode, roundNumber } = snapshot.payload;
+    if (typeof roomCode !== 'string' || typeof roundNumber !== 'number') {
+      return null;
+    }
+
+    return (
+      this.ownVoteOptionNoticesByPlayer
+        .get(playerId)
+        ?.get(`${roomCode}:${roundNumber}`) ?? null
+    );
   }
 }
 
 function parseTopicRoomCode(destination: string): string | null {
   const match = /^\/topic\/rooms\/(.+)$/.exec(destination);
   return match ? match[1] : null;
+}
+
+function parseSyncRoomCode(destination: string): string | null {
+  const match = /^\/app\/rooms\/(.+)\/sync$/.exec(destination);
+  return match ? match[1] : null;
+}
+
+function getOwnVoteOptionNoticeKey(notice: OwnVoteOptionNotice): string {
+  return `${notice.roomCode}:${notice.roundNumber}`;
+}
+
+function isOwnVoteOptionNotice(
+  value: unknown,
+): value is OwnVoteOptionNotice {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    typeof value.roomCode === 'string' &&
+    typeof value.roundNumber === 'number' &&
+    typeof value.ownImage === 'boolean' &&
+    typeof value.voteAllowed === 'boolean' &&
+    (value.voteDisabledReason === null ||
+      value.voteDisabledReason === 'QUESTIONER' ||
+      value.voteDisabledReason === 'PERFECT_GUESS') &&
+    (value.optionId === null || typeof value.optionId === 'string')
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
