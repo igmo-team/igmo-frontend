@@ -173,17 +173,20 @@ export function RoomPage() {
   };
 
   const handleLobbyDeadlineExpired = useCallback(() => {
+    const handleLobbyDeadlineToastClose = () => {
+      if (roomCode) {
+        deleteRoomSession(roomCode);
+      }
+
+      navigate(PAGE_URL.HOME, { replace: true });
+    };
+
     showGameToast({
       variant: 'info',
       title: '입장 시간이 끝났어요',
       body: '방이 사라져 홈으로 이동해요.',
-      onAutoClose: () => {
-        if (roomCode) {
-          deleteRoomSession(roomCode);
-        }
-
-        navigate(PAGE_URL.HOME, { replace: true });
-      },
+      onDismiss: handleLobbyDeadlineToastClose,
+      onAutoClose: handleLobbyDeadlineToastClose,
     });
   }, [navigate, roomCode]);
 
