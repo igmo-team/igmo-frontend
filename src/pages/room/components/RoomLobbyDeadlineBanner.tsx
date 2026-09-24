@@ -33,7 +33,7 @@ export function RoomLobbyDeadlineBanner({
   }, [deadlineTime, onDeadlineExpired]);
 
   return (
-    <S_Banner role="status">
+    <S_Banner>
       <S_Message>시간 안에 시작하지 않으면 방이 사라져요</S_Message>
       <S_Time
         aria-label={`남은 시간 ${formatAccessibleTime(remainingSeconds)}`}
