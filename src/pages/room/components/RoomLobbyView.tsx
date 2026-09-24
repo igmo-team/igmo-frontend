@@ -96,82 +96,85 @@ export function RoomLobbyView({
           {socketErrorMessage && (
             <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
           )}
+          {isDeadlineExpired && (
+            <S_ActionGuide>입장 시간이 끝났어요</S_ActionGuide>
+          )}
+          {!isDeadlineExpired && (
+            <>
+              {isHost && (
+                <>
+                  {!isSocketConnected && (
+                    <S_ActionGuide>
+                      실시간 연결을 확인하고 있어요
+                    </S_ActionGuide>
+                  )}
+                  {isSocketConnected && !allGuestsReady && (
+                    <S_ActionGuide>
+                      모든 참가자가 준비하면 시작할 수 있어요
+                    </S_ActionGuide>
+                  )}
+                  {isSocketConnected &&
+                    allGuestsReady &&
+                    snapshot.players.length < minPlayersToStart && (
+                      <S_ActionGuide>
+                        게임을 시작하려면 최소 {minPlayersToStart}명이 필요해요
+                      </S_ActionGuide>
+                    )}
+                  {isSocketConnected &&
+                    allGuestsReady &&
+                    snapshot.players.length >= minPlayersToStart && (
+                      <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
+                    )}
+                </>
+              )}
+              {!isHost && (
+                <>
+                  {!isSocketConnected && (
+                    <S_ActionGuide>
+                      실시간 연결을 확인하고 있어요
+                    </S_ActionGuide>
+                  )}
+                  {isSocketConnected && currentPlayer?.ready && (
+                    <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
+                  )}
+                  {isSocketConnected && !currentPlayer?.ready && (
+                    <S_ActionGuide>준비되면 버튼을 눌러주세요</S_ActionGuide>
+                  )}
+                </>
+              )}
+            </>
+          )}
           {isHost ? (
-            <>
-              {isDeadlineExpired && (
-                <S_ActionGuide>입장 시간이 끝났어요</S_ActionGuide>
-              )}
-              {!isDeadlineExpired && !isSocketConnected && (
-                <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
-              )}
-              {!isDeadlineExpired && isSocketConnected && !allGuestsReady && (
-                <S_ActionGuide>
-                  모든 참가자가 준비하면 시작할 수 있어요
-                </S_ActionGuide>
-              )}
-              {!isDeadlineExpired &&
-                isSocketConnected &&
-                allGuestsReady &&
-                snapshot.players.length < minPlayersToStart && (
-                  <S_ActionGuide>
-                    게임을 시작하려면 최소 {minPlayersToStart}명이 필요해요
-                  </S_ActionGuide>
-                )}
-              {!isDeadlineExpired &&
-                isSocketConnected &&
-                allGuestsReady &&
-                snapshot.players.length >= minPlayersToStart && (
-                  <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
-                )}
-              <Button
-                type="button"
-                disabled={
-                  isLeavePending ||
-                  isDeadlineExpired ||
-                  !allGuestsReady ||
-                  snapshot.players.length < minPlayersToStart ||
-                  !isSocketConnected
-                }
-                onClick={onStart}
-              >
-                시작하기
-              </Button>
-            </>
+            <Button
+              type="button"
+              disabled={
+                isLeavePending ||
+                isDeadlineExpired ||
+                !allGuestsReady ||
+                snapshot.players.length < minPlayersToStart ||
+                !isSocketConnected
+              }
+              onClick={onStart}
+            >
+              시작하기
+            </Button>
           ) : (
-            <>
-              {isDeadlineExpired && (
-                <S_ActionGuide>입장 시간이 끝났어요</S_ActionGuide>
-              )}
-              {!isDeadlineExpired && !isSocketConnected && (
-                <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
-              )}
-              {!isDeadlineExpired &&
-                isSocketConnected &&
-                currentPlayer?.ready && (
-                  <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
-                )}
-              {!isDeadlineExpired &&
-                isSocketConnected &&
-                !currentPlayer?.ready && (
-                  <S_ActionGuide>준비되면 버튼을 눌러주세요</S_ActionGuide>
-                )}
-              <Button
-                type="button"
-                disabled={
-                  isLeavePending ||
-                  !currentPlayer ||
-                  !isSocketConnected ||
-                  isDeadlineExpired
+            <Button
+              type="button"
+              disabled={
+                isLeavePending ||
+                !currentPlayer ||
+                !isSocketConnected ||
+                isDeadlineExpired
+              }
+              onClick={() => {
+                if (currentPlayer) {
+                  onReadyButtonClick(!currentPlayer.ready);
                 }
-                onClick={() => {
-                  if (currentPlayer) {
-                    onReadyButtonClick(!currentPlayer.ready);
-                  }
-                }}
-              >
-                {currentPlayer?.ready ? '준비 해제' : '준비하기'}
-              </Button>
-            </>
+              }}
+            >
+              {currentPlayer?.ready ? '준비 해제' : '준비하기'}
+            </Button>
           )}
           <Button
             type="button"
