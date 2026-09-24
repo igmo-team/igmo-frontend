@@ -33,6 +33,9 @@ test('스모크: 구독 시 LOBBY_SNAPSHOT replay로 로비가 연결 상태로 
 
   // 로비에 인원수가 보이고,
   await expect(page.getByText('플레이어 2명')).toBeVisible();
+  await expect(
+    page.getByText('시간 안에 시작하지 않으면 방이 사라져요'),
+  ).toBeVisible();
   // 소켓이 연결됐으므로 끊김 문구는 없어야 한다.
   await expect(
     page.getByText('실시간 연결을 확인하고 있어요'),

@@ -7,6 +7,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
+import { showGameToast } from '../../common/lib/toast';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { isRoomCodeValid } from '../../domain/room/roomCode';
 
@@ -27,7 +28,6 @@ import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomAnalytics } from './hooks/useRoomAnalytics';
 import { useRoomSocket } from './hooks/useRoomSocket';
-import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import {
   getRoomHeaderRound,
@@ -117,8 +117,6 @@ export function RoomPage() {
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
 
-  const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const [leaveErrorMessage, setLeaveErrorMessage] = useState('');
 
@@ -173,6 +171,24 @@ export function RoomPage() {
       state: nextEntryState,
     });
   };
+
+  const handleLobbyDeadlineExpired = useCallback(() => {
+    const handleLobbyDeadlineToastClose = () => {
+      if (roomCode) {
+        deleteRoomSession(roomCode);
+      }
+
+      navigate(PAGE_URL.HOME, { replace: true });
+    };
+
+    showGameToast({
+      variant: 'info',
+      title: '입장 시간이 끝났어요',
+      body: '방이 사라져 홈으로 이동해요.',
+      onDismiss: handleLobbyDeadlineToastClose,
+      onAutoClose: handleLobbyDeadlineToastClose,
+    });
+  }, [navigate, roomCode]);
 
   const handleLeaveButtonClick = () => {
     if (!roomCode || !roomSession || isLeavePending) {
@@ -297,14 +313,13 @@ export function RoomPage() {
           currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
-          isCopied={isCopied}
           isSocketConnected={isConnected}
           socketErrorMessage={leaveErrorMessage || errorMessage}
-          onCopyButtonClick={copyUrl}
           onReadyButtonClick={handleReadyButtonClick}
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
           isLeavePending={isLeavePending}
+          onDeadlineExpired={handleLobbyDeadlineExpired}
         />
       </S_Page>
     );

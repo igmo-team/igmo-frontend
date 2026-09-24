@@ -44,6 +44,7 @@ export type RoomSnapshot = {
   roomCode: string;
   phase: RoomPhase;
   hostId: string;
+  lobbyDeadline: string;
   players: RoomPlayer[];
 };
 
