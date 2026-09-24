@@ -185,12 +185,37 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 room-state �
     // 브로커도 p1 연결 해제 인지(재접속 차단 중이라 안정적으로 끊김 유지).
     await expect.poll(() => broker.connections().sort()).toEqual(['p2', 'p3']);
 
-    // B·C: 영향 없음 — 현재 투표 상태/진행도 유지.
+    // A가 끊긴 동안 다음 라운드의 공유 상태와 개인 투표 공지가 발생한다.
+    // pushUserQueue는 연결이 없어도 공지를 저장하므로, 재연결 sync에서만 A에게 전달된다.
+    broker.pushTopic(
+      ROOM_CODE,
+      voteMessage({
+        roundNumber: 2,
+        voteOptions,
+        completedVoteCount: 0,
+        totalVoteCount: 2,
+      }),
+    );
+
+    broker.pushUserQueue('p1', '/user/queue/vote-own-option', {
+      ...noticeA,
+      roundNumber: 2,
+    });
+    broker.pushUserQueue('p2', '/user/queue/vote-own-option', {
+      ...noticeB,
+      roundNumber: 2,
+    });
+    broker.pushUserQueue('p3', '/user/queue/vote-own-option', {
+      ...noticeC,
+      roundNumber: 2,
+    });
+
+    // B·C: 영향 없음 — 연결이 유지된 플레이어는 다음 라운드 상태를 즉시 받는다.
     for (const page of [B.page, C.page]) {
       await expect(page.getByRole('heading', { name: '투표' })).toBeVisible();
-      await expect(page.getByLabel('투표 현황 2명 중 1명 완료')).toBeVisible();
+      await expect(page.getByLabel('투표 현황 2명 중 0명 완료')).toBeVisible();
     }
-    // B는 여전히 연결됨 — 옵션 선택 시 확정 버튼이 활성(활성화 조건에 isSocketConnected 포함).
+    // B는 여전히 연결됨 — 옵션 선택 시 확정 버튼이 활성.
     await B.page.getByRole('button', { name: /고양이/ }).click();
     await expect(
       B.page.getByRole('button', { name: '투표 확정' }),
@@ -198,9 +223,9 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 room-state �
   });
 
   // -------------------------------------------------------------------------
-  // 4) 재접속: visible 복귀 → sync 요청 → room-state 응답으로 뷰 완전 재구성
+  // 4) 재접속: visible 복귀 → sync 요청 → 공유·개인 상태 응답으로 뷰 완전 재구성
   // -------------------------------------------------------------------------
-  await test.step('재접속: phase 투표로 정확 복원 + 서버 진실 무손실', async () => {
+  await test.step('재접속: 공유·개인 투표 상태를 함께 복원', async () => {
     broker.allowReconnect('p1'); // 다음 재연결 시도가 성공.
 
     await A.page.evaluate(() => {
@@ -228,15 +253,17 @@ test('시나리오 3 — 연결 끊김→재접속: VOTING phase가 room-state �
     // 로비로 리셋되지 않았음(로비 전용 문구/인원수 없음).
     await expect(A.page.getByText(/^플레이어 \d+명$/)).toHaveCount(0);
 
-    // 서버 진실(A 표 포함 completedVoteCount=1) 무손실 복원.
-    await expect(A.page.getByLabel('투표 현황 2명 중 1명 완료')).toBeVisible();
-    // 투표 선택지도 그대로 복원(개인큐 공지 상태 유지 → 로딩중 아님).
+    // 서버가 보낸 다음 라운드의 공유 스냅샷을 복원.
+    await expect(A.page.getByLabel('투표 현황 2명 중 0명 완료')).toBeVisible();
+    // 연결 전에 놓친 개인 공지도 sync로 복원되어 투표 권한이 확정됨.
     await expect(A.page.getByText('강아지')).toBeVisible();
     await expect(
       A.page.getByText('투표 정보를 불러오는 중이에요.'),
     ).toHaveCount(0);
+    await expect(A.page.getByText('내 답')).toBeVisible();
 
-    // 재연결됨(isConnected=true) → 확정 버튼 재활성.
+    // 재연결됨(isConnected=true) + 개인 투표 상태 복원 → 투표 버튼 활성화.
+    await A.page.getByRole('button', { name: /강아지/ }).click();
     await expect(
       A.page.getByRole('button', { name: '투표 확정' }),
     ).toBeEnabled();
