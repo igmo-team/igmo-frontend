@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -50,6 +50,10 @@ export function RoomLobbyView({
     setIsDeadlineExpired(true);
     onDeadlineExpired();
   }, [onDeadlineExpired]);
+
+  useEffect(() => {
+    setIsDeadlineExpired(false);
+  }, [snapshot.lobbyDeadline]);
 
   return (
     <S_LobbyContent>
