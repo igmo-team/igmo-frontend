@@ -1,7 +1,10 @@
+import { useCallback } from 'react';
+
 import styled from '@emotion/styled';
 
 import { Button, Surface } from '../../../common/components';
 import { areAllGuestsReady } from '../../../domain/room/gameStart';
+import { useUrlCopy } from '../hooks/useUrlCopy';
 
 import { RoomLobbyDeadlineBanner } from './RoomLobbyDeadlineBanner';
 import { RoomPlayerList } from './RoomPlayerList';
@@ -13,10 +16,8 @@ type RoomLobbyViewProps = {
   currentPlayerId?: string;
   displayRoomCode: string;
   inviteLink: string;
-  isCopied: boolean;
   isSocketConnected: boolean;
   socketErrorMessage: string;
-  onCopyButtonClick: () => void;
   onReadyButtonClick: (nextReady: boolean) => void;
   onStart: () => void;
   onLeaveButtonClick: () => void;
@@ -29,28 +30,30 @@ export function RoomLobbyView({
   currentPlayerId,
   displayRoomCode,
   inviteLink,
-  isCopied,
   isSocketConnected,
   socketErrorMessage,
-  onCopyButtonClick,
   onReadyButtonClick,
   onStart,
   onLeaveButtonClick,
   isLeavePending,
   onDeadlineExpired,
 }: RoomLobbyViewProps) {
+  const { isCopied, copyUrl } = useUrlCopy(inviteLink);
   const currentPlayer = snapshot.players.find(
     (player) => player.id === currentPlayerId,
   );
   const isHost = currentPlayer?.id === snapshot.hostId;
   const allGuestsReady = areAllGuestsReady(snapshot);
   const minPlayersToStart = Number(import.meta.env.VITE_MIN_PLAYERS_TO_START);
+  const handleDeadlineExpired = useCallback(() => {
+    onDeadlineExpired();
+  }, [onDeadlineExpired]);
 
   return (
     <S_LobbyContent>
       <RoomLobbyDeadlineBanner
         deadline={snapshot.lobbyDeadline}
-        onDeadlineExpired={onDeadlineExpired}
+        onDeadlineExpired={handleDeadlineExpired}
       />
       <S_RoomCard padding="lg" shadow>
         <S_RoomHeader>
@@ -66,7 +69,7 @@ export function RoomLobbyView({
             size="sm"
             width="hug"
             disabled={!inviteLink}
-            onClick={onCopyButtonClick}
+            onClick={copyUrl}
           >
             {isCopied ? '복사됨!' : '링크 복사'}
           </S_CopyButton>

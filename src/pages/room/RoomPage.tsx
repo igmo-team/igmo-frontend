@@ -28,7 +28,6 @@ import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomAnalytics } from './hooks/useRoomAnalytics';
 import { useRoomSocket } from './hooks/useRoomSocket';
-import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import {
   getRoomHeaderRound,
@@ -117,8 +116,6 @@ export function RoomPage() {
   const inviteLink = displayRoomCode
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
-
-  const { isCopied, copyUrl } = useUrlCopy(inviteLink);
 
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const [leaveErrorMessage, setLeaveErrorMessage] = useState('');
@@ -313,10 +310,8 @@ export function RoomPage() {
           currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
-          isCopied={isCopied}
           isSocketConnected={isConnected}
           socketErrorMessage={leaveErrorMessage || errorMessage}
-          onCopyButtonClick={copyUrl}
           onReadyButtonClick={handleReadyButtonClick}
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
