@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import styled from '@emotion/styled';
 
@@ -13,24 +13,27 @@ export default function RoomLobbyDeadlineBanner({
   deadline,
   onDeadlineExpired,
 }: RoomLobbyDeadlineBannerProps) {
+  const expiredDeadlineTimeRef = useRef<number | null>(null);
   const remainingSeconds = useCountdownSeconds(deadline);
   const deadlineTime = getDeadlineTime(deadline);
   const displayTime = formatDisplayTime(remainingSeconds);
 
   useEffect(() => {
     if (deadlineTime === null) {
+      expiredDeadlineTimeRef.current = null;
       return;
     }
 
-    const timeoutId = setTimeout(
-      onDeadlineExpired,
-      Math.max(0, deadlineTime - Date.now()),
-    );
+    if (
+      remainingSeconds !== 0 ||
+      expiredDeadlineTimeRef.current === deadlineTime
+    ) {
+      return;
+    }
 
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [deadlineTime, onDeadlineExpired]);
+    expiredDeadlineTimeRef.current = deadlineTime;
+    onDeadlineExpired();
+  }, [deadlineTime, onDeadlineExpired, remainingSeconds]);
 
   return (
     <S_Banner>
