@@ -101,9 +101,7 @@ export function RoomLobbyView({
               {isHost && (
                 <>
                   {!isSocketConnected && (
-                    <S_ActionGuide>
-                      실시간 연결을 확인하고 있어요
-                    </S_ActionGuide>
+                    <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
                   )}
                   {isSocketConnected && !allGuestsReady && (
                     <S_ActionGuide>
@@ -127,9 +125,7 @@ export function RoomLobbyView({
               {!isHost && (
                 <>
                   {!isSocketConnected && (
-                    <S_ActionGuide>
-                      실시간 연결을 확인하고 있어요
-                    </S_ActionGuide>
+                    <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
                   )}
                   {isSocketConnected && currentPlayer?.ready && (
                     <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
