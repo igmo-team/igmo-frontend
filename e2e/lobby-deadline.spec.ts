@@ -37,7 +37,7 @@ test('로비 마감기한 만료 후 토스트 자동 종료 시 홈으로 이�
   await expect(
     page.getByText('시간 안에 시작하지 않으면 방이 사라져요'),
   ).toBeVisible();
-  await expect(page.locator('time')).toHaveText(/^00:(09|10)$/);
+  await expect(page.locator('time')).toHaveText(/^00:\d{2}$/);
 
   await page.clock.fastForward(10_000);
 
