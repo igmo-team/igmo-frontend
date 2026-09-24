@@ -151,6 +151,7 @@ export function useRoomSocket({
       }
 
       hasConnectedRef.current = true;
+      hasConnectionLostRef.current = false;
       hasReportedReconnectFailedRef.current = false;
 
       const handleRoomSnapshot = (messageBody: string) => {
@@ -307,10 +308,7 @@ export function useRoomSocket({
           client.publish({
             destination: `/app/rooms/${roomCode}/sync`,
           });
-
         }
-
-        hasConnectionLostRef.current = false;
       });
     };
 
