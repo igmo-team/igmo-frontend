@@ -12,6 +12,7 @@ import type {
 import type { TopicMessage } from '../broker/fakeStompBroker';
 
 const DEFAULT_ROOM_CODE = 'TEST01';
+const DEFAULT_LOBBY_DEADLINE_MS = 10 * 60 * 1000;
 
 /** 기본 3플레이어 프리셋. p1=철수(방장 기본), p2=영희, p3=민수. */
 export const PLAYER_PRESETS = {
@@ -54,6 +55,7 @@ export function buildLobbySnapshot(
     roomCode: DEFAULT_ROOM_CODE,
     phase: 'LOBBY',
     hostId: 'p1',
+    lobbyDeadline: isoFromNow(DEFAULT_LOBBY_DEADLINE_MS),
     players: [player('p1'), player('p2')],
     ...overrides,
   };
