@@ -28,6 +28,7 @@ export type GuessSubmissionPayload = {
 
 export type RoomMessageType =
   | 'LOBBY_SNAPSHOT'
+  | 'LOBBY_EXPIRED'
   | 'PROMPT_SUBMISSION_SNAPSHOT'
   | 'ROUND_SNAPSHOT'
   | 'VOTE_SNAPSHOT'
@@ -46,6 +47,11 @@ export type RoomSnapshot = {
   hostId: string;
   lobbyDeadline: string;
   players: RoomPlayer[];
+};
+
+export type LobbyExpiredSnapshot = {
+  type: 'LOBBY_EXPIRED';
+  roomCode: string;
 };
 
 export type PromptEntryStatus = 'WAITING' | 'GENERATING' | 'READY' | 'FAILED';
