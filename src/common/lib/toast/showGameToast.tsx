@@ -7,16 +7,7 @@ import type { GameToastProps } from '../../components/GameToast';
 const GAME_TOAST_DURATION_MS = 2400;
 const GAME_TOAST_ID = 'game-toast';
 
-type ShowGameToastOptions = GameToastProps & {
-  onDismiss?: () => void;
-  onAutoClose?: () => void;
-};
-
-export function showGameToast({
-  onDismiss,
-  onAutoClose,
-  ...message
-}: ShowGameToastOptions) {
+export function showGameToast(message: GameToastProps) {
   return toast.custom(
     () => (
       <GameToast
@@ -29,8 +20,6 @@ export function showGameToast({
     {
       duration: GAME_TOAST_DURATION_MS,
       id: GAME_TOAST_ID,
-      onDismiss,
-      onAutoClose,
     },
   );
 }
