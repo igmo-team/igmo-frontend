@@ -71,6 +71,7 @@ export function getRoomTimerRange({
       };
 
     case 'LOBBY_SNAPSHOT':
+    case 'LOBBY_EXPIRED':
     case 'GAME_RESULT_SNAPSHOT':
       return null;
   }

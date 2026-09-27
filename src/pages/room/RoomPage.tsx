@@ -156,7 +156,10 @@ export function RoomPage() {
     roomCode: displayRoomCode,
     currentPlayerId,
     currentSnapshot,
-    phase: currentSnapshot?.phase ?? 'LOBBY',
+    phase:
+      currentSnapshot?.type === 'LOBBY_EXPIRED'
+        ? 'LOBBY'
+        : (currentSnapshot?.phase ?? 'LOBBY'),
   });
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
@@ -172,23 +175,26 @@ export function RoomPage() {
     });
   };
 
-  const handleLobbyDeadlineExpired = useCallback(() => {
-    const handleLobbyDeadlineToastClose = () => {
-      if (roomCode) {
-        deleteRoomSession(roomCode);
-      }
+  useEffect(() => {
+    if (
+      currentSnapshot?.type !== 'LOBBY_EXPIRED' ||
+      currentSnapshot.roomCode !== roomCode
+    ) {
+      return;
+    }
 
-      navigate(PAGE_URL.HOME, { replace: true });
-    };
+    if (roomCode) {
+      deleteRoomSession(roomCode);
+    }
 
     showGameToast({
       variant: 'info',
       title: '입장 시간이 끝났어요',
       body: '방이 사라져 홈으로 이동해요.',
-      onDismiss: handleLobbyDeadlineToastClose,
-      onAutoClose: handleLobbyDeadlineToastClose,
     });
-  }, [navigate, roomCode]);
+
+    navigate(PAGE_URL.HOME, { replace: true });
+  }, [currentSnapshot, navigate, roomCode]);
 
   const handleLeaveButtonClick = () => {
     if (!roomCode || !roomSession || isLeavePending) {
@@ -220,7 +226,7 @@ export function RoomPage() {
   };
 
   const handleStart = () => {
-    if (isLeavePending || currentSnapshot?.phase !== 'LOBBY') {
+    if (isLeavePending || currentSnapshot?.type !== 'LOBBY_SNAPSHOT') {
       return;
     }
 
@@ -303,6 +309,10 @@ export function RoomPage() {
     );
   }
 
+  if (currentSnapshot.type === 'LOBBY_EXPIRED') {
+    return null;
+  }
+
   const { phase } = currentSnapshot;
 
   if (phase === 'LOBBY') {
@@ -319,7 +329,6 @@ export function RoomPage() {
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
           isLeavePending={isLeavePending}
-          onDeadlineExpired={handleLobbyDeadlineExpired}
         />
       </S_Page>
     );

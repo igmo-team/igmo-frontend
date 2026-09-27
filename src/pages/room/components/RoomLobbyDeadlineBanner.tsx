@@ -1,39 +1,16 @@
-import { useEffect, useRef } from 'react';
-
 import styled from '@emotion/styled';
 
 import { useCountdownSeconds } from '../hooks/useCountdownSeconds';
 
 type RoomLobbyDeadlineBannerProps = {
   deadline: string;
-  onDeadlineExpired: () => void;
 };
 
 export default function RoomLobbyDeadlineBanner({
   deadline,
-  onDeadlineExpired,
 }: RoomLobbyDeadlineBannerProps) {
-  const expiredDeadlineTimeRef = useRef<number | null>(null);
   const remainingSeconds = useCountdownSeconds(deadline);
-  const deadlineTime = getDeadlineTime(deadline);
   const displayTime = formatDisplayTime(remainingSeconds);
-
-  useEffect(() => {
-    if (deadlineTime === null) {
-      expiredDeadlineTimeRef.current = null;
-      return;
-    }
-
-    if (
-      remainingSeconds !== 0 ||
-      expiredDeadlineTimeRef.current === deadlineTime
-    ) {
-      return;
-    }
-
-    expiredDeadlineTimeRef.current = deadlineTime;
-    onDeadlineExpired();
-  }, [deadlineTime, onDeadlineExpired, remainingSeconds]);
 
   return (
     <S_Banner>
@@ -59,12 +36,6 @@ function formatAccessibleTime(totalSeconds: number) {
   const seconds = totalSeconds % 60;
 
   return `${minutes}분 ${seconds}초`;
-}
-
-function getDeadlineTime(deadline: string) {
-  const deadlineTime = new Date(deadline).getTime();
-
-  return Number.isNaN(deadlineTime) ? null : deadlineTime;
 }
 
 const S_Banner = styled.div`

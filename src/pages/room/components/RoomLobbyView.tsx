@@ -1,5 +1,3 @@
-import { useCallback, useState } from 'react';
-
 import styled from '@emotion/styled';
 
 import { Button, Surface } from '../../../common/components';
@@ -22,7 +20,6 @@ type RoomLobbyViewProps = {
   onStart: () => void;
   onLeaveButtonClick: () => void;
   isLeavePending: boolean;
-  onDeadlineExpired: () => void;
 };
 
 export function RoomLobbyView({
@@ -36,28 +33,18 @@ export function RoomLobbyView({
   onStart,
   onLeaveButtonClick,
   isLeavePending,
-  onDeadlineExpired,
 }: RoomLobbyViewProps) {
   const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-  const [expiredDeadline, setExpiredDeadline] = useState<string | null>(null);
   const currentPlayer = snapshot.players.find(
     (player) => player.id === currentPlayerId,
   );
-  const isDeadlineExpired = expiredDeadline === snapshot.lobbyDeadline;
   const isHost = currentPlayer?.id === snapshot.hostId;
   const allGuestsReady = areAllGuestsReady(snapshot);
   const minPlayersToStart = Number(import.meta.env.VITE_MIN_PLAYERS_TO_START);
-  const handleDeadlineExpired = useCallback(() => {
-    setExpiredDeadline(snapshot.lobbyDeadline);
-    onDeadlineExpired();
-  }, [onDeadlineExpired, snapshot.lobbyDeadline]);
 
   return (
     <S_LobbyContent>
-      <RoomLobbyDeadlineBanner
-        deadline={snapshot.lobbyDeadline}
-        onDeadlineExpired={handleDeadlineExpired}
-      />
+      <RoomLobbyDeadlineBanner deadline={snapshot.lobbyDeadline} />
       <S_RoomCard padding="lg" shadow>
         <S_RoomHeader>
           <S_SectionLabel>방 코드</S_SectionLabel>
@@ -93,47 +80,39 @@ export function RoomLobbyView({
           {socketErrorMessage && (
             <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
           )}
-          {isDeadlineExpired && (
-            <S_ActionGuide>입장 시간이 끝났어요</S_ActionGuide>
-          )}
-          {!isDeadlineExpired && (
+          {isHost ? (
             <>
-              {isHost && (
-                <>
-                  {!isSocketConnected && (
-                    <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
-                  )}
-                  {isSocketConnected && !allGuestsReady && (
-                    <S_ActionGuide>
-                      모든 참가자가 준비하면 시작할 수 있어요
-                    </S_ActionGuide>
-                  )}
-                  {isSocketConnected &&
-                    allGuestsReady &&
-                    snapshot.players.length < minPlayersToStart && (
-                      <S_ActionGuide>
-                        게임을 시작하려면 최소 {minPlayersToStart}명이 필요해요
-                      </S_ActionGuide>
-                    )}
-                  {isSocketConnected &&
-                    allGuestsReady &&
-                    snapshot.players.length >= minPlayersToStart && (
-                      <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
-                    )}
-                </>
+              {!isSocketConnected && (
+                <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
               )}
-              {!isHost && (
-                <>
-                  {!isSocketConnected && (
-                    <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
-                  )}
-                  {isSocketConnected && currentPlayer?.ready && (
-                    <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
-                  )}
-                  {isSocketConnected && !currentPlayer?.ready && (
-                    <S_ActionGuide>준비되면 버튼을 눌러주세요</S_ActionGuide>
-                  )}
-                </>
+              {isSocketConnected && !allGuestsReady && (
+                <S_ActionGuide>
+                  모든 참가자가 준비하면 시작할 수 있어요
+                </S_ActionGuide>
+              )}
+              {isSocketConnected &&
+                allGuestsReady &&
+                snapshot.players.length < minPlayersToStart && (
+                  <S_ActionGuide>
+                    게임을 시작하려면 최소 {minPlayersToStart}명이 필요해요
+                  </S_ActionGuide>
+                )}
+              {isSocketConnected &&
+                allGuestsReady &&
+                snapshot.players.length >= minPlayersToStart && (
+                  <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
+                )}
+            </>
+          ) : (
+            <>
+              {!isSocketConnected && (
+                <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
+              )}
+              {isSocketConnected && currentPlayer?.ready && (
+                <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
+              )}
+              {isSocketConnected && !currentPlayer?.ready && (
+                <S_ActionGuide>준비되면 버튼을 눌러주세요</S_ActionGuide>
               )}
             </>
           )}
@@ -142,7 +121,6 @@ export function RoomLobbyView({
               type="button"
               disabled={
                 isLeavePending ||
-                isDeadlineExpired ||
                 !allGuestsReady ||
                 snapshot.players.length < minPlayersToStart ||
                 !isSocketConnected
@@ -154,12 +132,7 @@ export function RoomLobbyView({
           ) : (
             <Button
               type="button"
-              disabled={
-                isLeavePending ||
-                !currentPlayer ||
-                !isSocketConnected ||
-                isDeadlineExpired
-              }
+              disabled={isLeavePending || !currentPlayer || !isSocketConnected}
               onClick={() => {
                 if (currentPlayer) {
                   onReadyButtonClick(!currentPlayer.ready);

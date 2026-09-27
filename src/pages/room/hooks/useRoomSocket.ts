@@ -18,6 +18,7 @@ import type {
   ImageGenerationSnapshot,
   OwnVoteOptionNotice,
   PromptSubmissionPayload,
+  RoomPhase,
   RoomSnapshot,
   RoomTopicSnapshot,
 } from '../../../domain/room/types';
@@ -67,7 +68,10 @@ export function useRoomSocket({
     [initialSnapshot],
   );
   const currentSnapshot = receivedSnapshot ?? initialTopicSnapshot;
-  const phase = currentSnapshot?.phase ?? 'LOBBY';
+  const phase: RoomPhase =
+    currentSnapshot?.type === 'LOBBY_EXPIRED'
+      ? 'LOBBY'
+      : (currentSnapshot?.phase ?? 'LOBBY');
   const [guessSubmissionSnapshot, setGuessSubmissionSnapshot] =
     useState<GuessSubmissionSnapshot | null>(null);
   const [isCountdownTriggered, setIsCountdownTriggered] = useState(false);
@@ -162,6 +166,11 @@ export function useRoomSocket({
         }
 
         setReceivedSnapshot(nextSnapshot);
+
+        if (nextSnapshot.type === 'LOBBY_EXPIRED') {
+          return;
+        }
+
         setErrorMessage('');
 
         switch (nextSnapshot.type) {

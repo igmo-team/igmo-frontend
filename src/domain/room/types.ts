@@ -189,6 +189,7 @@ export type GameResultSnapshot = {
 
 export type RoomTopicSnapshot =
   | ({ type: 'LOBBY_SNAPSHOT'; phase: 'LOBBY' } & RoomSnapshot)
+  | LobbyExpiredSnapshot
   | ({ type: 'ROUND_SNAPSHOT'; phase: 'PLAYING' } & RoundSnapshot)
   | ({ type: 'PROMPT_SUBMISSION_SNAPSHOT'; phase: 'GENERATING' } & PromptSubmissionSnapshot)
   | ({ type: 'VOTE_SNAPSHOT'; phase: 'VOTING' } & VoteSnapshot)

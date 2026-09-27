@@ -228,6 +228,12 @@ export function lobbyMessage(
   return { type: 'LOBBY_SNAPSHOT', payload: buildLobbySnapshot(overrides) };
 }
 
+export function lobbyExpiredMessage(
+  roomCode = DEFAULT_ROOM_CODE,
+): TopicMessage {
+  return { type: 'LOBBY_EXPIRED', payload: { roomCode } };
+}
+
 export function promptSubmissionMessage(
   overrides?: Partial<PromptSubmissionSnapshot>,
 ): TopicMessage {
