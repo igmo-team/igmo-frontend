@@ -284,11 +284,7 @@ export function useRoomSocket({
         setErrorMessage(parseSocketError(message.body));
       });
 
-      if (!isActive || !client.connected) {
-        return;
-      }
-
-      if (isReconnect) {
+      if (isReconnect && client.connected) {
         client.publish({
           destination: `/app/rooms/${roomCode}/sync`,
         });
