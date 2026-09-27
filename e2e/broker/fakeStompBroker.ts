@@ -163,16 +163,6 @@ export class FakeStompBroker {
         this.sendMessage(connection, id, destination, JSON.stringify(snapshot));
       }
     }
-
-    const receiptId = frame.headers.receipt;
-    if (receiptId) {
-      connection.route.send(
-        encodeFrame({
-          command: 'RECEIPT',
-          headers: { 'receipt-id': receiptId },
-        }),
-      );
-    }
   }
 
   private handleSend(connection: Connection, frame: StompFrame): void {
