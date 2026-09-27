@@ -1,4 +1,5 @@
 import { isGameResultSnapshot } from './parseGameResultSnapshot';
+import { isLobbyExpiredSnapshot } from './parseLobbyExpiredSnapshot';
 import { isPromptSubmissionSnapshot } from './parsePromptSubmissionSnapshot';
 import { isRoomSnapshot } from './parseRoomSnapshot';
 import { isRoundResultSnapshot } from './parseRoundResultSnapshot';
@@ -19,6 +20,10 @@ export function parseRoomTopicSnapshot(body: string): RoomTopicSnapshot | null {
       case 'LOBBY_SNAPSHOT':
         return isRoomSnapshot(data.payload)
           ? { ...data.payload, type: data.type, phase: 'LOBBY' }
+          : null;
+      case 'LOBBY_EXPIRED':
+        return isLobbyExpiredSnapshot(data.payload)
+          ? { ...data.payload, type: data.type }
           : null;
       case 'ROUND_SNAPSHOT':
         return isRoundSnapshot(data.payload)

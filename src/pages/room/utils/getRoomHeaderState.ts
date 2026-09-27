@@ -25,6 +25,7 @@ export function getRoomHeaderRound(roomSocket: RoomSocket) {
       return currentSnapshot.roundNumber;
 
     case 'LOBBY_SNAPSHOT':
+    case 'LOBBY_EXPIRED':
     case 'PROMPT_SUBMISSION_SNAPSHOT':
     case 'GAME_RESULT_SNAPSHOT':
       return undefined;
@@ -82,6 +83,9 @@ function getRoomHeaderPlayers(roomSocket: RoomSocket): RoomPlayer[] {
 
     case 'LOBBY_SNAPSHOT':
       return currentSnapshot.players;
+
+    case 'LOBBY_EXPIRED':
+      return [];
 
     case 'VOTE_SNAPSHOT':
       return [];

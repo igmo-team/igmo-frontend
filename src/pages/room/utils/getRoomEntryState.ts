@@ -1,3 +1,5 @@
+import { isRoomSnapshot } from './parseRoomSnapshot';
+
 import type { RoomSnapshot } from '../../../domain/room/types';
 
 export type RoomEntryState = {
@@ -17,9 +19,7 @@ export function getRoomEntryState(state: unknown): RoomEntryState | null {
   if (
     typeof maybeState.playerId !== 'string' ||
     typeof maybeState.secret !== 'string' ||
-    !maybeSnapshot ||
-    typeof maybeSnapshot.roomCode !== 'string' ||
-    !Array.isArray(maybeSnapshot.players)
+    !isRoomSnapshot(maybeSnapshot)
   ) {
     return null;
   }

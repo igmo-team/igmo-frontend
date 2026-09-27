@@ -150,6 +150,8 @@ function getPlayerCount(
     case 'LOBBY_SNAPSHOT':
     case 'ROUND_RESULT_SNAPSHOT':
       return snapshot.players.length;
+    case 'LOBBY_EXPIRED':
+      return undefined;
     case 'PROMPT_SUBMISSION_SNAPSHOT':
       return snapshot.promptEntries.length;
     case 'ROUND_SNAPSHOT':

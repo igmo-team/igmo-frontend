@@ -11,6 +11,7 @@ export function isRoomSnapshot(value: unknown): value is RoomSnapshot {
     typeof snapshot.roomCode === 'string' &&
     snapshot.phase === 'LOBBY' &&
     typeof snapshot.hostId === 'string' &&
+    typeof snapshot.lobbyDeadline === 'string' &&
     Array.isArray(snapshot.players)
   );
 }

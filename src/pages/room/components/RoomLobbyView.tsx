@@ -2,7 +2,9 @@ import styled from '@emotion/styled';
 
 import { Button, Surface } from '../../../common/components';
 import { areAllGuestsReady } from '../../../domain/room/gameStart';
+import { useUrlCopy } from '../hooks/useUrlCopy';
 
+import RoomLobbyDeadlineBanner from './RoomLobbyDeadlineBanner';
 import { RoomPlayerList } from './RoomPlayerList';
 
 import type { RoomSnapshot } from '../../../domain/room/types';
@@ -12,10 +14,8 @@ type RoomLobbyViewProps = {
   currentPlayerId?: string;
   displayRoomCode: string;
   inviteLink: string;
-  isCopied: boolean;
   isSocketConnected: boolean;
   socketErrorMessage: string;
-  onCopyButtonClick: () => void;
   onReadyButtonClick: (nextReady: boolean) => void;
   onStart: () => void;
   onLeaveButtonClick: () => void;
@@ -27,15 +27,14 @@ export function RoomLobbyView({
   currentPlayerId,
   displayRoomCode,
   inviteLink,
-  isCopied,
   isSocketConnected,
   socketErrorMessage,
-  onCopyButtonClick,
   onReadyButtonClick,
   onStart,
   onLeaveButtonClick,
   isLeavePending,
 }: RoomLobbyViewProps) {
+  const { isCopied, copyUrl } = useUrlCopy(inviteLink);
   const currentPlayer = snapshot.players.find(
     (player) => player.id === currentPlayerId,
   );
@@ -44,63 +43,80 @@ export function RoomLobbyView({
   const minPlayersToStart = Number(import.meta.env.VITE_MIN_PLAYERS_TO_START);
 
   return (
-    <S_RoomCard padding="lg" shadow>
-      <S_RoomHeader>
-        <S_SectionLabel>방 코드</S_SectionLabel>
-        <S_RoomCode>{displayRoomCode}</S_RoomCode>
-      </S_RoomHeader>
+    <S_LobbyContent>
+      <RoomLobbyDeadlineBanner deadline={snapshot.lobbyDeadline} />
+      <S_RoomCard padding="lg" shadow>
+        <S_RoomHeader>
+          <S_SectionLabel>방 코드</S_SectionLabel>
+          <S_RoomCode>{displayRoomCode}</S_RoomCode>
+        </S_RoomHeader>
 
-      <S_InviteBox>
-        <S_InviteLink>{inviteLink}</S_InviteLink>
-        <S_CopyButton
-          type="button"
-          variant="dark"
-          size="sm"
-          width="hug"
-          disabled={!inviteLink}
-          onClick={onCopyButtonClick}
-        >
-          {isCopied ? '복사됨!' : '링크 복사'}
-        </S_CopyButton>
-      </S_InviteBox>
+        <S_InviteBox>
+          <S_InviteLink>{inviteLink}</S_InviteLink>
+          <S_CopyButton
+            type="button"
+            variant="dark"
+            size="sm"
+            width="hug"
+            disabled={!inviteLink}
+            onClick={copyUrl}
+          >
+            {isCopied ? '복사됨!' : '링크 복사'}
+          </S_CopyButton>
+        </S_InviteBox>
 
-      <S_PlayerHeader>
-        <S_PlayerTitle>플레이어 {snapshot.players.length}명</S_PlayerTitle>
-        <S_PlayerGuide>친구에게 링크를 공유하세요</S_PlayerGuide>
-      </S_PlayerHeader>
+        <S_PlayerHeader>
+          <S_PlayerTitle>플레이어 {snapshot.players.length}명</S_PlayerTitle>
+          <S_PlayerGuide>친구에게 링크를 공유하세요</S_PlayerGuide>
+        </S_PlayerHeader>
 
-      <RoomPlayerList
-        players={snapshot.players}
-        hostId={snapshot.hostId}
-        currentPlayerId={currentPlayerId}
-      />
+        <RoomPlayerList
+          players={snapshot.players}
+          hostId={snapshot.hostId}
+          currentPlayerId={currentPlayerId}
+        />
 
-      <S_ActionGroup>
-        {socketErrorMessage && (
-          <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
-        )}
-        {isHost ? (
-          <>
-            {!isSocketConnected && (
-              <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
-            )}
-            {isSocketConnected && !allGuestsReady && (
-              <S_ActionGuide>
-                모든 참가자가 준비하면 시작할 수 있어요
-              </S_ActionGuide>
-            )}
-            {isSocketConnected &&
-              allGuestsReady &&
-              snapshot.players.length < minPlayersToStart && (
+        <S_ActionGroup>
+          {socketErrorMessage && (
+            <S_ErrorMessage role="alert">{socketErrorMessage}</S_ErrorMessage>
+          )}
+          {isHost ? (
+            <>
+              {!isSocketConnected && (
+                <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
+              )}
+              {isSocketConnected && !allGuestsReady && (
                 <S_ActionGuide>
-                  게임을 시작하려면 최소 {minPlayersToStart}명이 필요해요
+                  모든 참가자가 준비하면 시작할 수 있어요
                 </S_ActionGuide>
               )}
-            {isSocketConnected &&
-              allGuestsReady &&
-              snapshot.players.length >= minPlayersToStart && (
-                <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
+              {isSocketConnected &&
+                allGuestsReady &&
+                snapshot.players.length < minPlayersToStart && (
+                  <S_ActionGuide>
+                    게임을 시작하려면 최소 {minPlayersToStart}명이 필요해요
+                  </S_ActionGuide>
+                )}
+              {isSocketConnected &&
+                allGuestsReady &&
+                snapshot.players.length >= minPlayersToStart && (
+                  <S_ActionGuide>게임을 시작할 수 있어요</S_ActionGuide>
+                )}
+            </>
+          ) : (
+            <>
+              {!isSocketConnected && (
+                <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
               )}
+              {isSocketConnected && currentPlayer?.ready && (
+                <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
+              )}
+              {isSocketConnected && !currentPlayer?.ready && (
+                <S_ActionGuide>준비되면 버튼을 눌러주세요</S_ActionGuide>
+              )}
+            </>
+          )}
+          {isHost ? (
             <Button
               type="button"
               disabled={
@@ -113,23 +129,10 @@ export function RoomLobbyView({
             >
               시작하기
             </Button>
-          </>
-        ) : (
-          <>
-            {!isSocketConnected && (
-              <S_ActionGuide>실시간 연결을 확인하고 있어요</S_ActionGuide>
-            )}
-            {isSocketConnected && currentPlayer?.ready && (
-              <S_ActionGuide>준비 완료 상태예요</S_ActionGuide>
-            )}
-            {isSocketConnected && !currentPlayer?.ready && (
-              <S_ActionGuide>준비되면 버튼을 눌러주세요</S_ActionGuide>
-            )}
+          ) : (
             <Button
               type="button"
-              disabled={
-                isLeavePending || !currentPlayer || !isSocketConnected
-              }
+              disabled={isLeavePending || !currentPlayer || !isSocketConnected}
               onClick={() => {
                 if (currentPlayer) {
                   onReadyButtonClick(!currentPlayer.ready);
@@ -138,25 +141,32 @@ export function RoomLobbyView({
             >
               {currentPlayer?.ready ? '준비 해제' : '준비하기'}
             </Button>
-          </>
-        )}
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          disabled={isLeavePending}
-          onClick={onLeaveButtonClick}
-        >
-          {isLeavePending ? '나가는 중...' : '나가기'}
-        </Button>
-      </S_ActionGroup>
-    </S_RoomCard>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            disabled={isLeavePending}
+            onClick={onLeaveButtonClick}
+          >
+            {isLeavePending ? '나가는 중...' : '나가기'}
+          </Button>
+        </S_ActionGroup>
+      </S_RoomCard>
+    </S_LobbyContent>
   );
 }
 
+const S_LobbyContent = styled.div`
+  display: flex;
+  width: 100%;
+  max-width: 56rem;
+  flex-direction: column;
+  gap: 1.2rem;
+`;
+
 const S_RoomCard = styled(Surface)`
   display: flex;
-  max-width: 56rem;
   flex-direction: column;
 `;
 

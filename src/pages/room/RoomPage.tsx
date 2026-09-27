@@ -7,6 +7,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { Surface } from '../../common/components';
 import { PAGE_URL } from '../../common/constants/pageUrl';
+import { showGameToast } from '../../common/lib/toast';
 import { areAllGuestsReady } from '../../domain/room/gameStart';
 import { isRoomCodeValid } from '../../domain/room/roomCode';
 
@@ -27,7 +28,6 @@ import { RoomVotingView } from './components/RoomVotingView';
 import { useCountdownSeconds } from './hooks/useCountdownSeconds';
 import { useRoomAnalytics } from './hooks/useRoomAnalytics';
 import { useRoomSocket } from './hooks/useRoomSocket';
-import { useUrlCopy } from './hooks/useUrlCopy';
 import { getRoomEntryState } from './utils/getRoomEntryState';
 import {
   getRoomHeaderRound,
@@ -117,8 +117,6 @@ export function RoomPage() {
     ? `${window.location.origin}${PAGE_URL.ROOM}/${displayRoomCode}`
     : '';
 
-  const { isCopied, copyUrl } = useUrlCopy(inviteLink);
-
   const [isCountdownDone, setIsCountdownDone] = useState(false);
   const [leaveErrorMessage, setLeaveErrorMessage] = useState('');
 
@@ -158,7 +156,10 @@ export function RoomPage() {
     roomCode: displayRoomCode,
     currentPlayerId,
     currentSnapshot,
-    phase: currentSnapshot?.phase ?? 'LOBBY',
+    phase:
+      currentSnapshot?.type === 'LOBBY_EXPIRED'
+        ? 'LOBBY'
+        : (currentSnapshot?.phase ?? 'LOBBY'),
   });
 
   const handleGuestEntrySuccess = (nextEntryState: RoomEntryState) => {
@@ -173,6 +174,27 @@ export function RoomPage() {
       state: nextEntryState,
     });
   };
+
+  useEffect(() => {
+    if (
+      currentSnapshot?.type !== 'LOBBY_EXPIRED' ||
+      currentSnapshot.roomCode !== roomCode
+    ) {
+      return;
+    }
+
+    if (roomCode) {
+      deleteRoomSession(roomCode);
+    }
+
+    showGameToast({
+      variant: 'info',
+      title: '입장 시간이 끝났어요',
+      body: '방이 사라져 홈으로 이동해요.',
+    });
+
+    navigate(PAGE_URL.HOME, { replace: true });
+  }, [currentSnapshot, navigate, roomCode]);
 
   const handleLeaveButtonClick = () => {
     if (!roomCode || !roomSession || isLeavePending) {
@@ -204,7 +226,7 @@ export function RoomPage() {
   };
 
   const handleStart = () => {
-    if (isLeavePending || currentSnapshot?.phase !== 'LOBBY') {
+    if (isLeavePending || currentSnapshot?.type !== 'LOBBY_SNAPSHOT') {
       return;
     }
 
@@ -287,6 +309,10 @@ export function RoomPage() {
     );
   }
 
+  if (currentSnapshot.type === 'LOBBY_EXPIRED') {
+    return null;
+  }
+
   const { phase } = currentSnapshot;
 
   if (phase === 'LOBBY') {
@@ -297,10 +323,8 @@ export function RoomPage() {
           currentPlayerId={currentPlayerId}
           displayRoomCode={displayRoomCode}
           inviteLink={inviteLink}
-          isCopied={isCopied}
           isSocketConnected={isConnected}
           socketErrorMessage={leaveErrorMessage || errorMessage}
-          onCopyButtonClick={copyUrl}
           onReadyButtonClick={handleReadyButtonClick}
           onStart={handleStart}
           onLeaveButtonClick={handleLeaveButtonClick}
