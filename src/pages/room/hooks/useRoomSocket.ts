@@ -165,6 +165,13 @@ export function useRoomSocket({
           return;
         }
 
+        if (
+          nextSnapshot.type === 'LOBBY_EXPIRED' &&
+          nextSnapshot.roomCode !== roomCode
+        ) {
+          return;
+        }
+
         setReceivedSnapshot(nextSnapshot);
 
         if (nextSnapshot.type === 'LOBBY_EXPIRED') {

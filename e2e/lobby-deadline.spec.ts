@@ -55,3 +55,45 @@ test('서버가 로비 만료 이벤트를 보내면 토스트 표시 후 홈으
 
   await context.close();
 });
+
+test('다른 방의 로비 만료 이벤트는 현재 방을 종료하지 않는다', async ({
+  browser,
+}) => {
+  const broker = new FakeStompBroker();
+  const context = await browser.newContext();
+  await broker.attach(context);
+
+  const page = await context.newPage();
+  await seedRoomSession(page, {
+    roomCode: ROOM_CODE,
+    playerId: PLAYER_ID,
+    secret: 's1',
+  });
+
+  broker.pushTopic(
+    ROOM_CODE,
+    lobbyMessage({
+      players: [player('p1'), player('p2', { ready: true })],
+    }),
+  );
+
+  await page.goto(`/room/${ROOM_CODE}`);
+
+  await expect(
+    page.getByText('시간 안에 시작하지 않으면 방이 사라져요'),
+  ).toBeVisible();
+
+  broker.pushTopic(ROOM_CODE, lobbyExpiredMessage('OTHER1'));
+
+  await expect(
+    page.getByText('시간 안에 시작하지 않으면 방이 사라져요'),
+  ).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/room/${ROOM_CODE}`));
+  await expect(
+    page
+      .getByRole('region', { name: /Notifications/ })
+      .getByText('입장 시간이 끝났어요'),
+  ).not.toBeVisible();
+
+  await context.close();
+});
