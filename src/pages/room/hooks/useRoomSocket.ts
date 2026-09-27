@@ -83,6 +83,9 @@ export function useRoomSocket({
   const hasConnectedRef = useRef(false);
   const hasConnectionLostRef = useRef(false);
   const hasReportedReconnectFailedRef = useRef(false);
+  const visibilityReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const socketAnalyticsPropertiesRef = useRef({
     room_code: roomCode,
     player_id: roomSession?.playerId,
@@ -135,10 +138,13 @@ export function useRoomSocket({
         return;
       }
 
+      const isReconnect =
+        hasConnectedRef.current && hasConnectionLostRef.current;
+
       setIsConnected(true);
       setErrorMessage('');
 
-      if (hasConnectionLostRef.current) {
+      if (isReconnect) {
         captureAnalyticsEvent('socket_reconnected', {
           ...socketAnalyticsPropertiesRef.current,
         });
@@ -148,14 +154,14 @@ export function useRoomSocket({
       hasConnectionLostRef.current = false;
       hasReportedReconnectFailedRef.current = false;
 
-      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+      const handleRoomSnapshot = (messageBody: string) => {
         if (!isActive) {
           return;
         }
 
         lastMessageReceivedAtRef.current = Date.now();
 
-        const nextSnapshot = parseRoomTopicSnapshot(message.body);
+        const nextSnapshot = parseRoomTopicSnapshot(messageBody);
 
         if (!nextSnapshot) {
           return;
@@ -195,6 +201,14 @@ export function useRoomSocket({
             setGuessSubmissionSnapshot(null);
             break;
         }
+      };
+
+      client.subscribe(`/topic/rooms/${roomCode}`, (message) => {
+        handleRoomSnapshot(message.body);
+      });
+
+      client.subscribe('/user/queue/room-state', (message) => {
+        handleRoomSnapshot(message.body);
       });
 
       client.subscribe('/user/queue/image-generation', (message) => {
@@ -269,6 +283,12 @@ export function useRoomSocket({
         lastMessageReceivedAtRef.current = Date.now();
         setErrorMessage(parseSocketError(message.body));
       });
+
+      if (isReconnect && client.connected) {
+        client.publish({
+          destination: `/app/rooms/${roomCode}/sync`,
+        });
+      }
     };
 
     client.onDisconnect = () => {
@@ -322,6 +342,63 @@ export function useRoomSocket({
       client.deactivate();
     };
   }, [roomSession, roomCode]);
+
+  useEffect(() => {
+    let isDisposed = false;
+
+    const handleVisibilityChange = () => {
+      if (
+        document.visibilityState !== 'visible' ||
+        !roomCode ||
+        !roomSession ||
+        visibilityReconnectTimerRef.current !== null
+      ) {
+        return;
+      }
+
+      const client = stompClientRef.current;
+
+      if (!client || client.connected) {
+        return;
+      }
+
+      visibilityReconnectTimerRef.current = setTimeout(() => {
+        visibilityReconnectTimerRef.current = null;
+
+        if (isDisposed || client.connected) {
+          return;
+        }
+
+        if (!client.active) {
+          client.activate();
+          return;
+        }
+
+        const activateIfNotDisposed = () => {
+          if (!isDisposed) {
+            client.activate();
+          }
+        };
+
+        client.deactivate({ force: true }).then(
+          activateIfNotDisposed,
+          activateIfNotDisposed,
+        );
+      }, 100);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      isDisposed = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
+      if (visibilityReconnectTimerRef.current !== null) {
+        clearTimeout(visibilityReconnectTimerRef.current);
+        visibilityReconnectTimerRef.current = null;
+      }
+    };
+  }, [roomCode, roomSession]);
 
   const publish = useCallback(
     (destination: string, body?: string) => {

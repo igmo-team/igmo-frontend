@@ -62,7 +62,10 @@ export function getRoomTimerRange({
       };
 
     case 'VOTE_SKIPPED_SNAPSHOT':
-      return null;
+      return {
+        startedAt: currentSnapshot.startedAt,
+        deadline: currentSnapshot.deadline,
+      };
 
     case 'ROUND_RESULT_SNAPSHOT':
       return {

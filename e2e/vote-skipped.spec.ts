@@ -67,7 +67,13 @@ test('VOTE_SKIPPED 스냅샷 수신 시 투표 생략 화면을 거쳐 결과로
   }
 
   // 서버가 ALL_PERFECT 판정을 완료한 신호이므로, 프론트는 스냅샷 수신 후 화면만 전환한다.
-  broker.pushTopic(ROOM_CODE, voteSkippedMessage({ roundNumber: 1 }));
+  broker.pushTopic(
+    ROOM_CODE,
+    voteSkippedMessage({
+      roundNumber: 1,
+      deadline: new Date(Date.now() + 3_000).toISOString(),
+    }),
+  );
 
   await test.step('전원 완벽 정답 후 투표 생략 화면 표시', async () => {
     for (const page of pages) {
@@ -82,6 +88,7 @@ test('VOTE_SKIPPED 스냅샷 수신 시 투표 생략 화면을 거쳐 결과로
       await expect(
         page.getByRole('button', { name: '투표 확정' }),
       ).toHaveCount(0);
+      await expect(page.getByLabel(/남은 시간 [1-3]초/)).toBeVisible();
       await expect(
         page.getByRole('heading', { name: '진짜 프롬프트는? 🤔' }),
       ).toHaveCount(0);
