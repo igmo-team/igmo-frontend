@@ -1,8 +1,15 @@
+import { lazy, Suspense } from 'react';
+
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 import { PAGE_URL } from './common/constants/pageUrl';
 import { HomePage } from './pages/home/HomePage';
-import { RoomPage } from './pages/room/RoomPage';
+
+const RoomPage = lazy(() =>
+  import('./pages/room/RoomPage').then(({ RoomPage }) => ({
+    default: RoomPage,
+  })),
+);
 
 const router = createBrowserRouter([
   {
@@ -11,7 +18,11 @@ const router = createBrowserRouter([
   },
   {
     path: `${PAGE_URL.ROOM}/:roomCode`,
-    element: <RoomPage />,
+    element: (
+      <Suspense fallback={null}>
+        <RoomPage />
+      </Suspense>
+    ),
   },
 ]);
 
