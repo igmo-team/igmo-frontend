@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { keyframes } from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,9 +7,9 @@ import { Maximize2, Minimize2, MoveRight, X } from 'lucide-react';
 import Surface from '../../../common/components/Surface';
 import { PLAY_GUIDE_COMPACT_MEDIA_QUERY } from '../constants/playGuideSlides';
 
-import type { PlayGuideSlideData } from '../types/playGuide';
+import PlayGuideCarousel from './PlayGuideCarousel';
 
-const PlayGuideCarousel = lazy(() => import('./PlayGuideCarousel'));
+import type { PlayGuideSlideData } from '../types/playGuide';
 
 type PlayGuideProps = {
   slides: PlayGuideSlideData[];
@@ -23,17 +23,9 @@ export default function PlayGuide({
   onToggleExpand,
 }: PlayGuideProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [shouldLoadCarousel, setShouldLoadCarousel] = useState(
-    () =>
-      typeof window === 'undefined' ||
-      typeof IntersectionObserver === 'undefined' ||
-      !window.matchMedia(PLAY_GUIDE_COMPACT_MEDIA_QUERY).matches,
-  );
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const panelBodyRef = useRef<HTMLDivElement>(null);
 
   const handleOpenButtonClick = () => {
-    setShouldLoadCarousel(true);
     setIsOpen(true);
   };
 
@@ -44,31 +36,6 @@ export default function PlayGuide({
       triggerRef.current?.focus();
     });
   };
-
-  useEffect(() => {
-    if (shouldLoadCarousel) {
-      return;
-    }
-
-    const panelBody = panelBodyRef.current;
-
-    if (!panelBody) {
-      return;
-    }
-
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry?.isIntersecting) {
-        setShouldLoadCarousel(true);
-        observer.disconnect();
-      }
-    });
-
-    observer.observe(panelBody);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [shouldLoadCarousel]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -135,20 +102,12 @@ export default function PlayGuide({
             <S_CloseIcon aria-hidden="true" />
           </S_CloseButton>
         </S_PanelHeader>
-        <S_PanelBody ref={panelBodyRef}>
-          {shouldLoadCarousel && (
-            <Suspense
-              fallback={
-                <S_CarouselLoading>안내를 불러오는 중...</S_CarouselLoading>
-              }
-            >
-              <PlayGuideCarousel
-                key={isOpen ? 'open' : 'closed'}
-                slides={slides}
-                isExpanded={isExpanded}
-              />
-            </Suspense>
-          )}
+        <S_PanelBody>
+          <PlayGuideCarousel
+            key={isOpen ? 'open' : 'closed'}
+            slides={slides}
+            isExpanded={isExpanded}
+          />
         </S_PanelBody>
       </S_Panel>
     </>
@@ -382,13 +341,4 @@ const S_PanelBody = styled.div`
   flex-direction: column;
   justify-content: center;
   overflow: auto;
-`;
-
-const S_CarouselLoading = styled.p`
-  display: flex;
-  min-height: 12rem;
-  align-items: center;
-  justify-content: center;
-  color: ${({ theme }) => theme.COLOR.TEXT_SUBTLE};
-  ${({ theme }) => theme.TYPOGRAPHY.B5_R}
 `;
