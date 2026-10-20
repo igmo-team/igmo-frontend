@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 
 import { PAGE_URL } from './common/constants/pageUrl';
 import { HomePage } from './pages/home/HomePage';
+import RoomPageLoading from './pages/room/components/RoomPageLoading';
 
 const RoomPage = lazy(() =>
   import('./pages/room/RoomPage').then(({ RoomPage }) => ({
@@ -19,7 +20,7 @@ const router = createBrowserRouter([
   {
     path: `${PAGE_URL.ROOM}/:roomCode`,
     element: (
-      <Suspense fallback={null}>
+      <Suspense fallback={<RoomPageLoading />}>
         <RoomPage />
       </Suspense>
     ),
