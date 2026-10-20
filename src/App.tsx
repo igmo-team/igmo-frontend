@@ -1,7 +1,8 @@
 import { lazy, Suspense } from 'react';
 
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 
+import RouteErrorFallback from './common/components/RouteErrorFallback';
 import { PAGE_URL } from './common/constants/pageUrl';
 import { HomePage } from './pages/home/HomePage';
 import RoomPageLoading from './pages/room/components/RoomPageLoading';
@@ -14,16 +15,22 @@ const RoomPage = lazy(() =>
 
 const router = createBrowserRouter([
   {
-    path: PAGE_URL.HOME,
-    element: <HomePage />,
-  },
-  {
-    path: `${PAGE_URL.ROOM}/:roomCode`,
-    element: (
-      <Suspense fallback={<RoomPageLoading />}>
-        <RoomPage />
-      </Suspense>
-    ),
+    element: <Outlet />,
+    errorElement: <RouteErrorFallback />,
+    children: [
+      {
+        path: PAGE_URL.HOME,
+        element: <HomePage />,
+      },
+      {
+        path: `${PAGE_URL.ROOM}/:roomCode`,
+        element: (
+          <Suspense fallback={<RoomPageLoading />}>
+            <RoomPage />
+          </Suspense>
+        ),
+      },
+    ],
   },
 ]);
 
