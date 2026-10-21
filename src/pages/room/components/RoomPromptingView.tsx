@@ -35,6 +35,10 @@ export function RoomPromptingView({
   const isPromptEmpty = promptText === '';
 
   const handleDeadlineSubmit = useCallback(() => {
+    if (latestPromptRef.current === '') {
+      return;
+    }
+
     onSubmit({
       prompt: latestPromptRef.current,
       submissionType: 'DEADLINE',

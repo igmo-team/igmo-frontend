@@ -59,6 +59,10 @@ export function RoomPlayingView({
   const isSubmitted = isServerSubmitted || isRoundSubmitted;
 
   const handleDeadlineSubmit = useCallback(() => {
+    if (latestPromptRef.current === '') {
+      return;
+    }
+
     onSubmit({
       guess: latestPromptRef.current,
       submissionType: 'DEADLINE',
